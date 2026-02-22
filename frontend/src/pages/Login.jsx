@@ -35,7 +35,7 @@ function Login() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter your passwords"
+              placeholder="Enter your password"
               required
             />
           </div>
