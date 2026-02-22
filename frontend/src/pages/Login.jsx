@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import Logo from '../components/Logo';
 
 function Login() {
   const [email, setEmail] = useState('');
@@ -11,42 +12,38 @@ function Login() {
 
   return (
     <div className="auth-page">
-      <div className="auth-card">
-        <h1 className="auth-title">ChatApp</h1>
-        <p className="auth-subtitle">Sign in to continue</p>
+      <div className="auth-graphic">
+        <Logo />
+        <h1 className="graphic-title">
+          Stay connected with <span className="highlight">life</span>
+        </h1>
+      </div>
 
+      <div className="auth-form-container">
+        <h2 className="auth-title">Log in to ChatApp</h2>
         <form className="auth-form" onSubmit={handleSubmit} noValidate>
           <div className="form-group">
-            <label htmlFor="email">Email</label>
             <input
-              id="email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="Enter your email"
+              placeholder="Email address"
               required
             />
           </div>
-
           <div className="form-group">
-            <label htmlFor="password">Password</label>
             <input
-              id="password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter your password"
+              placeholder="Password"
               required
             />
           </div>
-
-          <button type="submit" className="btn-primary">
-            Sign in
-          </button>
-
-          <p className="auth-helper">
-            Don't have an account? <a href="#">Sign up</a>
-          </p>
+          <button type="submit" className="btn-primary">Log in</button>
+          <a href="#" className="forgot-password">Forgotten password?</a>
+          <div className="divider"></div>
+          <button type="button" className="btn-secondary">Create new account</button>
         </form>
       </div>
     </div>
