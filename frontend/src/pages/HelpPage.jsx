@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Logo from '../components/Logo';
-import Footer from '../components/Footer';
+import Logo from '../components/auth-comp/Logo';
+import Footer from '../components/auth-comp/Footer';
 
 const FAQS = [
   {
@@ -26,7 +26,7 @@ const FAQS = [
   },
 ];
 
-function Help() {
+export default function HelpPage() {
   const navigate = useNavigate();
   const [openIndex, setOpenIndex] = useState(null);
 
@@ -55,11 +55,15 @@ function Help() {
             </div>
           ))}
         </div>
+
+        <div className="info-contact">
+          <h2>Still need help?</h2>
+          <p>Our support team is available Monday – Friday, 9am – 6pm.</p>
+          <a href="mailto:support@chatapp.com" className="btn-primary info-contact-btn">Contact Support</a>
+        </div>
       </div>
 
       <Footer />
     </div>
   );
 }
-
-export default Help;

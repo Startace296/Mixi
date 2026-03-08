@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Footer from '../components/Footer';
+import Footer from '../components/auth-comp/Footer';
 
-function SignUp() {
+export default function SignUpPage() {
   const [email, setEmail] = useState('');
   const navigate = useNavigate();
 
@@ -44,5 +44,3 @@ function SignUp() {
     </div>
   );
 }
-
-export default SignUp;

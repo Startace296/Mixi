@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import Footer from '../components/Footer';
+import Footer from '../components/auth-comp/Footer';
 
 const DAYS = Array.from({ length: 31 }, (_, i) => i + 1);
 const MONTHS = Array.from({ length: 12 }, (_, i) => i + 1);
 const YEARS = Array.from({ length: 76 }, (_, i) => 2025 - i);
 const GENDERS = ['Male', 'Female', 'Other'];
 
-function Register() {
+export default function RegisterPage() {
   const [nickname, setNickname] = useState('');
   const [signature, setSignature] = useState('');
   const [gender, setGender] = useState('');
@@ -120,5 +120,3 @@ function Register() {
     </div>
   );
 }
-
-export default Register;

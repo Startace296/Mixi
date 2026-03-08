@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
-import Logo from '../components/Logo';
-import Footer from '../components/Footer';
+import Logo from '../components/auth-comp/Logo';
+import Footer from '../components/auth-comp/Footer';
 
 const SECTIONS = [
   {
@@ -37,7 +37,7 @@ const SECTIONS = [
   },
 ];
 
-function Policies() {
+export default function PoliciesPage() {
   const navigate = useNavigate();
 
   return (
@@ -64,11 +64,15 @@ function Policies() {
             </div>
           ))}
         </div>
+
+        <div className="info-contact">
+          <h2>Questions about our policy?</h2>
+          <p>Feel free to reach out to us at any time.</p>
+          <a href="mailto:privacy@chatapp.com" className="btn-primary info-contact-btn">Contact Us</a>
+        </div>
       </div>
 
       <Footer />
     </div>
   );
 }
-
-export default Policies;

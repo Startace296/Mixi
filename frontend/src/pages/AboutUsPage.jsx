@@ -1,8 +1,8 @@
 import { useNavigate } from 'react-router-dom';
-import Logo from '../components/Logo';
-import Footer from '../components/Footer';
+import Logo from '../components/auth-comp/Logo';
+import Footer from '../components/auth-comp/Footer';
 
-function AboutUs() {
+export default function AboutUsPage() {
   const navigate = useNavigate();
 
   return (
@@ -61,5 +61,3 @@ function AboutUs() {
     </div>
   );
 }
-
-export default AboutUs;

@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Logo from '../components/Logo';
-import Footer from '../components/Footer';
+import Logo from '../components/auth-comp/Logo';
+import Footer from '../components/auth-comp/Footer';
 
-function Login() {
+export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const navigate = useNavigate();
@@ -57,5 +57,3 @@ function Login() {
     </div>
   );
 }
-
-export default Login;

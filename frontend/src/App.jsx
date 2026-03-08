@@ -1,27 +1,25 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import Login from './pages/Login';
-import SignUp from './pages/SignUp';
-import Verify from './pages/Verify';
-import Register from './pages/Register';
-import AboutUs from './pages/AboutUs';
-import Help from './pages/Help';
-import Policies from './pages/Policies';
+import LoginPage from './pages/LoginPage';
+import SignUpPage from './pages/SignUpPage';
+import VerifyPage from './pages/VerifyPage';
+import RegisterPage from './pages/RegisterPage';
+import AboutUsPage from './pages/AboutUsPage';
+import HelpPage from './pages/HelpPage';
+import PoliciesPage from './pages/PoliciesPage';
 
-function App() {
+export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<SignUp />} />
-        <Route path="/verify" element={<Verify />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/about" element={<AboutUs />} />
-        <Route path="/help" element={<Help />} />
-        <Route path="/policies" element={<Policies />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/signup" element={<SignUpPage />} />
+        <Route path="/verify" element={<VerifyPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/about" element={<AboutUsPage />} />
+        <Route path="/help" element={<HelpPage />} />
+        <Route path="/policies" element={<PoliciesPage />} />
         <Route path="/" element={<Navigate to="/login" replace />} />
       </Routes>
     </BrowserRouter>
   );
 }
-
-export default App;

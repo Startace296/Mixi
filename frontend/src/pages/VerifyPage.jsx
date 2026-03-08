@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import Footer from '../components/Footer';
+import Footer from '../components/auth-comp/Footer';
 
-function Verify() {
+export default function VerifyPage() {
   const [code, setCode] = useState('');
   const [timeLeft, setTimeLeft] = useState(60);
   const navigate = useNavigate();
@@ -75,5 +75,3 @@ function Verify() {
     </div>
   );
 }
-
-export default Verify;
