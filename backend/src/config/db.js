@@ -1,13 +1,18 @@
-﻿import mongoose from "mongoose";
+import mongoose from "mongoose";
 
-mongoose.set("strictQuery", true);
+import { env } from "./env.js";
+import User from "../models/User.js";
 
-export async function connectDB() {
-  const uri = process.env.MONGODB_URI;
-  if (!uri) {
+export async function connectDatabase() {
+  if (!env.mongoUri) {
     throw new Error("MONGODB_URI is required");
   }
 
-  await mongoose.connect(uri);
-  console.log("MongoDB connected");
+  const connection = await mongoose.connect(env.mongoUri);
+  await User.syncIndexes();
+
+  console.log(
+    `MongoDB connected: ${connection.connection.host}/${connection.connection.name}`,
+  );
+  console.log("MongoDB indexes synced for User model");
 }

@@ -1,57 +1,75 @@
-﻿import mongoose, { Schema } from "mongoose";
+import mongoose, { Schema } from "mongoose";
 
 const userSchema = new Schema(
-  {
-    displayName: {
-      type: String,
-      trim: true,
-      maxlength: 80,
-    },
-
-    email: {
-      type: String,
-      trim: true,
-      lowercase: true,
-      unique: true,
-      sparse: true,
-    },
-
-    phone: {
-      type: String,
-      trim: true,
-      unique: true,
-      sparse: true,
-    },
-
-    password: {
-      type: String,
-      minlength: 6,
-      select: false,
-    },
-
-    avatarUrl: {
-      type: String,
-      default: "",
-    },
-
-    provider: {
-      type: String,
-      enum: ["local", "google"],
-      default: "local",
-    },
-
-    providerId: {
-      type: String,
-      default: null,
-    },
-
-    lastLoginAt: {
-      type: Date,
-      default: null,
-    },
+{
+  displayName: {
+    type: String,
+    trim: true,
+    maxlength: 80,
+    default: ""
   },
+
+  email: {
+    type: String,
+    trim: true,
+    lowercase: true,
+    unique: true,
+    sparse: true
+  },
+
+  passwordHash: {
+    type: String,
+    minlength: 20,
+    select: false
+  },
+
+  avatarUrl: {
+    type: String,
+    trim: true,
+    default: ""
+  },
+
+  provider: {
+    type: String,
+    enum: ["local", "google"],
+    default: "local"
+  },
+
+  providerId: {
+    type: String
+  },
+
+  isEmailVerified: {
+    type: Boolean,
+    default: false
+  },
+
+  otpCode: {
+    type: String,
+    select: false
+  },
+
+  otpExpiresAt: {
+    type: Date,
+    select: false
+  },
+
+  lastLoginAt: {
+    type: Date
+  }
+},
+{
+  timestamps: true
+},
+);
+userSchema.index(
+  { provider: 1, providerId: 1 },
   {
-    timestamps: true,
+    unique: true,
+    partialFilterExpression: {
+      provider: "google",
+      providerId: { $type: "string" }
+    }
   }
 );
 

@@ -1,42 +1,27 @@
-﻿import express from "express";
 import cors from "cors";
-import morgan from "morgan";
-import helmet from "helmet";
-import compression from "compression";
-import cookieParser from "cookie-parser";
+import express from "express";
 
-import healthRoutes from "./routes/health.js";
-import { notFound, errorHandler } from "./middlewares/errorHandler.js";
+import authRouter from "./routes/auth.routes.js";
+import { errorHandler, notFoundHandler } from "./middlewares/error.middleware.js";
 
 const app = express();
 
-app.set("trust proxy", 1);
-
-app.use(helmet());
-app.use(compression());
-app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
-app.use(express.json({ limit: "2mb" }));
-app.use(express.urlencoded({ extended: true }));
-app.use(cookieParser());
-
-const corsOrigin = process.env.CORS_ORIGIN
-  ? process.env.CORS_ORIGIN.split(",").map((v) => v.trim()).filter(Boolean)
-  : true;
-
 app.use(
   cors({
-    origin: corsOrigin,
+    origin: process.env.CLIENT_URL || "http://localhost:5173",
     credentials: true,
   })
 );
+app.use(express.json());
 
-app.get("/", (req, res) => {
-  res.json({ ok: true, name: "chatapp-backend" });
+app.get("/", (_req, res) => {
+  res.json({
+    message: "ChatApp backend is running",
+  });
 });
 
-app.use("/health", healthRoutes);
-
-app.use(notFound);
+app.use("/auth", authRouter);
+app.use(notFoundHandler);
 app.use(errorHandler);
 
 export default app;
