@@ -1,4 +1,5 @@
 import {
+  getCurrentUserProfile,
   loginLocalUser,
   loginWithGoogle,
   refreshAccessToken,
@@ -145,5 +146,13 @@ export async function logout(req, res) {
 
   return res.json({
     message: "Logout successful",
+  });
+}
+
+export async function me(req, res) {
+  const user = await getCurrentUserProfile(req.user?.id);
+
+  res.json({
+    user,
   });
 }

@@ -4,12 +4,14 @@ import {
   googleLogin,
   login,
   logout,
+  me,
   refreshToken,
   register,
   sendOtp,
   verifyOtpCode,
 } from "../controllers/auth.controller.js";
 import { asyncHandler } from "../utils/async-handler.js";
+import { requireAuth } from "../middlewares/auth.middleware.js";
 import { loginRateLimit, sendOtpRateLimit } from "../middlewares/rate-limit.middleware.js";
 import { validateBody } from "../middlewares/validation.middleware.js";
 import {
@@ -28,6 +30,7 @@ router.post("/verify-otp", validateBody(verifyOtpSchema), asyncHandler(verifyOtp
 router.post("/login", loginRateLimit, validateBody(loginSchema), asyncHandler(login));
 router.post("/google", validateBody(googleLoginSchema), asyncHandler(googleLogin));
 router.post("/refresh-token", asyncHandler(refreshToken));
+router.get("/me", requireAuth, asyncHandler(me));
 router.post("/logout", asyncHandler(logout));
 
 export default router;

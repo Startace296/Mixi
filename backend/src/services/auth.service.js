@@ -36,6 +36,18 @@ function sanitizeUser(user) {
   };
 }
 
+function sanitizeProfileUser(user) {
+  return {
+    id: user._id,
+    email: user.email,
+    displayName: user.displayName,
+    provider: user.provider,
+    avatarUrl: user.avatarUrl,
+    createdAt: user.createdAt,
+    lastLoginAt: user.lastLoginAt,
+  };
+}
+
 function createAuthTokens(user) {
   const token = signAccessToken(user);
   const refreshToken = generateRefreshToken();
@@ -351,4 +363,18 @@ export async function refreshAccessToken({ refreshToken }) {
     expiresIn: tokens.expiresIn,
     user: sanitizeUser(user),
   };
+}
+
+export async function getCurrentUserProfile(userId) {
+  if (!userId) {
+    throw new AppError("Unauthorized", 401);
+  }
+
+  const user = await User.findById(userId);
+
+  if (!user) {
+    throw new AppError("Unauthorized", 401);
+  }
+
+  return sanitizeProfileUser(user);
 }
