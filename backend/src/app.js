@@ -1,5 +1,7 @@
 import cors from "cors";
 import express from "express";
+import helmet from "helmet";
+import compression from "compression";
 
 import authRouter from "./routes/auth.routes.js";
 import { errorHandler, notFoundHandler } from "./middlewares/error.middleware.js";
@@ -7,13 +9,18 @@ import { errorHandler, notFoundHandler } from "./middlewares/error.middleware.js
 const app = express();
 
 app.use(
+  helmet({
+    contentSecurityPolicy: false,
+  })
+);
+app.use(compression());
+app.use(
   cors({
     origin: process.env.CLIENT_URL || "http://localhost:5173",
     credentials: true,
   })
 );
 app.use(express.json());
-
 app.get("/", (_req, res) => {
   res.json({
     message: "ChatApp backend is running",

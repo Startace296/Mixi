@@ -30,15 +30,19 @@ export async function sendOtpEmail(email, otpCode) {
   const transporter = await getTransporter();
 
   if (!transporter) {
-    console.log(`[OTP] ${email}: ${otpCode}`);
-    return { delivered: false, preview: otpCode };
+    if (env.nodeEnv === "development") {
+      console.log(`[OTP][DEV] ${email}: ${otpCode}`);
+      return { delivered: false, preview: otpCode };
+    }
+
+    return { delivered: false };
   }
 
   await transporter.sendMail({
     from: env.smtpFrom,
     to: email,
-    subject: "ChatApp OTP verification",
-    text: `Your ChatApp OTP code is ${otpCode}. It will expire in ${env.otpExpiresInMinutes} minutes.`,
+    subject: "MixiChat OTP Verification",
+    text: `Your OTP code is ${otpCode}. It will expire in ${env.otpExpiresInMinutes} minutes.`,
   });
 
   return { delivered: true };
