@@ -54,6 +54,33 @@ const userSchema = new Schema(
     select: false
   },
 
+  otpAttempts: {
+    type: Number,
+    default: 0,
+    select: false
+  },
+
+  refreshTokenHash: {
+    type: String,
+    select: false
+  },
+
+  refreshTokenExpiresAt: {
+    type: Date,
+    select: false
+  },
+
+  loginAttempts: {
+    type: Number,
+    default: 0,
+    select: false
+  },
+
+  lockUntil: {
+    type: Date,
+    select: false
+  },
+
   lastLoginAt: {
     type: Date
   },

@@ -5,6 +5,13 @@ export function notFoundHandler(req, _res, next) {
 }
 
 export function errorHandler(error, _req, res, _next) {
+  if (error?.errors && Array.isArray(error.errors)) {
+    return res.status(error.statusCode || 400).json({
+      message: error.message || "Validation failed",
+      errors: error.errors,
+    });
+  }
+
   if (error?.code === 11000) {
     const duplicateField = Object.keys(error.keyPattern || {})[0];
     const fieldMessage = duplicateField
