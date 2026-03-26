@@ -1,19 +1,28 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Footer from '../components/auth-comp/Footer';
+import { Footer } from '../components/auth-comp/AuthSiteChrome';
+import GoogleLoginButton from '../components/auth-comp/GoogleLoginButton';
+import { requestSignupOtp } from '../lib/api.js';
+import toast from 'react-hot-toast';
 
 export default function SignUpPage() {
   const [email, setEmail] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleVerify = (e) => {
+  const handleVerify = async (e) => {
     e.preventDefault();
     if (!email.trim()) return;
-    navigate('/verify', { state: { email: email.trim() } });
-  };
-
-  const handleGoogle = () => {
-    console.log('Sign up with Google - TODO');
+    setIsLoading(true);
+    try {
+      await requestSignupOtp({ email: email.trim() });
+      navigate('/verify', { state: { email: email.trim() } });
+      toast.success('OTP has been sent to your email.');
+    } catch (error) {
+      toast.error(error.message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -58,22 +67,17 @@ export default function SignUpPage() {
               </p>
               <button
                 type="submit"
+                disabled={isLoading}
                 className="px-3 py-2.5 text-base font-semibold rounded-full border-none bg-indigo-600 text-white cursor-pointer transition-colors duration-150 hover:bg-indigo-700 active:bg-indigo-800 disabled:bg-gray-400 disabled:cursor-not-allowed"
               >
-                Verify
+                {isLoading ? 'Sending...' : 'Verify'}
               </button>
               <div className="flex items-center gap-3">
                 <div className="flex-1 h-px bg-[#dadde1]" />
-                <span className="text-sm text-[#606770]">Or sign up with</span>
+                <span className="text-sm text-[#606770]">Or continue with</span>
                 <div className="flex-1 h-px bg-[#dadde1]" />
               </div>
-              <button
-                type="button"
-                className="w-full px-3 py-2.5 text-base font-semibold rounded-full border-none bg-[#ea4335] text-white cursor-pointer transition-colors duration-150 hover:bg-[#d33426]"
-                onClick={handleGoogle}
-              >
-                Google
-              </button>
+              <GoogleLoginButton />
             </form>
           </div>
         </div>

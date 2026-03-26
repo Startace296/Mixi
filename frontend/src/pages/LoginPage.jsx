@@ -1,21 +1,25 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Logo from '../components/auth-comp/Logo';
-import Footer from '../components/auth-comp/Footer';
+import { Logo, Footer } from '../components/auth-comp/AuthSiteChrome';
 import PasswordInput from '../components/auth-comp/PasswordInput';
+import GoogleLoginButton from '../components/auth-comp/GoogleLoginButton';
+import { login } from '../lib/api.js';
+import { handleAuthSuccess } from '../lib/authUtils.js';
+import toast from 'react-hot-toast';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Login with:', { email, password });
-  };
-
-  const handleGoogle = () => {
-    console.log('Login with Google - TODO');
+    try {
+      const data = await login({ email, password });
+      handleAuthSuccess(data, navigate);
+    } catch (error) {
+      toast.error(error.message);
+    }
   };
 
   return (
@@ -53,7 +57,7 @@ export default function LoginPage() {
               <label
                 className="absolute left-4 top-1/2 -translate-y-1/2 text-base text-[#90949c] pointer-events-none transition-all duration-200 ease-out peer-focus:top-1.5 peer-focus:translate-y-0 peer-focus:text-xs peer-focus:text-indigo-600 peer-[:not(:placeholder-shown)]:top-1.5 peer-[:not(:placeholder-shown)]:translate-y-0 peer-[:not(:placeholder-shown)]:text-xs peer-[:not(:placeholder-shown)]:text-indigo-600"
               >
-                Email address or phone number
+                Email address
               </label>
             </div>
             <PasswordInput value={password} onChange={setPassword} label="Password" />
@@ -72,16 +76,10 @@ export default function LoginPage() {
             </button>
             <div className="flex items-center gap-3">
               <div className="flex-1 h-px bg-[#dadde1]" />
-              <span className="text-sm text-[#606770]">Or sign in with</span>
+              <span className="text-sm text-[#606770]">Or continue with</span>
               <div className="flex-1 h-px bg-[#dadde1]" />
             </div>
-            <button
-              type="button"
-              className="w-full px-3 py-2.5 text-base font-semibold rounded-full border-none bg-[#ea4335] text-white cursor-pointer transition-colors duration-150 hover:bg-[#d33426]"
-              onClick={handleGoogle}
-            >
-              Google
-            </button>
+            <GoogleLoginButton />
             <div className="h-px bg-[#dadde1] my-5" />
             <button
               type="button"

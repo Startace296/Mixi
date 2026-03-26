@@ -2,15 +2,16 @@ import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import InfoLayout from './layouts/InfoLayout';
 import LoginPage from './pages/LoginPage';
-import ForgotPasswordPage from './pages/ForgotPasswordPage';
-import ForgotVerifyPage from './pages/ForgotVerifyPage';
-import ResetPasswordPage from './pages/ResetPasswordPage';
+import {
+  ForgotPasswordPage,
+  ForgotVerifyPage,
+  ResetPasswordPage,
+} from './pages/ForgotPasswordPages';
 import SignUpPage from './pages/SignUpPage';
 import VerifyPage from './pages/VerifyPage';
 import RegisterPage from './pages/RegisterPage';
-import AboutUsPage from './pages/AboutUsPage';
-import HelpPage from './pages/HelpPage';
-import PoliciesPage from './pages/PoliciesPage';
+import { AboutUsPage, HelpPage, PoliciesPage } from './pages/InfoPages';
+import HomePage from './pages/HomePage';
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -32,6 +33,7 @@ export default function App() {
         <Route path="/signup" element={<SignUpPage />} />
         <Route path="/verify" element={<VerifyPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/home" element={<HomePage />} />
         <Route element={<InfoLayout />}>
           <Route path="about" element={<AboutUsPage />} />
           <Route path="help" element={<HelpPage />} />

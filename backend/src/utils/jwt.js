@@ -15,3 +15,19 @@ export function signAccessToken(user) {
     },
   );
 }
+
+export function signGoogleSignupToken(payload) {
+  return jwt.sign(
+    { type: "google_signup", ...payload },
+    env.jwtSecret,
+    { expiresIn: "15m" },
+  );
+}
+
+export function verifyGoogleSignupToken(token) {
+  const decoded = jwt.verify(token, env.jwtSecret);
+  if (decoded.type !== "google_signup") {
+    throw new Error("Invalid token type");
+  }
+  return decoded;
+}

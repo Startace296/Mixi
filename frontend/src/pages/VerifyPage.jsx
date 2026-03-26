@@ -1,13 +1,23 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import Footer from '../components/auth-comp/Footer';
+import { Footer } from '../components/auth-comp/AuthSiteChrome';
+import { requestSignupOtp, verifyOtp } from '../lib/api.js';
+import toast from 'react-hot-toast';
 
 export default function VerifyPage() {
   const [code, setCode] = useState('');
   const [timeLeft, setTimeLeft] = useState(60);
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const email = location.state?.email || 'test@example.com';
+  const email = location.state?.email;
+
+  useEffect(() => {
+    if (!email) {
+      navigate('/signup', { replace: true });
+      return;
+    }
+  }, [email, navigate]);
 
   useEffect(() => {
     if (timeLeft <= 0) return;
@@ -15,17 +25,36 @@ export default function VerifyPage() {
     return () => clearInterval(timer);
   }, [timeLeft]);
 
-  const handleConfirm = (e) => {
+  const handleConfirm = async (e) => {
     e.preventDefault();
     if (code.length !== 6 || !email) return;
-    navigate('/register', { state: { email } });
+    setIsLoading(true);
+    try {
+      await verifyOtp({ email, otpCode: code });
+      navigate('/register', { state: { email } });
+      toast.success('Email verified successfully.');
+    } catch (error) {
+      toast.error(error.message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleResend = () => {
+  const handleResend = async () => {
     if (timeLeft > 0) return;
-    setTimeLeft(60);
-    console.log('Resend code to', email);
+    setIsLoading(true);
+    try {
+      await requestSignupOtp({ email });
+      setTimeLeft(60);
+      toast.success('OTP resent successfully.');
+    } catch (error) {
+      toast.error(error.message);
+    } finally {
+      setIsLoading(false);
+    }
   };
+
+  if (!email) return null;
 
   return (
     <div className="w-full min-h-screen flex flex-col bg-[#f0f2f5] p-5">
@@ -69,7 +98,7 @@ export default function VerifyPage() {
                   type="button"
                   className="bg-transparent border-none text-indigo-600 text-sm font-medium cursor-pointer hover:underline disabled:text-gray-400 disabled:cursor-not-allowed disabled:no-underline"
                   onClick={handleResend}
-                  disabled={timeLeft > 0}
+                  disabled={timeLeft > 0 || isLoading}
                 >
                   Resend code
                 </button>
@@ -81,10 +110,10 @@ export default function VerifyPage() {
               </div>
               <button
                 type="submit"
+                disabled={code.length !== 6 || timeLeft <= 0 || isLoading}
                 className="px-3 py-2.5 text-base font-semibold rounded-full border-none bg-indigo-600 text-white cursor-pointer transition-colors duration-150 hover:bg-indigo-700 active:bg-indigo-800 disabled:bg-gray-400 disabled:cursor-not-allowed"
-                disabled={code.length !== 6 || timeLeft <= 0}
               >
-                Confirm
+                {isLoading ? 'Processing...' : 'Confirm'}
               </button>
             </form>
           </div>

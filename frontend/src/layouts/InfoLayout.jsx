@@ -1,6 +1,5 @@
 import { Outlet } from 'react-router-dom';
-import Navbar from '../components/auth-comp/Navbar';
-import Footer from '../components/auth-comp/Footer';
+import { Navbar, Footer } from '../components/auth-comp/AuthSiteChrome';
 
 export default function InfoLayout() {
   return (

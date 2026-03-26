@@ -56,6 +56,16 @@ const userSchema = new Schema(
 
   lastLoginAt: {
     type: Date
+  },
+
+  gender: {
+    type: String,
+    trim: true,
+    default: ""
+  },
+
+  dateOfBirth: {
+    type: Date
   }
 },
 {

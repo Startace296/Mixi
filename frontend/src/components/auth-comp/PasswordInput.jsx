@@ -1,9 +1,13 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 
 const inputBase =
-  'peer pt-6 px-4 pb-4 pr-12 rounded-xl border border-[#dddfe2] bg-white text-[#1c1e21] text-base outline-none transition-[border-color] duration-150 placeholder:text-transparent focus:border-indigo-600';
+  'peer w-full pt-6 px-4 pb-4 pr-12 rounded-xl border bg-white text-[#1c1e21] text-base outline-none transition-[border-color] duration-150 placeholder:text-transparent';
+const inputError = 'border-red-500 focus:border-red-500';
+const inputNormal = 'border-[#dddfe2] focus:border-indigo-600';
 const labelBase =
-  'absolute left-4 top-1/2 -translate-y-1/2 text-base text-[#90949c] pointer-events-none transition-all duration-200 ease-out peer-focus:top-1.5 peer-focus:translate-y-0 peer-focus:text-xs peer-focus:text-indigo-600 peer-[:not(:placeholder-shown)]:top-1.5 peer-[:not(:placeholder-shown)]:translate-y-0 peer-[:not(:placeholder-shown)]:text-xs peer-[:not(:placeholder-shown)]:text-indigo-600';
+  'absolute left-4 top-1/2 -translate-y-1/2 text-base pointer-events-none transition-all duration-200 ease-out peer-focus:top-1.5 peer-focus:translate-y-0 peer-focus:text-xs peer-[:not(:placeholder-shown)]:top-1.5 peer-[:not(:placeholder-shown)]:translate-y-0 peer-[:not(:placeholder-shown)]:text-xs';
+const labelError = 'text-red-500 peer-focus:text-red-500 peer-[:not(:placeholder-shown)]:text-red-500';
+const labelNormal = 'text-[#90949c] peer-focus:text-indigo-600 peer-[:not(:placeholder-shown)]:text-indigo-600';
 
 function EyeIcon({ className }) {
   return (
@@ -22,38 +26,74 @@ function EyeOffIcon({ className }) {
   );
 }
 
-export default function PasswordInput({ value, onChange, label = 'Password', required = true, className = '', autoComplete = 'current-password' }) {
+function getPasswordError(value, { minLength, required }) {
+  const v = (value || '').trim();
+  if (required && !v) return 'This field is required';
+  if (minLength != null && v.length > 0 && v.length < minLength) return 'Password must be at least 8 characters';
+  return null;
+}
+
+export default function PasswordInput({
+  value,
+  onChange,
+  label = 'Password',
+  required = true,
+  className = '',
+  autoComplete = 'current-password',
+  minLength,
+  error: errorProp,
+}) {
   const [showPassword, setShowPassword] = useState(false);
+  const [touched, setTouched] = useState(false);
+  const [focused, setFocused] = useState(false);
   const hasValue = (value || '').length > 0;
 
+  const blurError = touched && !focused ? getPasswordError(value, { minLength, required }) : null;
+  const error = errorProp ?? blurError;
+  const hasError = Boolean(error);
+
+  const handleFocus = useCallback(() => setFocused(true), []);
+  const handleBlur = useCallback(() => {
+    setFocused(false);
+    setTouched(true);
+  }, []);
+
+  const handleChange = useCallback(
+    (e) => onChange?.(e.target.value),
+    [onChange],
+  );
+
   return (
-    <div className="flex flex-col gap-1.5 relative">
-      <input
-        type={showPassword ? 'text' : 'password'}
-        value={value}
-        onChange={(e) => onChange?.(e.target.value)}
-        placeholder=" "
-        required={required}
-        autoComplete={autoComplete}
-        className={`${inputBase} ${className}`.trim()}
-      />
-      <label className={labelBase}>
-        {label}
-      </label>
-      {hasValue && (
-        <button
-          type="button"
-          onClick={() => setShowPassword((s) => !s)}
-          className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-full text-[#606770] hover:bg-[#e4e6eb] hover:text-[#1c1e21] transition-colors outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-0"
-          aria-label={showPassword ? 'Hide password' : 'Show password'}
-          tabIndex={-1}
-        >
-          {showPassword ? (
-            <EyeOffIcon className="w-5 h-5" />
-          ) : (
-            <EyeIcon className="w-5 h-5" />
-          )}
-        </button>
+    <div className="flex flex-col gap-1.5 w-full">
+      <div className="relative w-full">
+        <input
+          type={showPassword ? 'text' : 'password'}
+          value={value}
+          onChange={handleChange}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
+          placeholder=" "
+          required={required}
+          autoComplete={autoComplete}
+          className={`${inputBase} ${hasError ? inputError : inputNormal} ${className}`.trim()}
+        />
+        <label className={`${labelBase} ${hasError ? labelError : labelNormal}`}>
+          {label}
+        </label>
+        {hasValue && (
+          <button
+            type="button"
+            onClick={() => setShowPassword((s) => !s)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-full text-[#606770] hover:bg-[#e4e6eb] hover:text-[#1c1e21] transition-colors outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-0"
+            aria-label={showPassword ? 'Hide password' : 'Show password'}
+            tabIndex={-1}
+          >
+            {showPassword ? <EyeOffIcon className="w-5 h-5" /> : <EyeIcon className="w-5 h-5" />}
+          </button>
+        )}
+      </div>
+      {hasError && (
+        <span className="text-sm text-red-500">{error}</span>
       )}
     </div>
   );
