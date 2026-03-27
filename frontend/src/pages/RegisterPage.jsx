@@ -19,6 +19,7 @@ export default function RegisterPage() {
   const [year, setYear] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordError, setPasswordError] = useState('');
   const [confirmError, setConfirmError] = useState('');
   const [nicknameError, setNicknameError] = useState('');
   const [genderError, setGenderError] = useState('');
@@ -42,6 +43,7 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setPasswordError('');
     setConfirmError('');
     setNicknameError('');
     setGenderError('');
@@ -72,12 +74,16 @@ export default function RegisterPage() {
         hasError = true;
       }
     }
-    if (!fromGoogle && password && password.length < 8) {
-      setConfirmError('Password must be at least 8 characters');
+    if (!fromGoogle && password && password.trim().length < 8) {
+      setPasswordError('Password must be at least 8 characters');
       hasError = true;
     }
     if (!fromGoogle && (password !== confirmPassword || !password)) {
-      setConfirmError(password ? 'Passwords do not match' : 'Password is required');
+      if (!password) {
+        setPasswordError('Password is required');
+      } else if (password !== confirmPassword) {
+        setConfirmError('Password not match');
+      }
       hasError = true;
     }
     if (hasError) return;
@@ -237,7 +243,17 @@ export default function RegisterPage() {
               </div>
               {!fromGoogle && (
                 <>
-                  <PasswordInput value={password} onChange={setPassword} label="Password" autoComplete="new-password" minLength={8} />
+                  <PasswordInput
+                    value={password}
+                    onChange={(v) => {
+                      setPassword(v);
+                      setPasswordError('');
+                    }}
+                    label="Password"
+                    autoComplete="new-password"
+                    minLength={8}
+                    error={passwordError || undefined}
+                  />
                   <PasswordInput
                     value={confirmPassword}
                     onChange={(v) => {

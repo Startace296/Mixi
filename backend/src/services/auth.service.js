@@ -317,7 +317,14 @@ export async function requestForgotPasswordOtp({ email }) {
   }
 
   const user = await User.findOne({ email: normalizedEmail }).select("+otpCode +otpExpiresAt");
-  if (!user || user.provider !== "local" || !user.isEmailVerified) {
+  if (user && user.provider !== "local") {
+    throw new AppError(
+      "This account uses Google Sign-In. Password reset isn’t available. Please sign in with Google.",
+      400,
+    );
+  }
+
+  if (!user || !user.isEmailVerified) {
     return {
       otpExpiresAt: null,
       mailResult: { delivered: false },

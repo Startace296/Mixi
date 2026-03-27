@@ -20,8 +20,8 @@ export function ForgotPasswordPage() {
     if (!email.trim()) return;
     setIsLoading(true);
     try {
-      const data = await requestForgotPasswordOtp({ email: email.trim() });
-      toast.success(data.message || 'If this email exists, a reset code has been sent.');
+      await requestForgotPasswordOtp({ email: email.trim() });
+      toast.success('OTP has been sent to your email.');
       navigate('/forgot-verify', { state: { email: email.trim() } });
     } catch (error) {
       toast.error(error.message);
@@ -129,9 +129,9 @@ export function ForgotVerifyPage() {
     if (timeLeft > 0) return;
     setIsLoading(true);
     try {
-      const data = await requestForgotPasswordOtp({ email });
+      await requestForgotPasswordOtp({ email });
       setTimeLeft(60);
-      toast.success(data.message || 'OTP resent successfully.');
+      toast.success('OTP has been resent to your email.');
     } catch (error) {
       toast.error(error.message);
     } finally {
@@ -218,6 +218,8 @@ const LABEL_BASE =
 export function ResetPasswordPage() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [confirmError, setConfirmError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
@@ -229,12 +231,16 @@ export function ResetPasswordPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setPasswordError('');
+    setConfirmError('');
     if (
-      password !== confirmPassword ||
       !password.trim() ||
-      password.trim().length < 8
+      password.trim().length < 8 ||
+      password !== confirmPassword
     ) {
-      toast.error('Password must be at least 8 characters');
+      if (!password.trim()) setPasswordError('Password is required');
+      else if (password.trim().length < 8) setPasswordError('Password must be at least 8 characters');
+      if (password !== confirmPassword) setConfirmError('Password not match');
       return;
     }
     setIsLoading(true);
@@ -283,17 +289,25 @@ export function ResetPasswordPage() {
               </div>
               <PasswordInput
                 value={password}
-                onChange={setPassword}
+                onChange={(v) => {
+                  setPassword(v);
+                  setPasswordError('');
+                }}
                 label="New password"
                 autoComplete="new-password"
                 minLength={8}
+                error={passwordError || undefined}
               />
               <PasswordInput
                 value={confirmPassword}
-                onChange={setConfirmPassword}
+                onChange={(v) => {
+                  setConfirmPassword(v);
+                  setConfirmError('');
+                }}
                 label="Confirm new password"
                 autoComplete="new-password"
                 minLength={8}
+                error={confirmError || undefined}
               />
               <button
                 type="submit"

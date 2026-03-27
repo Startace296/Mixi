@@ -15,11 +15,23 @@ export const verifyOtp = async ({ email, otpCode }) => {
   return response.data;
 };
 
-export const completeRegistration = async ({ email, password, displayName }) => {
+export const completeRegistration = async ({
+  email,
+  password,
+  displayName,
+  gender,
+  day,
+  month,
+  year,
+}) => {
   const response = await axiosInstance.post('/auth/complete-registration', {
     email,
     password,
     displayName,
+    gender,
+    day,
+    month,
+    year,
   });
   return response.data;
 };
