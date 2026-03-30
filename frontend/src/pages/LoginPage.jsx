@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
+
 import { Logo, Footer } from '../components/auth-comp/AuthSiteChrome';
+import FloatingInput from '../components/auth-comp/FloatingInput';
 import PasswordInput from '../components/auth-comp/PasswordInput';
 import GoogleLoginButton from '../components/auth-comp/GoogleLoginButton';
 import { login } from '../lib/api.js';
 import { handleAuthSuccess } from '../lib/authUtils.js';
-import toast from 'react-hot-toast';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -45,21 +47,7 @@ export default function LoginPage() {
             onSubmit={handleSubmit}
             noValidate
           >
-            <div className="flex flex-col gap-1.5 relative">
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder=" "
-                required
-                className="peer pt-6 px-4 pb-4 rounded-xl border border-[#dddfe2] bg-white text-[#1c1e21] text-base outline-none transition-[border-color] duration-150 placeholder:text-transparent focus:border-indigo-600"
-              />
-              <label
-                className="absolute left-4 top-1/2 -translate-y-1/2 text-base text-[#90949c] pointer-events-none transition-all duration-200 ease-out peer-focus:top-1.5 peer-focus:translate-y-0 peer-focus:text-xs peer-focus:text-indigo-600 peer-[:not(:placeholder-shown)]:top-1.5 peer-[:not(:placeholder-shown)]:translate-y-0 peer-[:not(:placeholder-shown)]:text-xs peer-[:not(:placeholder-shown)]:text-indigo-600"
-              >
-                Email address
-              </label>
-            </div>
+            <FloatingInput type="email" value={email} onChange={setEmail} label="Email address" />
             <PasswordInput value={password} onChange={setPassword} label="Password" />
             <button
               type="submit"

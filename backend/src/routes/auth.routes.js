@@ -13,18 +13,26 @@ import {
   verifyOtpCode,
 } from "../controllers/auth.controller.js";
 import { asyncHandler } from "../utils/async-handler.js";
+import { validateBody } from "../middlewares/validation.middleware.js";
+import { loginRateLimit, sendOtpRateLimit } from "../middlewares/rate-limit.middleware.js";
+import {
+  sendOtpSchema,
+  verifyOtpSchema,
+  loginSchema,
+  googleLoginSchema,
+} from "../validation/auth.schemas.js";
 
 const router = Router();
 
-router.post("/request-signup-otp", asyncHandler(requestSignupOtpHandler));
-router.post("/forgot-password/request-otp", asyncHandler(requestForgotPasswordOtpHandler));
-router.post("/forgot-password/verify-otp", asyncHandler(verifyForgotPasswordOtpHandler));
-router.post("/forgot-password/reset", asyncHandler(resetPasswordWithOtpHandler));
+router.post("/request-signup-otp", sendOtpRateLimit, validateBody(sendOtpSchema), asyncHandler(requestSignupOtpHandler));
+router.post("/verify-otp", validateBody(verifyOtpSchema), asyncHandler(verifyOtpCode));
 router.post("/complete-registration", asyncHandler(completeRegistrationHandler));
+router.post("/login", loginRateLimit, validateBody(loginSchema), asyncHandler(login));
+router.post("/google", validateBody(googleLoginSchema), asyncHandler(googleLogin));
 router.post("/complete-google-registration", asyncHandler(completeGoogleRegistrationHandler));
-router.post("/verify-otp", asyncHandler(verifyOtpCode));
-router.post("/login", asyncHandler(login));
-router.post("/google", asyncHandler(googleLogin));
+router.post("/forgot-password/request-otp", sendOtpRateLimit, validateBody(sendOtpSchema), asyncHandler(requestForgotPasswordOtpHandler));
+router.post("/forgot-password/verify-otp", validateBody(verifyOtpSchema), asyncHandler(verifyForgotPasswordOtpHandler));
+router.post("/forgot-password/reset", asyncHandler(resetPasswordWithOtpHandler));
 router.post("/logout", logout);
 
 export default router;

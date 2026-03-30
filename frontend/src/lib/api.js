@@ -1,5 +1,7 @@
 import { axiosInstance } from './axios.js';
 
+// --- Auth ---
+
 export const login = async ({ email, password }) => {
   const response = await axiosInstance.post('/auth/login', { email, password });
   return response.data;
@@ -41,6 +43,8 @@ export const logout = async () => {
   return response.data;
 };
 
+// --- Google Auth ---
+
 export const googleLogin = async ({ idToken }) => {
   const response = await axiosInstance.post('/auth/google', { idToken });
   return response.data;
@@ -50,6 +54,8 @@ export const completeGoogleRegistration = async (data) => {
   const response = await axiosInstance.post('/auth/complete-google-registration', data);
   return response.data;
 };
+
+// --- Forgot Password ---
 
 export const requestForgotPasswordOtp = async ({ email }) => {
   const response = await axiosInstance.post('/auth/forgot-password/request-otp', { email });

@@ -1,6 +1,7 @@
 import jwt from "jsonwebtoken";
 
 import { env } from "../config/env.js";
+import { AppError } from "./app-error.js";
 
 export function signAccessToken(user) {
   return jwt.sign(
@@ -24,10 +25,23 @@ export function signGoogleSignupToken(payload) {
   );
 }
 
-export function verifyGoogleSignupToken(token) {
-  const decoded = jwt.verify(token, env.jwtSecret);
-  if (decoded.type !== "google_signup") {
-    throw new Error("Invalid token type");
+export function verifyAccessToken(token) {
+  try {
+    return jwt.verify(token, env.jwtSecret);
+  } catch (err) {
+    throw new AppError("Invalid or expired token", 401);
   }
-  return decoded;
+}
+
+export function verifyGoogleSignupToken(token) {
+  try {
+    const decoded = jwt.verify(token, env.jwtSecret);
+    if (decoded.type !== "google_signup") {
+      throw new AppError("Invalid token type", 400);
+    }
+    return decoded;
+  } catch (err) {
+    if (err instanceof AppError) throw err;
+    throw new AppError("Invalid or expired Google signup token", 401);
+  }
 }
