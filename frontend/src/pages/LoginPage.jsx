@@ -6,8 +6,8 @@ import { Logo, Footer } from '../components/auth-comp/AuthSiteChrome';
 import FloatingInput from '../components/auth-comp/FloatingInput';
 import PasswordInput from '../components/auth-comp/PasswordInput';
 import GoogleLoginButton from '../components/auth-comp/GoogleLoginButton';
-import { login } from '../lib/api.js';
-import { handleAuthSuccess } from '../lib/authUtils.js';
+import { login } from '../services/api.js';
+import { handleAuthSuccess } from '../utils/authUtils.js';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');

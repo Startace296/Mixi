@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import InfoLayout from './layouts/InfoLayout';
+import MainLayout from './layouts/MainLayout';
 import LoginPage from './pages/LoginPage';
 import {
   ForgotPasswordPage,
@@ -33,7 +34,9 @@ export default function App() {
         <Route path="/signup" element={<SignUpPage />} />
         <Route path="/verify" element={<VerifyPage />} />
         <Route path="/register" element={<RegisterPage />} />
-        <Route path="/home" element={<HomePage />} />
+        <Route element={<MainLayout />}>
+          <Route path="/home" element={<HomePage />} />
+        </Route>
         <Route element={<InfoLayout />}>
           <Route path="about" element={<AboutUsPage />} />
           <Route path="help" element={<HelpPage />} />

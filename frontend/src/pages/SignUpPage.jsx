@@ -5,7 +5,7 @@ import toast from 'react-hot-toast';
 import AuthCard from '../components/auth-comp/AuthCard';
 import FloatingInput from '../components/auth-comp/FloatingInput';
 import GoogleLoginButton from '../components/auth-comp/GoogleLoginButton';
-import { requestSignupOtp } from '../lib/api.js';
+import { requestSignupOtp } from '../services/api.js';
 
 export default function SignUpPage() {
   const [email, setEmail] = useState('');

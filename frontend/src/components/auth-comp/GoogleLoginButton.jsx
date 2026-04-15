@@ -1,8 +1,8 @@
 import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { googleLogin } from '../../lib/api.js';
-import { saveAuthSuccess } from '../../lib/authUtils.js';
+import { googleLogin } from '../../services/api.js';
+import { saveAuthSuccess } from '../../utils/authUtils.js';
 
 const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 

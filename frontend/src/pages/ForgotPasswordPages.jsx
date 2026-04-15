@@ -9,7 +9,7 @@ import {
   requestForgotPasswordOtp,
   verifyForgotPasswordOtp,
   resetPasswordWithOtp,
-} from '../lib/api.js';
+} from '../services/api.js';
 
 /** /forgot-password */
 export function ForgotPasswordPage() {

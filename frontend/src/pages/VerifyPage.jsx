@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
 import AuthCard from '../components/auth-comp/AuthCard';
-import { requestSignupOtp, verifyOtp } from '../lib/api.js';
+import { requestSignupOtp, verifyOtp } from '../services/api.js';
 
 export default function VerifyPage() {
   const [code, setCode] = useState('');

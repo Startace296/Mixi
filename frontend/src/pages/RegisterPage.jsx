@@ -5,7 +5,7 @@ import toast from 'react-hot-toast';
 import AuthCard from '../components/auth-comp/AuthCard';
 import FloatingInput from '../components/auth-comp/FloatingInput';
 import PasswordInput from '../components/auth-comp/PasswordInput';
-import { completeRegistration, completeGoogleRegistration } from '../lib/api.js';
+import { completeRegistration, completeGoogleRegistration } from '../services/api.js';
 
 const DAYS = Array.from({ length: 31 }, (_, i) => i + 1);
 const MONTHS = Array.from({ length: 12 }, (_, i) => i + 1);

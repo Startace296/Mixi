@@ -1,6 +1,6 @@
 import { useNavigate, useLocation } from 'react-router-dom';
 
-function BrandMark({ size = 'md' }) {
+export function BrandMark({ size = 'md' }) {
   const iconClass =
     size === 'lg'
       ? 'w-[72px] h-[72px] md:w-[76px] md:h-[76px]'
