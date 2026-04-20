@@ -7,8 +7,7 @@ A social networking platform with real-time chat and AI-based user support.
 - Express.js
 - React
 - Node.js
-- Redis
-- RabbitMQ
+- Docker
 - AI API (for chat summarization)
 
 ## Features (planned)
