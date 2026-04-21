@@ -18,4 +18,5 @@ build/
 # OS
 .DS_Store
 
-.cursorrules
+# Cursor
+.cursor/

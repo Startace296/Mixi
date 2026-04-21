@@ -1,3 +1,4 @@
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
@@ -31,6 +32,9 @@ function UserAvatar({ user, className = '' }) {
 
 export default function HomeHeader({ user }) {
   const navigate = useNavigate();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef(null);
+
   const displayName =
     user?.displayName ||
     user?.username ||
@@ -38,19 +42,31 @@ export default function HomeHeader({ user }) {
     'Bạn';
 
   const handleLogout = async () => {
+    setMenuOpen(false);
     try {
-      const data = await logout();
+      await logout();
+    } catch {
+      // silent
+    } finally {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      toast.success(data.message || 'Đăng xuất thành công');
+      toast.success('Logout successful');
       navigate('/login', { replace: true });
-    } catch (error) {
-      toast.error(error.message);
     }
   };
 
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setMenuOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 h-16 bg-white border-b border-[#e4e6eb] shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
+    <header className="fixed top-0 left-0 right-0 z-50 h-16 bg-white border-b border-[#e4e6eb] shadow-[0_2px_4px_rgba(0,0,0,0.08),0_8px_16px_rgba(0,0,0,0.04)]">
       <div className="h-full max-w-[1600px] mx-auto px-5 flex items-center gap-3">
         <button
           type="button"
@@ -88,18 +104,41 @@ export default function HomeHeader({ user }) {
             </svg>
           </button>
 
-          <div className="flex items-center gap-2 pl-1 border-l border-[#e4e6eb] ml-1">
-            <UserAvatar user={user} className="w-10 h-10 text-base" />
-            <div className="min-w-0">
-              <p className="text-sm font-semibold text-[#1c1e21] truncate max-w-[140px]">{displayName}</p>
-            </div>
+          <div className="relative pl-1 border-l border-[#e4e6eb] ml-1" ref={menuRef}>
             <button
               type="button"
-              onClick={handleLogout}
-              className="ml-1 px-3 py-2 text-sm font-semibold rounded-full text-[#65676b] hover:bg-[#f0f2f5] transition-colors"
+              onClick={() => setMenuOpen((prev) => !prev)}
+              className="flex items-center gap-2 rounded-xl px-2 py-1.5 hover:bg-[#f0f2f5] transition-colors"
             >
-              Đăng xuất
+              <UserAvatar user={user} className="w-9 h-9 text-sm" />
+              <p className="text-sm font-semibold text-[#1c1e21] truncate max-w-[120px]">{displayName}</p>
+              <svg className="w-4 h-4 text-[#8a8d91] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+              </svg>
             </button>
+
+            {menuOpen && (
+              <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.15)] border border-[#e4e6eb] py-1.5 z-50">
+                <div className="px-4 py-3 border-b border-[#f0f2f5]">
+                  <p className="text-sm font-semibold text-[#1c1e21] truncate">{displayName}</p>
+                  {user?.email && (
+                    <p className="text-xs text-[#65676b] truncate mt-0.5">{user.email}</p>
+                  )}
+                </div>
+                <div className="py-1">
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-[#e53935] font-medium hover:bg-[#fff5f5] transition-colors"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
+                    </svg>
+                    Logout
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
