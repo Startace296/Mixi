@@ -17,21 +17,25 @@ export default function MainLayout() {
     setActiveSubSection(DEFAULT_SUB_SECTION[section]);
   }
 
+  const isProfilePage = activeSection === HOME_SECTION.profile;
+
   return (
-    <div className="min-h-screen flex flex-col bg-[#f0f2f5]">
-      <HomeHeader user={user} />
-      <div className="flex flex-1 pt-16 min-h-0 overflow-hidden">
-        <div className="flex shrink-0 overflow-visible">
-          <HomeSidebarPrimary activeSection={activeSection} onSelectSection={handleSelectSection} />
-          <HomeSidebarSecondary
-            activeSection={activeSection}
-            activeSubSection={activeSubSection}
-            onSelectSubSection={setActiveSubSection}
-          />
-        </div>
-        <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
+    <div className="h-screen flex flex-col bg-[#f0f2f5] overflow-hidden">
+      <HomeHeader user={user} onSelectSection={handleSelectSection} />
+      <div className="flex flex-1 pt-16 min-h-0">
+        {!isProfilePage && (
+          <div className="flex shrink-0 h-full overflow-visible">
+            <HomeSidebarPrimary activeSection={activeSection} onSelectSection={handleSelectSection} />
+            <HomeSidebarSecondary
+              activeSection={activeSection}
+              activeSubSection={activeSubSection}
+              onSelectSubSection={setActiveSubSection}
+            />
+          </div>
+        )}
+        <main className="flex-1 min-w-0 overflow-y-auto">
           <Outlet context={{ activeSection, activeSubSection }} />
-        </div>
+        </main>
       </div>
     </div>
   );

@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 
 import { BrandMark } from '../auth-comp/AuthSiteChrome';
 import { logout } from '../../services/api.js';
+import { HOME_SECTION } from './homeSections';
 
 function UserAvatar({ user, className = '' }) {
   const label =
@@ -30,7 +31,7 @@ function UserAvatar({ user, className = '' }) {
   );
 }
 
-export default function HomeHeader({ user }) {
+export default function HomeHeader({ user, onSelectSection }) {
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
@@ -70,7 +71,7 @@ export default function HomeHeader({ user }) {
       <div className="h-full max-w-[1600px] mx-auto px-5 flex items-center gap-3">
         <button
           type="button"
-          onClick={() => navigate('/home')}
+          onClick={() => onSelectSection(HOME_SECTION.home)}
           className="flex items-center gap-2 shrink-0 rounded-lg p-1 -ml-1 hover:bg-[#f0f2f5] transition-colors"
         >
           <BrandMark size="md" />
@@ -125,7 +126,18 @@ export default function HomeHeader({ user }) {
                     <p className="text-xs text-[#65676b] truncate mt-0.5">{user.email}</p>
                   )}
                 </div>
+                
                 <div className="py-1">
+                  <button
+                    type="button"
+                    onClick={() => { setMenuOpen(false); onSelectSection(HOME_SECTION.profile); }}
+                    className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-[#1c1e21] font-medium hover:bg-[#f0f2f5] transition-colors"
+                  >
+                    <svg className="w-4 h-4 text-[#65676b]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                    </svg>
+                    View Profile
+                  </button>
                   <button
                     type="button"
                     onClick={handleLogout}

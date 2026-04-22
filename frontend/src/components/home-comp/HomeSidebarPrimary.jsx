@@ -1,10 +1,12 @@
 import { HOME_SECTION, HOME_SECTION_LABELS } from './homeSections';
 
-const items = [
+const topItems = [
   HOME_SECTION.home,
   HOME_SECTION.messages,
   HOME_SECTION.friends,
-  HOME_SECTION.profile,
+];
+
+const bottomItems = [
   HOME_SECTION.settings,
 ];
 
@@ -32,14 +34,6 @@ function IconUsers({ active }) {
   );
 }
 
-function IconUser({ active }) {
-  return (
-    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" strokeWidth={active ? 2.25 : 1.75} stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-    </svg>
-  );
-}
-
 function IconCog({ active }) {
   return (
     <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" strokeWidth={active ? 2.25 : 1.75} stroke="currentColor">
@@ -57,8 +51,6 @@ function SectionIcon({ id, active }) {
       return <IconChat active={active} />;
     case HOME_SECTION.friends:
       return <IconUsers active={active} />;
-    case HOME_SECTION.profile:
-      return <IconUser active={active} />;
     case HOME_SECTION.settings:
       return <IconCog active={active} />;
     default:
@@ -66,39 +58,49 @@ function SectionIcon({ id, active }) {
   }
 }
 
+function NavButton({ id, active, onSelectSection }) {
+  const label = HOME_SECTION_LABELS[id];
+  return (
+    <button
+      key={id}
+      type="button"
+      onClick={() => onSelectSection(id)}
+      title={label}
+      aria-label={label}
+      aria-current={active ? 'page' : undefined}
+      className={`group relative flex h-12 w-12 items-center justify-center rounded-xl transition-colors ${
+        active
+          ? 'bg-indigo-50 text-indigo-600'
+          : 'text-[#65676b] hover:bg-[#f0f2f5] hover:text-[#1c1e21]'
+      }`}
+    >
+      <SectionIcon id={id} active={active} />
+      <span
+        className="pointer-events-none absolute left-full top-1/2 z-[60] ml-3 -translate-y-1/2 whitespace-nowrap rounded-md bg-[#1c1e21] px-2.5 py-1.5 text-xs font-medium text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100"
+        role="tooltip"
+      >
+        {label}
+      </span>
+    </button>
+  );
+}
+
 export default function HomeSidebarPrimary({ activeSection, onSelectSection }) {
   return (
     <aside
-      className="relative z-10 flex w-[72px] shrink-0 flex-col items-center gap-1 border-r border-[#e4e6eb] bg-white py-4"
+      className="relative z-10 flex w-[72px] shrink-0 flex-col items-center justify-between border-r border-[#e4e6eb] bg-white py-4"
       aria-label="Menu chính"
     >
-      {items.map((id) => {
-        const active = activeSection === id;
-        const label = HOME_SECTION_LABELS[id];
-        return (
-          <button
-            key={id}
-            type="button"
-            onClick={() => onSelectSection(id)}
-            title={label}
-            aria-label={label}
-            aria-current={active ? 'page' : undefined}
-            className={`group relative flex h-12 w-12 items-center justify-center rounded-xl transition-colors ${
-              active
-                ? 'bg-indigo-50 text-indigo-600'
-                : 'text-[#65676b] hover:bg-[#f0f2f5] hover:text-[#1c1e21]'
-            }`}
-          >
-            <SectionIcon id={id} active={active} />
-            <span
-              className="pointer-events-none absolute bottom-full left-1/2 z-[60] mb-1 -translate-x-1/2 whitespace-nowrap rounded-md bg-[#1c1e21] px-2.5 py-1.5 text-xs font-medium text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100"
-              role="tooltip"
-            >
-              {label}
-            </span>
-          </button>
-        );
-      })}
+      <div className="flex flex-col items-center gap-1">
+        {topItems.map((id) => (
+          <NavButton key={id} id={id} active={activeSection === id} onSelectSection={onSelectSection} />
+        ))}
+      </div>
+      <div className="flex flex-col items-center gap-1">
+        {bottomItems.map((id) => (
+          <NavButton key={id} id={id} active={activeSection === id} onSelectSection={onSelectSection} />
+        ))}
+      </div>
     </aside>
   );
 }

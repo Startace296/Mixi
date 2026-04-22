@@ -14,6 +14,7 @@ export default function HomePage() {
 
   return (
     <HomeFeedPlaceholder
+      user={user}
       displayName={displayName}
       section={activeSection}
       subSection={activeSubSection}

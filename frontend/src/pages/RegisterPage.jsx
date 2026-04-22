@@ -40,10 +40,10 @@ export default function RegisterPage() {
         <FloatingInput type="email" value={email} readOnly label="Email" />
 
         <FloatingInput
-          value={fields.nickname}
-          onChange={fields.setNickname}
-          label="Nickname"
-          error={errors.nickname || undefined}
+          value={fields.displayName}
+          onChange={fields.setDisplayName}
+          label="Display name"
+          error={errors.displayName || undefined}
         />
 
         <div className="flex flex-col gap-1.5">
@@ -55,7 +55,7 @@ export default function RegisterPage() {
               errors.gender ? 'border-red-500 focus:border-red-500' : 'border-[#dddfe2] focus:border-indigo-600'
             }`}
           >
-            <option value="">Gender</option>
+            <option value="">--Gender--</option>
             {GENDERS.map((g) => <option key={g} value={g}>{g}</option>)}
           </select>
           {errors.gender && <span className="text-sm text-red-500">{errors.gender}</span>}

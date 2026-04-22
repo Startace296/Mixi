@@ -1,3 +1,4 @@
+import { useState, useRef } from 'react';
 import { HOME_SECTION, HOME_SUB_SECTION } from './homeSections';
 
 // ─── Shared primitives ───────────────────────────────────────────────────────
@@ -122,11 +123,6 @@ const IconChat = (
   </svg>
 );
 
-const IconFriends = (
-  <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.433-2.554M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
-  </svg>
-);
 
 const IconCog = (
   <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -204,27 +200,162 @@ function FriendsSection({ subSection }) {
   );
 }
 
-function ProfileSection({ subSection, displayName }) {
-  if (subSection === HOME_SUB_SECTION.profile_posts) {
-    return (
-      <FeedShell title="Bài viết của bạn" description={`Bài đăng của ${displayName}`}>
-        <PostSkeleton />
-      </FeedShell>
-    );
-  }
+function formatDate(dateStr) {
+  if (!dateStr) return '—';
+  const d = new Date(dateStr);
+  if (isNaN(d)) return '—';
+  return d.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
 
-  // profile_info (default)
+function EditProfileModal({ user, onClose }) {
   return (
-    <FeedShell title="Thông tin cá nhân" description={`Xin chào, ${displayName}! Chỉnh sửa thông tin của bạn.`}>
-      <div className="bg-white rounded-lg shadow-[0_2px_4px_rgba(0,0,0,0.08),0_8px_16px_rgba(0,0,0,0.06)] border border-[#e4e6eb] divide-y divide-[#f0f2f5]">
-        {['Tên hiển thị', 'Email', 'Giới tính', 'Ngày sinh'].map((label) => (
-          <div key={label} className="flex items-center justify-between px-5 py-4">
-            <span className="text-sm font-medium text-[#65676b]">{label}</span>
-            <SkeletonLine className="h-3 w-28" />
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 px-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#f0f2f5]">
+          <h2 className="text-lg font-bold text-[#1c1e21]">Edit profile</h2>
+          <button type="button" onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#f0f2f5] text-[#65676b] transition-colors">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+          </button>
+        </div>
+        <div className="px-6 py-5 space-y-4">
+          {[
+            { label: 'Display name', type: 'input', defaultValue: user?.displayName || '', placeholder: '' },
+            { label: 'Bio', type: 'textarea', defaultValue: user?.bio || '', placeholder: 'Write something about yourself...' },
+            { label: 'Location', type: 'input', defaultValue: user?.location || '', placeholder: 'Your city or country' },
+          ].map(({ label, type, defaultValue, placeholder }) => (
+            <div key={label} className="flex flex-col gap-1.5">
+              <label className="text-xs font-semibold text-[#65676b] uppercase tracking-wide">{label}</label>
+              {type === 'textarea' ? (
+                <textarea rows={3} defaultValue={defaultValue} placeholder={placeholder}
+                  className="px-4 py-2.5 rounded-lg border border-[#dddfe2] text-sm text-[#1c1e21] outline-none focus:border-indigo-500 transition-colors resize-none" />
+              ) : (
+                <input type="text" defaultValue={defaultValue} placeholder={placeholder}
+                  className="px-4 py-2.5 rounded-lg border border-[#dddfe2] text-sm text-[#1c1e21] outline-none focus:border-indigo-500 transition-colors" />
+              )}
+            </div>
+          ))}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-semibold text-[#65676b] uppercase tracking-wide">Date of birth</label>
+            <input type="date" defaultValue={user?.dateOfBirth ? new Date(user.dateOfBirth).toISOString().slice(0, 10) : ''}
+              className="px-4 py-2.5 rounded-lg border border-[#dddfe2] text-sm text-[#1c1e21] outline-none focus:border-indigo-500 transition-colors" />
           </div>
-        ))}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-semibold text-[#65676b] uppercase tracking-wide">Gender</label>
+            <select defaultValue={user?.gender || ''} className="px-4 py-2.5 rounded-lg border border-[#dddfe2] text-sm text-[#1c1e21] outline-none focus:border-indigo-500 transition-colors bg-white">
+              <option value="">Select gender</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+        </div>
+        <div className="flex justify-end gap-3 px-6 py-4 border-t border-[#f0f2f5]">
+          <button type="button" onClick={onClose} className="px-5 py-2 rounded-lg text-sm font-semibold text-[#65676b] hover:bg-[#f0f2f5] transition-colors">Cancel</button>
+          <button type="button" className="px-5 py-2 rounded-lg text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors">Save changes</button>
+        </div>
       </div>
-    </FeedShell>
+    </div>
+  );
+}
+
+function AvatarModal({ onClose }) {
+  const fileRef = useRef(null);
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 px-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#f0f2f5]">
+          <h2 className="text-lg font-bold text-[#1c1e21]">Choose profile picture</h2>
+          <button type="button" onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#f0f2f5] text-[#65676b] transition-colors">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+          </button>
+        </div>
+        <div className="px-6 py-8 flex justify-center">
+          <input ref={fileRef} type="file" accept="image/*" className="hidden" />
+          <button type="button" onClick={() => fileRef.current?.click()}
+            className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 transition-colors">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+            </svg>
+            Upload photo
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ProfileSection({ displayName, user }) {
+  const [editOpen, setEditOpen] = useState(false);
+  const [avatarMenuOpen, setAvatarMenuOpen] = useState(false);
+  const [avatarModalOpen, setAvatarModalOpen] = useState(false);
+
+  return (
+    <div className="w-full max-w-[900px] mx-auto px-4 py-6 space-y-4">
+
+      {/* Avatar + name card */}
+      <div className="bg-white rounded-xl shadow-[0_2px_4px_rgba(0,0,0,0.06)] border border-[#e4e6eb] p-5 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div className="relative shrink-0">
+            <button type="button" onClick={() => setAvatarMenuOpen((p) => !p)} className="block rounded-full focus:outline-none">
+              {user?.avatarUrl ? (
+                <img src={user.avatarUrl} alt="" className="w-35 h-35 rounded-full object-cover" />
+              ) : (
+                <div className="w-20 h-20 rounded-full bg-indigo-100 text-indigo-600 font-bold text-3xl flex items-center justify-center uppercase">
+                  {displayName?.[0] || '?'}
+                </div>
+              )}
+            </button>
+            {avatarMenuOpen && (
+              <>
+                <div className="fixed inset-0 z-[9]" onClick={() => setAvatarMenuOpen(false)} />
+                <button type="button"
+                  onClick={() => { setAvatarMenuOpen(false); setAvatarModalOpen(true); }}
+                  className="absolute top-[calc(100%+8px)] left-1/2 -translate-x-1/2 whitespace-nowrap px-4 py-2 rounded-lg bg-white text-[#1c1e21] text-sm font-semibold shadow-[0_2px_12px_rgba(0,0,0,0.15)] border border-[#e4e6eb] hover:bg-[#f0f2f5] transition-colors z-10">
+                  Choose profile picture
+                </button>
+              </>
+            )}
+          </div>
+          <div className="pl-2">
+            <h1 className="text-2xl font-bold text-[#1c1e21]">{displayName}</h1>
+            <p className="text-sm text-[#65676b] mt-0.5">{user?.bio || 'No bio yet'}</p>
+            <p className="text-sm text-[#8a8d91] mt-1">0 friend(s)</p>
+          </div>
+        </div>
+        <button type="button" onClick={() => setEditOpen(true)}
+          className="shrink-0 flex items-center gap-2 px-4 py-2 rounded-lg border border-[#e4e6eb] text-sm font-semibold text-[#65676b] hover:bg-[#f0f2f5] transition-colors">
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
+          </svg>
+          Edit profile
+        </button>
+      </div>
+
+      {/* About card */}
+      <div className="bg-white rounded-xl shadow-[0_2px_4px_rgba(0,0,0,0.06)] border border-[#e4e6eb] p-5">
+        <h2 className="text-base font-bold text-[#1c1e21] mb-4">About</h2>
+        <div className="space-y-3">
+          {[
+            { icon: 'M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636', label: user?.gender || '—' },
+            { icon: 'M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5', label: formatDate(user?.dateOfBirth) },
+            { icon: 'M15 10.5a3 3 0 11-6 0 3 3 0 016 0zM19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z', label: user?.location || 'None' },
+          ].map(({ icon, label }, i) => (
+            <div key={i} className="flex items-center gap-3">
+              <svg className="w-5 h-5 text-[#65676b] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+                <path strokeLinecap="round" strokeLinejoin="round" d={icon} />
+              </svg>
+              <span className="text-sm text-[#1c1e21]">{label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <PostSkeleton />
+
+      {editOpen && <EditProfileModal user={user} onClose={() => setEditOpen(false)} />}
+      {avatarModalOpen && <AvatarModal onClose={() => setAvatarModalOpen(false)} />}
+
+    </div>
   );
 }
 
@@ -246,7 +377,7 @@ function SettingsSection({ subSection }) {
 
 // ─── Root export ──────────────────────────────────────────────────────────────
 
-export default function HomeFeedPlaceholder({ displayName, section, subSection }) {
+export default function HomeFeedPlaceholder({ user, displayName, section, subSection }) {
   if (section === HOME_SECTION.home) {
     return <HomeSection displayName={displayName} />;
   }
@@ -264,7 +395,7 @@ export default function HomeFeedPlaceholder({ displayName, section, subSection }
     return <FriendsSection subSection={subSection} />;
   }
   if (section === HOME_SECTION.profile) {
-    return <ProfileSection subSection={subSection} displayName={displayName} />;
+    return <ProfileSection displayName={displayName} user={user} />;
   }
   if (section === HOME_SECTION.settings) {
     return <SettingsSection subSection={subSection} />;

@@ -72,7 +72,7 @@ function RowChat({ name, preview, time, unread }) {
 
 export default function HomeSidebarSecondary({ activeSection, activeSubSection, onSelectSubSection }) {
   return (
-    <aside className="flex w-[300px] shrink-0 flex-col border-r border-[#e4e6eb] bg-white overflow-hidden">
+      <aside className="flex h-full w-[300px] shrink-0 flex-col border-r border-[#e4e6eb] bg-white overflow-hidden">
 
       {activeSection === HOME_SECTION.home && (
         <>
@@ -108,18 +108,6 @@ export default function HomeSidebarSecondary({ activeSection, activeSubSection, 
             </NavSubsection>
             <NavSubsection title="Danh sách">
               <NavBtn label="Tất cả bạn bè" subKey={HOME_SUB_SECTION.friends_all} activeSubSection={activeSubSection} onSelect={onSelectSubSection} />
-            </NavSubsection>
-          </div>
-        </>
-      )}
-
-      {activeSection === HOME_SECTION.profile && (
-        <>
-          <SecondaryHeader title="Hồ sơ" subtitle="Tài khoản của bạn" />
-          <div className="flex-1 overflow-y-auto p-3 space-y-4">
-            <NavSubsection title="Thông tin & nội dung">
-              <NavBtn label="Thông tin cá nhân" subKey={HOME_SUB_SECTION.profile_info} activeSubSection={activeSubSection} onSelect={onSelectSubSection} />
-              <NavBtn label="Bài viết của bạn" subKey={HOME_SUB_SECTION.profile_posts} activeSubSection={activeSubSection} onSelect={onSelectSubSection} />
             </NavSubsection>
           </div>
         </>
