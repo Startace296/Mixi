@@ -43,6 +43,25 @@ export const logout = async () => {
   return response.data;
 };
 
+export const getMyProfile = async () => {
+  const response = await axiosInstance.get('/auth/me');
+  return response.data;
+};
+
+export const updateMyProfile = async (data) => {
+  const response = await axiosInstance.patch('/auth/me', data);
+  return response.data;
+};
+
+export const uploadMyAvatar = async (file) => {
+  const formData = new FormData();
+  formData.append('avatar', file);
+
+  const response = await axiosInstance.post('/auth/me/avatar', formData);
+
+  return response.data;
+};
+
 // --- Google Auth ---
 
 export const googleLogin = async ({ idToken }) => {

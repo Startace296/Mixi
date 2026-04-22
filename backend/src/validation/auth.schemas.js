@@ -48,3 +48,17 @@ export const refreshTokenSchema = z.object({
 export const googleLoginSchema = z.object({
   idToken: z.string().min(1, "Google token is required"),
 });
+
+export const updateProfileSchema = z.object({
+  displayName: z
+    .string()
+    .trim()
+    .min(1, "Display name is required")
+    .max(80, "Display name must be at most 80 characters long"),
+  gender: z.enum(["Male", "Female", "Other"], {
+    errorMap: () => ({ message: "Please select a valid gender" }),
+  }),
+  dateOfBirth: z.string().min(1, "Date of birth is required"),
+  bio: z.string().trim().max(280, "Bio must be at most 280 characters long").optional().or(z.literal("")),
+  location: z.string().trim().max(120, "Location must be at most 120 characters long").optional().or(z.literal("")),
+});

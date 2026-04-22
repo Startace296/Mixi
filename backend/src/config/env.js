@@ -16,5 +16,8 @@ export const env = {
   smtpPass: process.env.SMTP_PASS || "",
   smtpFrom: process.env.SMTP_FROM || "no-reply@mixichat.com",
   googleClientId: process.env.GOOGLE_CLIENT_ID || "",
+  cloudinaryCloudName: process.env.CLOUDINARY_CLOUD_NAME || "",
+  cloudinaryApiKey: process.env.CLOUDINARY_API_KEY || "",
+  cloudinaryApiSecret: process.env.CLOUDINARY_API_SECRET || "",
   nodeEnv: process.env.NODE_ENV || "development",
 };

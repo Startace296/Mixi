@@ -1,16 +1,32 @@
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
+import sharp from "sharp";
+import { Readable } from "node:stream";
 
 import User from "../models/User.js";
 import { env } from "../config/env.js";
+import { getCloudinary } from "../config/cloudinary.js";
 import { sendOtpEmail } from "./email.service.js";
 import { verifyGoogleIdToken } from "./google-auth.service.js";
 import { AppError } from "../utils/app-error.js";
-import { generateOtp } from "../utils/otp.js";
+import { generateOtp, hashOtp } from "../utils/otp.js";
 import { signAccessToken, signGoogleSignupToken, verifyGoogleSignupToken } from "../utils/jwt.js";
 
 function normalizeEmail(email) {
   return email?.trim().toLowerCase();
+}
+
+function ensureAdult(birthDate) {
+  const today = new Date();
+  const minAllowedDate = new Date(
+    today.getFullYear() - 18,
+    today.getMonth(),
+    today.getDate(),
+  );
+
+  if (birthDate > minAllowedDate) {
+    throw new AppError("You must be at least 18 years old", 400);
+  }
 }
 
 function validateProfileInfo({ displayName, gender, day, month, year }) {
@@ -25,15 +41,7 @@ function validateProfileInfo({ displayName, gender, day, month, year }) {
   }
 
   const birthDate = new Date(Number(year), Number(month) - 1, Number(day));
-  const today = new Date();
-  const minAllowedDate = new Date(
-    today.getFullYear() - 18,
-    today.getMonth(),
-    today.getDate(),
-  );
-  if (birthDate > minAllowedDate) {
-    throw new AppError("You must be at least 18 years old", 400);
-  }
+  ensureAdult(birthDate);
 
   return birthDate;
 }
@@ -46,6 +54,8 @@ function sanitizeUser(user) {
     provider: user.provider,
     isEmailVerified: user.isEmailVerified,
     avatarUrl: user.avatarUrl,
+    bio: user.bio || "",
+    location: user.location || "",
     lastLoginAt: user.lastLoginAt,
     createdAt: user.createdAt,
   };
@@ -54,11 +64,28 @@ function sanitizeUser(user) {
   return u;
 }
 
+function getAvatarPublicId(userId) {
+  return String(userId);
+}
+
+function parseDateOfBirth(dateOfBirth) {
+  const birthDate = new Date(dateOfBirth);
+
+  if (Number.isNaN(birthDate.getTime())) {
+    throw new AppError("Date of birth is invalid", 400);
+  }
+
+  ensureAdult(birthDate);
+
+  return birthDate;
+}
+
 async function issueOtpForUser(user, purpose = "signup") {
   const otpCode = generateOtp();
+  const otpCodeHash = hashOtp(otpCode);
   const otpExpiresAt = new Date(Date.now() + env.otpExpiresInMinutes * 60 * 1000);
 
-  user.otpCode = otpCode;
+  user.otpCode = otpCodeHash;
   user.otpExpiresAt = otpExpiresAt;
   await user.save();
 
@@ -129,7 +156,7 @@ export async function verifyOtp({ email, otpCode }) {
     throw new AppError("OTP is not available for this user", 400);
   }
 
-  if (user.otpCode !== otpCode) {
+  if (user.otpCode !== hashOtp(otpCode)) {
     throw new AppError("Invalid OTP code", 400);
   }
 
@@ -310,6 +337,114 @@ export async function completeGoogleRegistration({
   };
 }
 
+export async function getCurrentUserProfile(userId) {
+  const user = await User.findById(userId);
+
+  if (!user) {
+    throw new AppError("User not found", 404);
+  }
+
+  return sanitizeUser(user);
+}
+
+export async function updateCurrentUserProfile(
+  userId,
+  { displayName, gender, dateOfBirth, bio = "", location = "" },
+) {
+  const user = await User.findById(userId);
+
+  if (!user) {
+    throw new AppError("User not found", 404);
+  }
+
+  if (!displayName?.trim()) {
+    throw new AppError("Display name is required", 400);
+  }
+
+  if (!["Male", "Female", "Other"].includes(gender)) {
+    throw new AppError("Please select a valid gender", 400);
+  }
+
+  const birthDate = parseDateOfBirth(dateOfBirth);
+
+  user.displayName = displayName.trim();
+  user.gender = gender;
+  user.dateOfBirth = birthDate;
+  user.bio = typeof bio === "string" ? bio.trim() : "";
+  user.location = typeof location === "string" ? location.trim() : "";
+
+  await user.save();
+
+  return sanitizeUser(user);
+}
+
+async function uploadBufferToCloudinary(buffer, publicId) {
+  const cloudinary = getCloudinary();
+
+  const processedBuffer = await sharp(buffer)
+    .rotate()
+    .resize(512, 512, {
+      fit: "cover",
+      position: "center",
+    })
+    .flatten({ background: "#ffffff" })
+    .jpeg({ quality: 85, mozjpeg: true })
+    .toBuffer();
+
+  return new Promise((resolve, reject) => {
+    const uploadStream = cloudinary.uploader.upload_stream(
+      {
+        public_id: publicId,
+        folder: "chatapp/avatars",
+        overwrite: true,
+        invalidate: true,
+        resource_type: "image",
+      },
+      (error, result) => {
+        if (error) return reject(error);
+        return resolve(result);
+      },
+    );
+
+    Readable.from([processedBuffer]).pipe(uploadStream);
+  });
+}
+
+export async function updateCurrentUserAvatar(userId, file) {
+  const user = await User.findById(userId);
+
+  if (!user) {
+    throw new AppError("User not found", 404);
+  }
+
+  if (!file?.buffer) {
+    throw new AppError("Avatar file is required", 400);
+  }
+
+  const allowedMimeTypes = new Set(["image/png", "image/jpeg"]);
+  if (!allowedMimeTypes.has(file.mimetype)) {
+    throw new AppError("Only PNG and JPEG images are allowed", 400);
+  }
+
+  try {
+    const result = await uploadBufferToCloudinary(file.buffer, getAvatarPublicId(userId));
+
+    if (!result?.secure_url) {
+      throw new AppError("Failed to upload avatar", 500);
+    }
+
+    user.avatarUrl = result.secure_url;
+    await user.save();
+
+    return sanitizeUser(user);
+  } catch (error) {
+    if (error instanceof AppError) {
+      throw error;
+    }
+    throw new AppError(error.message || "Failed to upload avatar", 500);
+  }
+}
+
 export async function requestForgotPasswordOtp({ email }) {
   const normalizedEmail = normalizeEmail(email);
   if (!normalizedEmail) {
@@ -346,7 +481,7 @@ export async function verifyForgotPasswordOtp({ email, otpCode }) {
     throw new AppError("Invalid or expired OTP code", 400);
   }
 
-  if (user.otpCode !== otpCode || user.otpExpiresAt.getTime() < Date.now()) {
+  if (user.otpCode !== hashOtp(otpCode) || user.otpExpiresAt.getTime() < Date.now()) {
     throw new AppError("Invalid or expired OTP code", 400);
   }
 
@@ -368,7 +503,7 @@ export async function resetPasswordWithOtp({ email, otpCode, newPassword }) {
     throw new AppError("Invalid reset request", 400);
   }
 
-  if (user.otpCode !== otpCode || user.otpExpiresAt.getTime() < Date.now()) {
+  if (user.otpCode !== hashOtp(otpCode) || user.otpExpiresAt.getTime() < Date.now()) {
     throw new AppError("Invalid or expired OTP code", 400);
   }
 

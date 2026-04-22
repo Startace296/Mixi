@@ -91,6 +91,18 @@ const userSchema = new Schema(
     default: ""
   },
 
+  bio: {
+    type: String,
+    trim: true,
+    default: ""
+  },
+
+  location: {
+    type: String,
+    trim: true,
+    default: ""
+  },
+
   dateOfBirth: {
     type: Date
   }

@@ -1,11 +1,9 @@
 import { useOutletContext } from 'react-router-dom';
 
 import HomeFeedPlaceholder from '../components/home-comp/HomeFeedPlaceholder';
-import { useStoredUser } from '../hooks/useStoredUser';
 
 export default function HomePage() {
-  const { activeSection, activeSubSection } = useOutletContext();
-  const user = useStoredUser();
+  const { activeSection, activeSubSection, user, setUser } = useOutletContext();
   const displayName =
     user?.displayName ||
     user?.username ||
@@ -18,6 +16,7 @@ export default function HomePage() {
       displayName={displayName}
       section={activeSection}
       subSection={activeSubSection}
+      onUserChange={setUser}
     />
   );
 }

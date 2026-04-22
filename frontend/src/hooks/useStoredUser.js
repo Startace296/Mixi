@@ -16,7 +16,16 @@ export function useStoredUser() {
 
   useEffect(() => {
     setUser(readStoredUser());
+
+    const syncUser = () => setUser(readStoredUser());
+    window.addEventListener('storage', syncUser);
+    window.addEventListener('auth:user-updated', syncUser);
+
+    return () => {
+      window.removeEventListener('storage', syncUser);
+      window.removeEventListener('auth:user-updated', syncUser);
+    };
   }, []);
 
-  return user;
+  return [user, setUser];
 }

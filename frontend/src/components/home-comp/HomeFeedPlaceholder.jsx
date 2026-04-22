@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import { HOME_SECTION, HOME_SUB_SECTION } from './homeSections';
+import ProfileSectionView from './ProfileSectionView.jsx';
 
 // ─── Shared primitives ───────────────────────────────────────────────────────
 
@@ -377,7 +378,7 @@ function SettingsSection({ subSection }) {
 
 // ─── Root export ──────────────────────────────────────────────────────────────
 
-export default function HomeFeedPlaceholder({ user, displayName, section, subSection }) {
+export default function HomeFeedPlaceholder({ user, displayName, section, subSection, onUserChange }) {
   if (section === HOME_SECTION.home) {
     return <HomeSection displayName={displayName} />;
   }
@@ -395,7 +396,7 @@ export default function HomeFeedPlaceholder({ user, displayName, section, subSec
     return <FriendsSection subSection={subSection} />;
   }
   if (section === HOME_SECTION.profile) {
-    return <ProfileSection displayName={displayName} user={user} />;
+    return <ProfileSectionView displayName={displayName} user={user} onUserChange={onUserChange} />;
   }
   if (section === HOME_SECTION.settings) {
     return <SettingsSection subSection={subSection} />;

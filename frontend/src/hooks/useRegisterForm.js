@@ -14,7 +14,7 @@ function validateAge(day, month, year) {
 export function useRegisterForm({ email, fromGoogle, googleSignupToken, googleDisplayName }) {
   const navigate = useNavigate();
 
-  const [nickname, setNickname] = useState('');
+  const [displayName, setDisplayName] = useState('');
   const [gender, setGender] = useState('');
   const [day, setDay] = useState('');
   const [month, setMonth] = useState('');
@@ -24,7 +24,7 @@ export function useRegisterForm({ email, fromGoogle, googleSignupToken, googleDi
   const [isLoading, setIsLoading] = useState(false);
 
   const [errors, setErrors] = useState({
-    nickname: '',
+    displayName: '',
     gender: '',
     dob: '',
     password: '',
@@ -33,7 +33,7 @@ export function useRegisterForm({ email, fromGoogle, googleSignupToken, googleDi
 
   useEffect(() => {
     if (fromGoogle && googleDisplayName) {
-      setNickname(googleDisplayName);
+      setDisplayName(googleDisplayName);
     }
   }, [fromGoogle, googleDisplayName]);
 
@@ -42,11 +42,11 @@ export function useRegisterForm({ email, fromGoogle, googleSignupToken, googleDi
   }
 
   function validate() {
-    const next = { nickname: '', gender: '', dob: '', password: '', confirmPassword: '' };
+    const next = { displayName: '', gender: '', dob: '', password: '', confirmPassword: '' };
     let hasError = false;
 
-    if (!nickname.trim()) {
-      next.nickname = 'This field is required';
+    if (!displayName.trim()) {
+      next.displayName = 'This field is required';
       hasError = true;
     }
     if (!gender) {
@@ -86,7 +86,7 @@ export function useRegisterForm({ email, fromGoogle, googleSignupToken, googleDi
       if (fromGoogle && googleSignupToken) {
         const data = await completeGoogleRegistration({
           googleSignupToken,
-          displayName: nickname,
+          displayName,
           gender,
           day: day || undefined,
           month: month || undefined,
@@ -97,7 +97,7 @@ export function useRegisterForm({ email, fromGoogle, googleSignupToken, googleDi
         const data = await completeRegistration({
           email,
           password,
-          displayName: nickname,
+          displayName,
           gender,
           day: day || undefined,
           month: month || undefined,
@@ -114,7 +114,7 @@ export function useRegisterForm({ email, fromGoogle, googleSignupToken, googleDi
   }
 
   const fields = {
-    nickname, setNickname: (v) => { setNickname(v); clearError('nickname'); },
+    displayName, setDisplayName: (v) => { setDisplayName(v); clearError('displayName'); },
     gender, setGender: (v) => { setGender(v); clearError('gender'); },
     day, setDay: (v) => { setDay(v); clearError('dob'); },
     month, setMonth: (v) => { setMonth(v); clearError('dob'); },
