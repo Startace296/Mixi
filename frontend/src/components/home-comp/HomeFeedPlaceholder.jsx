@@ -134,15 +134,29 @@ const IconCog = (
 
 // ─── Section renderers ────────────────────────────────────────────────────────
 
-function HomeSection({ displayName }) {
+function FeedAvatar({ user, displayName, className = 'w-10 h-10 text-sm' }) {
+  const [imgError, setImgError] = useState(false);
+  const initial = displayName?.[0]?.toUpperCase() || '?';
+  if (user?.avatarUrl && !imgError) {
+    return (
+      <img src={user.avatarUrl} alt="" onError={() => setImgError(true)}
+        className={`rounded-full object-cover shrink-0 ${className}`} />
+    );
+  }
+  return (
+    <div className={`rounded-full bg-indigo-100 text-indigo-700 font-semibold flex items-center justify-center shrink-0 ${className}`}>
+      {initial}
+    </div>
+  );
+}
+
+function HomeSection({ displayName, user }) {
   // home_feed
   return (
     <div className="w-full max-w-[900px] mx-auto px-4 py-6 space-y-4">
       <section className="bg-white rounded-lg shadow-[0_2px_4px_rgba(0,0,0,0.08),0_8px_16px_rgba(0,0,0,0.06)] border border-[#e4e6eb] p-4">
         <div className="flex gap-3 items-start">
-          <div className="w-10 h-10 rounded-full bg-indigo-100 text-indigo-700 font-semibold flex items-center justify-center shrink-0 text-sm">
-            {(displayName && displayName[0]?.toUpperCase()) || '?'}
-          </div>
+          <FeedAvatar user={user} displayName={displayName} />
           <div className="flex-1 min-w-0">
             <label htmlFor="home-composer" className="sr-only">Tạo bài viết</label>
             <textarea
@@ -302,13 +316,7 @@ function ProfileSection({ displayName, user }) {
         <div className="flex items-center gap-4">
           <div className="relative shrink-0">
             <button type="button" onClick={() => setAvatarMenuOpen((p) => !p)} className="block rounded-full focus:outline-none">
-              {user?.avatarUrl ? (
-                <img src={user.avatarUrl} alt="" className="w-35 h-35 rounded-full object-cover" />
-              ) : (
-                <div className="w-20 h-20 rounded-full bg-indigo-100 text-indigo-600 font-bold text-3xl flex items-center justify-center uppercase">
-                  {displayName?.[0] || '?'}
-                </div>
-              )}
+              <FeedAvatar user={user} displayName={displayName} className="w-20 h-20 text-3xl font-bold" />
             </button>
             {avatarMenuOpen && (
               <>
@@ -384,7 +392,7 @@ function SettingsSection({ subSection }) {
 
 export default function HomeFeedPlaceholder({ user, displayName, section, subSection, onUserChange }) {
   if (section === HOME_SECTION.home) {
-    return <HomeSection displayName={displayName} />;
+    return <HomeSection displayName={displayName} user={user} />;
   }
   if (section === HOME_SECTION.messages) {
     return (

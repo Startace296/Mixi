@@ -7,23 +7,27 @@ import { logout } from '../../services/api.js';
 import { HOME_SECTION } from './homeSections';
 
 function UserAvatar({ user, className = '' }) {
-  const label =
+  const [imgError, setImgError] = useState(false);
+  const label = (
     user?.displayName?.[0] ||
     user?.username?.[0] ||
     user?.email?.[0] ||
-    '?';
-  if (user?.avatarUrl) {
+    '?'
+  ).toUpperCase();
+
+  if (user?.avatarUrl && !imgError) {
     return (
       <img
         src={user.avatarUrl}
         alt=""
+        onError={() => setImgError(true)}
         className={`rounded-full object-cover ${className}`}
       />
     );
   }
   return (
     <div
-      className={`rounded-full bg-indigo-100 text-indigo-700 font-semibold flex items-center justify-center uppercase ${className}`}
+      className={`rounded-full bg-indigo-100 text-indigo-700 font-semibold flex items-center justify-center ${className}`}
       aria-hidden
     >
       {label}
