@@ -12,6 +12,9 @@ import { AppError } from "../utils/app-error.js";
 import { generateOtp, hashOtp } from "../utils/otp.js";
 import { signAccessToken, signGoogleSignupToken, verifyGoogleSignupToken } from "../utils/jwt.js";
 
+const MAX_BIO_CHARACTERS = 280;
+const MAX_BIO_LINES = 4;
+
 function normalizeEmail(email) {
   return email?.trim().toLowerCase();
 }
@@ -78,6 +81,25 @@ function parseDateOfBirth(dateOfBirth) {
   ensureAdult(birthDate);
 
   return birthDate;
+}
+
+function normalizeBio(bio) {
+  const value = typeof bio === "string" ? bio.trim() : "";
+
+  if (!value) {
+    return "";
+  }
+
+  if (value.length > MAX_BIO_CHARACTERS) {
+    throw new AppError(`Bio must be at most ${MAX_BIO_CHARACTERS} characters long`, 400);
+  }
+
+  const lineCount = value.replace(/\r\n?/g, "\n").split("\n").length;
+  if (lineCount > MAX_BIO_LINES) {
+    throw new AppError(`Bio must be at most ${MAX_BIO_LINES} lines long`, 400);
+  }
+
+  return value;
 }
 
 async function issueOtpForUser(user, purpose = "signup") {
@@ -370,7 +392,7 @@ export async function updateCurrentUserProfile(
   user.displayName = displayName.trim();
   user.gender = gender;
   user.dateOfBirth = birthDate;
-  user.bio = typeof bio === "string" ? bio.trim() : "";
+  user.bio = normalizeBio(bio);
   user.location = typeof location === "string" ? location.trim() : "";
 
   await user.save();

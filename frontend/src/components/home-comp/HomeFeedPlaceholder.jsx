@@ -227,7 +227,11 @@ function EditProfileModal({ user, onClose }) {
             <div key={label} className="flex flex-col gap-1.5">
               <label className="text-xs font-semibold text-[#65676b] uppercase tracking-wide">{label}</label>
               {type === 'textarea' ? (
-                <textarea rows={3} defaultValue={defaultValue} placeholder={placeholder}
+                <textarea
+                  rows={4}
+                  maxLength={280}
+                  defaultValue={defaultValue}
+                  placeholder={placeholder}
                   className="px-4 py-2.5 rounded-lg border border-[#dddfe2] text-sm text-[#1c1e21] outline-none focus:border-indigo-500 transition-colors resize-none" />
               ) : (
                 <input type="text" defaultValue={defaultValue} placeholder={placeholder}

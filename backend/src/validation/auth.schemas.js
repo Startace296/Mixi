@@ -1,5 +1,8 @@
 import { z } from "zod";
 
+const MAX_BIO_CHARACTERS = 280;
+const MAX_BIO_LINES = 4;
+
 const emailSchema = z.string().trim().email("Please enter a valid email address");
 
 const passwordSchema = z
@@ -59,6 +62,16 @@ export const updateProfileSchema = z.object({
     errorMap: () => ({ message: "Please select a valid gender" }),
   }),
   dateOfBirth: z.string().min(1, "Date of birth is required"),
-  bio: z.string().trim().max(280, "Bio must be at most 280 characters long").optional().or(z.literal("")),
+  bio: z
+    .string()
+    .trim()
+    .max(MAX_BIO_CHARACTERS, `Bio must be at most ${MAX_BIO_CHARACTERS} characters long`)
+    .refine((value) => {
+      if (!value) return true;
+      const lineCount = value.replace(/\r\n?/g, "\n").split("\n").length;
+      return lineCount <= MAX_BIO_LINES;
+    }, `Bio must be at most ${MAX_BIO_LINES} lines long`)
+    .optional()
+    .or(z.literal("")),
   location: z.string().trim().max(120, "Location must be at most 120 characters long").optional().or(z.literal("")),
 });

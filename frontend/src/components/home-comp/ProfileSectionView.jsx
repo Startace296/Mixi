@@ -4,6 +4,8 @@ import toast from 'react-hot-toast';
 import { updateMyProfile, uploadMyAvatar } from '../../services/api.js';
 
 const GENDERS = ['Male', 'Female', 'Other'];
+const MAX_BIO_CHARACTERS = 280;
+const MAX_BIO_LINES = 4;
 const ALLOWED_AVATAR_TYPES = new Set(['image/png', 'image/jpeg']);
 const MAX_AVATAR_BYTES = 1024 * 1024;
 
@@ -23,6 +25,12 @@ function formatDate(value) {
     month: '2-digit',
     year: 'numeric',
   });
+}
+
+function countBioLines(value) {
+  const normalized = value?.trim() || '';
+  if (!normalized) return 0;
+  return normalized.replace(/\r\n?/g, '\n').split('\n').length;
 }
 
 function createFormState(user) {
@@ -62,17 +70,33 @@ function UserAvatar({ user, size = 'lg', className = '' }) {
 function EditProfileModal({ user, onClose, onSaved }) {
   const [form, setForm] = useState(() => createFormState(user));
   const [loading, setLoading] = useState(false);
+  const [bioError, setBioError] = useState('');
 
   useEffect(() => {
     setForm(createFormState(user));
+    setBioError('');
   }, [user]);
 
   const updateField = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
+  const handleBioChange = (value) => {
+    if (countBioLines(value) > MAX_BIO_LINES) {
+      setBioError(`Bio must be at most ${MAX_BIO_LINES} lines long.`);
+      return;
+    }
+
+    setBioError('');
+    updateField('bio', value);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (bioError) {
+      toast.error(bioError);
+      return;
+    }
     setLoading(true);
 
     try {
@@ -93,7 +117,8 @@ function EditProfileModal({ user, onClose, onSaved }) {
     !loading &&
     form.displayName.trim() &&
     form.gender &&
-    form.dateOfBirth;
+    form.dateOfBirth &&
+    !bioError;
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 px-4" onClick={onClose}>
@@ -132,12 +157,18 @@ function EditProfileModal({ user, onClose, onSaved }) {
               Bio
             </label>
             <textarea
-              rows={3}
+              rows={MAX_BIO_LINES}
+              maxLength={MAX_BIO_CHARACTERS}
               value={form.bio}
-              onChange={(e) => updateField('bio', e.target.value)}
+              onChange={(e) => handleBioChange(e.target.value)}
               placeholder="Write something about yourself..."
               className="resize-none rounded-lg border border-[#dddfe2] px-4 py-2.5 text-sm text-[#1c1e21] outline-none transition-colors focus:border-indigo-500"
             />
+            <div className="flex items-center justify-between gap-3 text-xs text-[#8a8d91]">
+              <span className={bioError ? 'text-red-600' : ''}>
+                {bioError || `${form.bio.length}/${MAX_BIO_CHARACTERS} characters · ${countBioLines(form.bio)}/${MAX_BIO_LINES} lines`}
+              </span>
+            </div>
           </div>
 
           <div className="flex flex-col gap-1.5">
