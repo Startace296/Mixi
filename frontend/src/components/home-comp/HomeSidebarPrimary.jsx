@@ -89,7 +89,7 @@ export default function HomeSidebarPrimary({ activeSection, onSelectSection }) {
   return (
     <aside
       className="relative z-10 flex w-[72px] shrink-0 flex-col items-center justify-between border-r border-[#e4e6eb] bg-white py-4"
-      aria-label="Menu chính"
+      aria-label="Main menu"
     >
       <div className="flex flex-col items-center gap-1">
         {topItems.map((id) => (

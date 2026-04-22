@@ -55,7 +55,7 @@ function SectionDivider({ title, count }) {
   return (
     <div className="flex items-center justify-between px-1 pt-2">
       <h2 className="text-base font-bold text-[#1c1e21]">{title}</h2>
-      {count != null && <span className="text-xs font-medium text-[#8a8d91]">{count} người</span>}
+      {count != null && <span className="text-xs font-medium text-[#8a8d91]">{count} people</span>}
     </div>
   );
 }
@@ -63,14 +63,14 @@ function SectionDivider({ title, count }) {
 // ─── Mock data ────────────────────────────────────────────────────────────────
 
 const MOCK_REQUESTS = [
-  { id: 'r1', name: 'Mai Linh', mutual: '3 bạn chung' },
-  { id: 'r2', name: 'Hữu Phước', mutual: 'Gợi ý cho bạn' },
+  { id: 'r1', name: 'Mai Linh', mutual: '3 mutual friends' },
+  { id: 'r2', name: 'Huu Phuoc', mutual: 'Suggested for you' },
 ];
 
 const MOCK_FRIENDS = [
-  { id: 'f1', name: 'Quốc Huy', mutual: '12 bạn chung' },
-  { id: 'f2', name: 'Thu Trang', mutual: '5 bạn chung' },
-  { id: 'f3', name: 'Đức Anh', mutual: '1 bạn chung' },
+  { id: 'f1', name: 'Quoc Huy', mutual: '12 mutual friends' },
+  { id: 'f2', name: 'Thu Trang', mutual: '5 mutual friends' },
+  { id: 'f3', name: 'Duc Anh', mutual: '1 mutual friend' },
 ];
 
 // ─── Friend cards ─────────────────────────────────────────────────────────────
@@ -89,10 +89,10 @@ function FriendRequestCard({ name, mutual }) {
       </div>
       <div className="flex gap-2">
         <button type="button" className="flex-1 rounded-full bg-indigo-600 py-1.5 text-sm font-semibold text-white hover:bg-indigo-700 transition-colors">
-          Chấp nhận
+          Accept
         </button>
         <button type="button" className="flex-1 rounded-full border border-[#e4e6eb] py-1.5 text-sm font-semibold text-[#65676b] hover:bg-[#f0f2f5] transition-colors">
-          Từ chối
+          Decline
         </button>
       </div>
     </div>
@@ -110,7 +110,7 @@ function FriendCard({ name, mutual }) {
         <p className="text-xs text-[#65676b]">{mutual}</p>
       </div>
       <button type="button" className="shrink-0 rounded-full border border-[#e4e6eb] px-4 py-1.5 text-sm font-semibold text-[#65676b] hover:bg-[#f0f2f5] transition-colors">
-        Nhắn tin
+        Message
       </button>
     </div>
   );
@@ -158,22 +158,22 @@ function HomeSection({ displayName, user }) {
         <div className="flex gap-3 items-start">
           <FeedAvatar user={user} displayName={displayName} />
           <div className="flex-1 min-w-0">
-            <label htmlFor="home-composer" className="sr-only">Tạo bài viết</label>
+            <label htmlFor="home-composer" className="sr-only">Create a post</label>
             <textarea
               id="home-composer"
               rows={2}
               readOnly
-              placeholder={`${displayName} ơi, bạn đang nghĩ gì thế?`}
+              placeholder={`${displayName}, what's on your mind?`}
               className="w-full resize-none rounded-xl bg-[#f0f2f5] border border-[#e4e6eb] px-4 py-3 text-sm text-[#1c1e21] placeholder:text-[#8a8d91] outline-none cursor-default"
             />
             <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-[#f0f2f5]">
               <button type="button" className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-semibold text-[#65676b] bg-[#f0f2f5] hover:bg-[#e4e6eb] transition-colors cursor-default">
                 <svg className="w-4 h-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" /></svg>
-                Ảnh / Video
+                Photo / Video
               </button>
               <button type="button" className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-semibold text-[#65676b] bg-[#f0f2f5] hover:bg-[#e4e6eb] transition-colors cursor-default">
                 <svg className="w-4 h-4 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}><path strokeLinecap="round" strokeLinejoin="round" d="M15.182 15.182a4.5 4.5 0 01-6.364 0M21 12a9 9 0 11-18 0 9 9 0 0118 0zM9.75 9.75c0 .414-.168.75-.375.75S9 10.164 9 9.75 9.168 9 9.375 9s.375.336.375.75zm-.375 0h.008v.015h-.008V9.75zm5.625 0c0 .414-.168.75-.375.75s-.375-.336-.375-.75.168-.75.375-.75.375.336.375.75zm-.375 0h.008v.015h-.008V9.75z" /></svg>
-                Cảm xúc
+                Feeling
               </button>
             </div>
           </div>
@@ -181,8 +181,8 @@ function HomeSection({ displayName, user }) {
       </section>
 
       <div className="flex items-center justify-between px-1">
-        <h2 className="text-base font-bold text-[#1c1e21]">Bảng tin</h2>
-        <span className="text-xs font-medium text-[#8a8d91]">Sắp kết nối API</span>
+        <h2 className="text-base font-bold text-[#1c1e21]">Feed</h2>
+        <span className="text-xs font-medium text-[#8a8d91]">API integration coming soon</span>
       </div>
       <div className="space-y-4">
         <PostSkeleton />
@@ -196,7 +196,7 @@ function FriendsSection({ subSection }) {
   if (subSection === HOME_SUB_SECTION.friends_all) {
     return (
       <div className="w-full max-w-[900px] mx-auto px-4 py-6 space-y-5">
-        <SectionDivider title="Tất cả bạn bè" count={MOCK_FRIENDS.length} />
+        <SectionDivider title="All friends" count={MOCK_FRIENDS.length} />
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {MOCK_FRIENDS.map((f) => <FriendCard key={f.id} {...f} />)}
         </div>
@@ -207,7 +207,7 @@ function FriendsSection({ subSection }) {
   // friends_requests (default)
   return (
     <div className="w-full max-w-[900px] mx-auto px-4 py-6 space-y-5">
-      <SectionDivider title="Lời mời kết bạn" count={MOCK_REQUESTS.length} />
+      <SectionDivider title="Friend requests" count={MOCK_REQUESTS.length} />
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {MOCK_REQUESTS.map((r) => <FriendRequestCard key={r.id} {...r} />)}
       </div>
@@ -277,29 +277,78 @@ function EditProfileModal({ user, onClose }) {
   );
 }
 
-function AvatarModal({ onClose }) {
-  const fileRef = useRef(null);
+function ModalShell({ title, onClose, children }) {
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 px-4" onClick={onClose}>
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-6 py-4 border-b border-[#f0f2f5]">
-          <h2 className="text-lg font-bold text-[#1c1e21]">Choose profile picture</h2>
+          <h2 className="text-lg font-bold text-[#1c1e21]">{title}</h2>
           <button type="button" onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#f0f2f5] text-[#65676b] transition-colors">
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
           </button>
         </div>
-        <div className="px-6 py-8 flex justify-center">
-          <input ref={fileRef} type="file" accept="image/*" className="hidden" />
-          <button type="button" onClick={() => fileRef.current?.click()}
-            className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 transition-colors">
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
-            </svg>
-            Upload photo
-          </button>
-        </div>
+        {children}
       </div>
     </div>
+  );
+}
+
+function AvatarModal({ onClose }) {
+  const fileRef = useRef(null);
+  const [previewUrl, setPreviewUrl] = useState(null);
+
+  function handleFileChange(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setPreviewUrl(URL.createObjectURL(file));
+  }
+
+  function handleCancel() {
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    setPreviewUrl(null);
+    if (fileRef.current) fileRef.current.value = '';
+  }
+
+  function handleConfirm() {
+    // TODO: call upload API with fileRef.current.files[0]
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    onClose();
+  }
+
+  if (previewUrl) {
+    return (
+      <ModalShell title="Confirm profile picture" onClose={onClose}>
+        <div className="px-6 py-6 flex flex-col items-center gap-5">
+          <img src={previewUrl} alt="Preview" className="w-36 h-36 rounded-full object-cover shadow-md" />
+          <p className="text-sm text-[#65676b] text-center">Use this photo as your profile picture?</p>
+        </div>
+        <div className="flex gap-3 px-6 py-4 border-t border-[#f0f2f5]">
+          <button type="button" onClick={handleCancel}
+            className="flex-1 py-2 rounded-lg text-sm font-semibold text-[#65676b] border border-[#e4e6eb] hover:bg-[#f0f2f5] transition-colors">
+            Cancel
+          </button>
+          <button type="button" onClick={handleConfirm}
+            className="flex-1 py-2 rounded-lg text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors">
+            Confirm
+          </button>
+        </div>
+      </ModalShell>
+    );
+  }
+
+  return (
+    <ModalShell title="Choose profile picture" onClose={onClose}>
+      <div className="px-6 py-8 flex justify-center">
+        <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+        <button type="button" onClick={() => fileRef.current?.click()}
+          className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 transition-colors">
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+          </svg>
+          Upload photo
+        </button>
+      </div>
+    </ModalShell>
   );
 }
 
@@ -374,15 +423,15 @@ function ProfileSection({ displayName, user }) {
 
 function SettingsSection({ subSection }) {
   const map = {
-    [HOME_SUB_SECTION.settings_notifications]: { title: 'Thông báo', desc: 'Quản lý thông báo đẩy và email.' },
-    [HOME_SUB_SECTION.settings_help]:          { title: 'Trợ giúp',  desc: 'Câu hỏi thường gặp và liên hệ hỗ trợ.' },
+    [HOME_SUB_SECTION.settings_notifications]: { title: 'Notifications', desc: 'Manage push and email notifications.' },
+    [HOME_SUB_SECTION.settings_help]:          { title: 'Help',  desc: 'FAQ and support contact.' },
   };
   const { title, desc } = map[subSection] || map[HOME_SUB_SECTION.settings_notifications];
   return (
     <FeedShell title={title} description={desc}>
       <EmptyState icon={IconCog}
-        title="Chưa có tùy chọn nào"
-        description="Tính năng này sẽ sớm ra mắt."
+        title="No options yet"
+        description="This feature is coming soon."
       />
     </FeedShell>
   );
@@ -396,10 +445,10 @@ export default function HomeFeedPlaceholder({ user, displayName, section, subSec
   }
   if (section === HOME_SECTION.messages) {
     return (
-      <FeedShell title="Tin nhắn" description="Chọn một cuộc trò chuyện ở cột bên cạnh để mở tại đây.">
+      <FeedShell title="Messages" description="Choose a conversation from the sidebar to open it here.">
         <EmptyState icon={IconChat}
-          title="Chưa có cuộc trò chuyện nào được chọn"
-          description="Chọn một tin nhắn từ danh sách bên trái để xem."
+          title="No conversation selected yet"
+          description="Select a message thread from the left panel to view it."
         />
       </FeedShell>
     );

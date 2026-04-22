@@ -1,13 +1,13 @@
 import { HOME_SECTION, HOME_SUB_SECTION } from './homeSections';
 
 const MOCK_CHATS = [
-  { id: '1', name: 'Minh Anh', preview: 'Ok nhé, mai gặp!', time: '14:32', unread: 2 },
-  { id: '3', name: 'Lan Hương', preview: 'Bạn gửi một ảnh', time: 'T2', unread: 0 },
-  { id: '4', name: 'Tuấn Dev', preview: 'Merge xong rồi nhé', time: 'CN', unread: 1 },
+  { id: '1', name: 'Minh Anh', preview: 'Okay, see you tomorrow!', time: '14:32', unread: 2 },
+  { id: '3', name: 'Lan Huong', preview: 'You sent a photo', time: 'Mon', unread: 0 },
+  { id: '4', name: 'Tuan Dev', preview: 'Merge is done.', time: 'Sun', unread: 1 },
 ];
 
 const MOCK_GROUPS = [
-  { id: 'g1', name: 'Nhóm POSE 2026', preview: 'Thầy: Deadline tuần sau...', time: 'Hôm qua', unread: 0 },
+  { id: 'g1', name: 'POSE 2026 Group', preview: 'Teacher: Deadline next week...', time: 'Yesterday', unread: 0 },
 ];
 
 const subsectionTitleClass =
@@ -76,10 +76,10 @@ export default function HomeSidebarSecondary({ activeSection, activeSubSection, 
 
       {activeSection === HOME_SECTION.home && (
         <>
-          <SecondaryHeader title="Trang chủ" />
+          <SecondaryHeader title="Home" />
           <div className="flex-1 overflow-y-auto p-3 space-y-4">
-            <NavSubsection title="Lối tắt">
-              <NavBtn label="Bảng tin" subKey={HOME_SUB_SECTION.home_feed} activeSubSection={activeSubSection} onSelect={onSelectSubSection} />
+            <NavSubsection title="Shortcuts">
+              <NavBtn label="Feed" subKey={HOME_SUB_SECTION.home_feed} activeSubSection={activeSubSection} onSelect={onSelectSubSection} />
             </NavSubsection>
           </div>
         </>
@@ -87,12 +87,12 @@ export default function HomeSidebarSecondary({ activeSection, activeSubSection, 
 
       {activeSection === HOME_SECTION.messages && (
         <>
-          <SecondaryHeader title="Tin nhắn" subtitle="Cuộc trò chuyện" />
+          <SecondaryHeader title="Messages" subtitle="Conversations" />
           <div className="flex-1 overflow-y-auto p-3 space-y-4">
-            <NavSubsection title="Gần đây">
+            <NavSubsection title="Recent">
               {MOCK_CHATS.map((c) => <RowChat key={c.id} {...c} />)}
             </NavSubsection>
-            <NavSubsection title="Nhóm">
+            <NavSubsection title="Groups">
               {MOCK_GROUPS.map((c) => <RowChat key={c.id} {...c} />)}
             </NavSubsection>
           </div>
@@ -101,13 +101,13 @@ export default function HomeSidebarSecondary({ activeSection, activeSubSection, 
 
       {activeSection === HOME_SECTION.friends && (
         <>
-          <SecondaryHeader title="Bạn bè" subtitle="Lời mời và danh sách" />
+          <SecondaryHeader title="Friends" subtitle="Requests and lists" />
           <div className="flex-1 overflow-y-auto p-3 space-y-4">
-            <NavSubsection title="Lời mời">
-              <NavBtn label="Lời mời kết bạn" subKey={HOME_SUB_SECTION.friends_requests} activeSubSection={activeSubSection} onSelect={onSelectSubSection} />
+            <NavSubsection title="Requests">
+              <NavBtn label="Friend requests" subKey={HOME_SUB_SECTION.friends_requests} activeSubSection={activeSubSection} onSelect={onSelectSubSection} />
             </NavSubsection>
-            <NavSubsection title="Danh sách">
-              <NavBtn label="Tất cả bạn bè" subKey={HOME_SUB_SECTION.friends_all} activeSubSection={activeSubSection} onSelect={onSelectSubSection} />
+            <NavSubsection title="Lists">
+              <NavBtn label="All friends" subKey={HOME_SUB_SECTION.friends_all} activeSubSection={activeSubSection} onSelect={onSelectSubSection} />
             </NavSubsection>
           </div>
         </>
@@ -115,13 +115,13 @@ export default function HomeSidebarSecondary({ activeSection, activeSubSection, 
 
       {activeSection === HOME_SECTION.settings && (
         <>
-          <SecondaryHeader title="Cài đặt" subtitle="Ứng dụng & hỗ trợ" />
+          <SecondaryHeader title="Settings" subtitle="App and support" />
           <div className="flex-1 overflow-y-auto p-3 space-y-4">
-            <NavSubsection title="Thông báo">
-              <NavBtn label="Thông báo" subKey={HOME_SUB_SECTION.settings_notifications} activeSubSection={activeSubSection} onSelect={onSelectSubSection} />
+            <NavSubsection title="Notifications">
+              <NavBtn label="Notifications" subKey={HOME_SUB_SECTION.settings_notifications} activeSubSection={activeSubSection} onSelect={onSelectSubSection} />
             </NavSubsection>
-            <NavSubsection title="Hỗ trợ">
-              <NavBtn label="Trợ giúp" subKey={HOME_SUB_SECTION.settings_help} activeSubSection={activeSubSection} onSelect={onSelectSubSection} />
+            <NavSubsection title="Support">
+              <NavBtn label="Help" subKey={HOME_SUB_SECTION.settings_help} activeSubSection={activeSubSection} onSelect={onSelectSubSection} />
             </NavSubsection>
           </div>
         </>

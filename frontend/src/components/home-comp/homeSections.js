@@ -8,11 +8,11 @@ export const HOME_SECTION = {
 };
 
 export const HOME_SECTION_LABELS = {
-  [HOME_SECTION.home]: 'Trang chủ',
-  [HOME_SECTION.messages]: 'Tin nhắn',
-  [HOME_SECTION.friends]: 'Bạn bè',
-  [HOME_SECTION.profile]: 'Hồ sơ',
-  [HOME_SECTION.settings]: 'Cài đặt',
+  [HOME_SECTION.home]: 'Home',
+  [HOME_SECTION.messages]: 'Messages',
+  [HOME_SECTION.friends]: 'Friends',
+  [HOME_SECTION.profile]: 'Profile',
+  [HOME_SECTION.settings]: 'Settings',
 };
 
 /** Secondary nav sub-sections (secondary sidebar buttons) */

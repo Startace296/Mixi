@@ -4,7 +4,7 @@
   box-sizing: border-box;
 }
 
-/* Ẩn con mắt mặc định của trình duyệt trên ô password (Edge, một số trình duyệt) */
+/* Hide default password reveal icon in some browsers (e.g. Edge) */
 input[type="password"]::-ms-reveal {
   display: none;
 }

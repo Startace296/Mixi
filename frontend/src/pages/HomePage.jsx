@@ -8,7 +8,7 @@ export default function HomePage() {
     user?.displayName ||
     user?.username ||
     (user?.email ? user.email.split('@')[0] : null) ||
-    'bạn';
+    'you';
 
   return (
     <HomeFeedPlaceholder

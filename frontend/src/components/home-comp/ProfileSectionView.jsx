@@ -44,14 +44,16 @@ function createFormState(user) {
 }
 
 function UserAvatar({ user, size = 'lg', className = '' }) {
+  const [imgError, setImgError] = useState(false);
   const sizeClass = size === 'xl' ? 'w-24 h-24 text-4xl' : size === 'lg' ? 'w-20 h-20 text-3xl' : 'w-10 h-10 text-sm';
-  const label = user?.displayName?.[0] || user?.email?.[0] || '?';
+  const label = (user?.displayName?.[0] || user?.email?.[0] || '?').toUpperCase();
 
-  if (user?.avatarUrl) {
+  if (user?.avatarUrl && !imgError) {
     return (
       <img
         src={user.avatarUrl}
         alt=""
+        onError={() => setImgError(true)}
         className={`${sizeClass} rounded-full object-cover ${className}`}
       />
     );
@@ -59,7 +61,7 @@ function UserAvatar({ user, size = 'lg', className = '' }) {
 
   return (
     <div
-      className={`${sizeClass} rounded-full bg-indigo-100 text-indigo-700 font-bold flex items-center justify-center uppercase ${className}`}
+      className={`${sizeClass} rounded-full bg-indigo-100 text-indigo-700 font-bold flex items-center justify-center ${className}`}
       aria-hidden
     >
       {label}
@@ -236,50 +238,12 @@ function EditProfileModal({ user, onClose, onSaved }) {
   );
 }
 
-function AvatarModal({ user, onClose, onSaved }) {
-  const inputRef = useRef(null);
-  const [loading, setLoading] = useState(false);
-
-  const handleFileChange = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (!ALLOWED_AVATAR_TYPES.has(file.type)) {
-      toast.error('Only PNG and JPEG images are allowed.');
-      e.target.value = '';
-      return;
-    }
-
-    if (file.size > MAX_AVATAR_BYTES) {
-      toast.error('Avatar image must be 1 MB or smaller.');
-      e.target.value = '';
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const response = await uploadMyAvatar(file);
-      if (response?.user) {
-        onSaved(response.user);
-        toast.success('Profile photo updated successfully.');
-      }
-      onClose();
-    } catch (error) {
-      toast.error(error.message);
-    } finally {
-      setLoading(false);
-      e.target.value = '';
-    }
-  };
-
+function AvatarModalShell({ title, onClose, children, modalClassName = 'max-w-sm' }) {
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 px-4" onClick={onClose}>
-      <div
-        className="w-full max-w-sm rounded-2xl bg-white shadow-xl"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className={`w-full ${modalClassName} rounded-2xl bg-white shadow-xl`} onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between border-b border-[#f0f2f5] px-6 py-4">
-          <h2 className="text-lg font-bold text-[#1c1e21]">Choose profile picture</h2>
+          <h2 className="text-lg font-bold text-[#1c1e21]">{title}</h2>
           <button
             type="button"
             onClick={onClose}
@@ -290,37 +254,129 @@ function AvatarModal({ user, onClose, onSaved }) {
             </svg>
           </button>
         </div>
-
-        <div className="flex flex-col items-center gap-5 px-6 py-8">
-          <UserAvatar user={user} size="xl" />
-          <input
-            ref={inputRef}
-            type="file"
-            accept="image/png,image/jpeg"
-            className="hidden"
-            onChange={handleFileChange}
-          />
-          <button
-            type="button"
-            onClick={() => inputRef.current?.click()}
-            disabled={loading}
-            className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-6 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-gray-400"
-          >
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
-            </svg>
-            {loading ? 'Uploading...' : 'Upload photo'}
-          </button>
-        </div>
+        {children}
       </div>
     </div>
+  );
+}
+
+function AvatarModal({ onClose, onSaved }) {
+  const inputRef = useRef(null);
+  const [previewUrl, setPreviewUrl] = useState(null);
+  const [pendingFile, setPendingFile] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  function closeAll() {
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    onClose();
+  }
+
+  function resetFileInput() {
+    if (inputRef.current) inputRef.current.value = '';
+  }
+
+  function handleFileChange(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!ALLOWED_AVATAR_TYPES.has(file.type)) {
+      toast.error('Only PNG and JPEG images are allowed.');
+      resetFileInput();
+      return;
+    }
+
+    if (file.size > MAX_AVATAR_BYTES) {
+      toast.error('Avatar image must be 1 MB or smaller.');
+      resetFileInput();
+      return;
+    }
+
+    setPendingFile(file);
+    setPreviewUrl(URL.createObjectURL(file));
+    resetFileInput();
+  }
+
+  function handlePreviewCancel() {
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    setPreviewUrl(null);
+    setPendingFile(null);
+  }
+
+  async function handleConfirm() {
+    if (!pendingFile) return;
+    setLoading(true);
+    try {
+      const response = await uploadMyAvatar(pendingFile);
+      if (response?.user) {
+        onSaved(response.user);
+        toast.success(response.message || 'Profile photo updated successfully.');
+      }
+      closeAll();
+    } catch (error) {
+      toast.error(error.response?.data?.message || error.message || 'Upload failed');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  if (previewUrl) {
+    return (
+      <AvatarModalShell title="Confirm profile picture" onClose={closeAll} modalClassName="max-w-md">
+        <div className="flex flex-col items-center gap-5 px-8 py-8">
+          <img src={previewUrl} alt="" className="h-48 w-48 rounded-full object-cover shadow-md" />
+          <p className="text-center text-sm text-[#65676b]">Use this photo as your profile picture?</p>
+        </div>
+        <div className="flex gap-3 border-t border-[#f0f2f5] px-8 py-5">
+          <button
+            type="button"
+            onClick={handlePreviewCancel}
+            disabled={loading}
+            className="flex-1 rounded-lg border border-[#e4e6eb] py-2 text-sm font-semibold text-[#65676b] transition-colors hover:bg-[#f0f2f5] disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleConfirm}
+            disabled={loading}
+            className="flex-1 rounded-lg bg-indigo-600 py-2 text-sm font-semibold text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-gray-400"
+          >
+            {loading ? 'Saving...' : 'Confirm'}
+          </button>
+        </div>
+      </AvatarModalShell>
+    );
+  }
+
+  return (
+    <AvatarModalShell title="Choose profile picture" onClose={closeAll}>
+      <div className="flex justify-center px-6 py-8">
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/png,image/jpeg"
+          className="hidden"
+          onChange={handleFileChange}
+        />
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-6 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-indigo-700"
+        >
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+          </svg>
+          Upload photo
+        </button>
+      </div>
+    </AvatarModalShell>
   );
 }
 
 export default function ProfileSectionView({ user, displayName, onUserChange }) {
   const [editOpen, setEditOpen] = useState(false);
   const [avatarOpen, setAvatarOpen] = useState(false);
-  const currentName = user?.displayName || displayName || 'Bạn';
+  const currentName = user?.displayName || displayName || 'You';
 
   const handleSaved = (nextUser) => {
     onUserChange?.(nextUser);
@@ -391,11 +447,7 @@ export default function ProfileSectionView({ user, displayName, onUserChange }) 
       )}
 
       {avatarOpen && (
-        <AvatarModal
-          user={user}
-          onClose={() => setAvatarOpen(false)}
-          onSaved={handleSaved}
-        />
+        <AvatarModal onClose={() => setAvatarOpen(false)} onSaved={handleSaved} />
       )}
     </div>
   );
