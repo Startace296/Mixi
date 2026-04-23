@@ -44,12 +44,12 @@ export const logout = async () => {
 };
 
 export const getMyProfile = async () => {
-  const response = await axiosInstance.get('/auth/me');
+  const response = await axiosInstance.get('/users/me');
   return response.data;
 };
 
 export const updateMyProfile = async (data) => {
-  const response = await axiosInstance.patch('/auth/me', data);
+  const response = await axiosInstance.patch('/users/me', data);
   return response.data;
 };
 
@@ -57,8 +57,7 @@ export const uploadMyAvatar = async (file) => {
   const formData = new FormData();
   formData.append('avatar', file);
 
-  const response = await axiosInstance.post('/auth/me/avatar', formData);
-
+  const response = await axiosInstance.post('/users/me/avatar', formData);
   return response.data;
 };
 
@@ -90,4 +89,3 @@ export const resetPasswordWithOtp = async ({ email, otpCode, newPassword }) => {
   const response = await axiosInstance.post('/auth/forgot-password/reset', { email, otpCode, newPassword });
   return response.data;
 };
-

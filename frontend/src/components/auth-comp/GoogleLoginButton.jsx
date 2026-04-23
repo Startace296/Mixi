@@ -1,8 +1,8 @@
 import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { googleLogin } from '../../services/api.js';
-import { saveAuthSuccess } from '../../utils/authUtils.js';
+import { googleLogin } from '../../lib/api.js';
+import { useAuthStore } from '../../stores/useAuthStore.js';
 
 const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
@@ -10,6 +10,7 @@ export default function GoogleLoginButton({ className = '', onSuccess }) {
   const containerRef = useRef(null);
   const navigate = useNavigate();
   const initRef = useRef(false);
+  const applyAuthSuccess = useAuthStore((state) => state.applyAuthSuccess);
 
   const handleCredential = async (response) => {
     try {
@@ -24,10 +25,10 @@ export default function GoogleLoginButton({ className = '', onSuccess }) {
           },
         });
       } else {
-        saveAuthSuccess(data);
+        applyAuthSuccess(data);
         toast.success(data.message || 'Login successful');
         if (onSuccess) onSuccess();
-        else navigate('/home');
+        else navigate('/home', { replace: true });
       }
     } catch (err) {
       toast.error(err.message);

@@ -1,31 +1,13 @@
-import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import toast from 'react-hot-toast';
 
 import AuthCard from '../components/auth-comp/AuthCard';
 import FloatingInput from '../components/auth-comp/FloatingInput';
 import GoogleLoginButton from '../components/auth-comp/GoogleLoginButton';
-import { requestSignupOtp } from '../services/api.js';
+import { useRegister } from '../hooks/useRegister.js';
 
 export default function SignUpPage() {
-  const [email, setEmail] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const { email, setEmail, isLoading, handleVerify } = useRegister();
   const navigate = useNavigate();
-
-  const handleVerify = async (e) => {
-    e.preventDefault();
-    if (!email.trim()) return;
-    setIsLoading(true);
-    try {
-      await requestSignupOtp({ email: email.trim() });
-      navigate('/verify', { state: { email: email.trim() } });
-      toast.success('OTP has been sent to your email.');
-    } catch (error) {
-      toast.error(error.message);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   return (
     <AuthCard title="Sign up">

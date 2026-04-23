@@ -3,8 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
 import { BrandMark } from '../auth-comp/AuthSiteChrome';
-import { logout } from '../../services/api.js';
+import { logout } from '../../lib/api.js';
 import { HOME_SECTION } from './homeSections';
+import { useAuthStore } from '../../stores/useAuthStore.js';
 
 function UserAvatar({ user, className = '' }) {
   const [imgError, setImgError] = useState(false);
@@ -37,6 +38,7 @@ function UserAvatar({ user, className = '' }) {
 
 export default function HomeHeader({ user, onSelectSection }) {
   const navigate = useNavigate();
+  const clearAuth = useAuthStore((state) => state.clearAuth);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
 
@@ -53,8 +55,7 @@ export default function HomeHeader({ user, onSelectSection }) {
     } catch {
       // silent
     } finally {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
+      clearAuth();
       toast.success('Logout successful');
       navigate('/login', { replace: true });
     }
@@ -80,24 +81,7 @@ export default function HomeHeader({ user, onSelectSection }) {
         >
           <BrandMark size="md" />
         </button>
-
-        <div className="flex-1 max-w-xl mx-2">
-          <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8a8d91]" aria-hidden>
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-              </svg>
-            </span>
-            <input
-              type="search"
-              placeholder="Search on MixiChat..."
-              readOnly
-              className="w-full h-10 pl-10 pr-4 rounded-full bg-[#f0f2f5] border-0 text-sm text-[#1c1e21] placeholder:text-[#8a8d91] outline-none focus:ring-2 focus:ring-indigo-500/30 cursor-default"
-              aria-label="Search (coming soon)"
-            />
-          </div>
-        </div>
-
+        
         <div className="flex items-center gap-3 ml-auto shrink-0">
           <button
             type="button"

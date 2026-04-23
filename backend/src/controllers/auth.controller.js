@@ -1,14 +1,11 @@
 import {
   completeRegistration,
   completeGoogleRegistration,
-  getCurrentUserProfile,
   loginLocalUser,
   loginWithGoogle,
   requestForgotPasswordOtp,
   requestSignupOtp,
   resetPasswordWithOtp,
-  updateCurrentUserAvatar,
-  updateCurrentUserProfile,
   verifyOtp,
   verifyForgotPasswordOtp,
 } from "../services/auth.service.js";
@@ -93,38 +90,6 @@ export async function completeGoogleRegistrationHandler(req, res) {
     message: "Account created successfully.",
     token: result.token,
     user: result.user,
-  });
-}
-
-/** GET /auth/me */
-export async function getCurrentUserHandler(req, res) {
-  const user = await getCurrentUserProfile(req.user.id);
-
-  res.json({
-    success: true,
-    user,
-  });
-}
-
-/** PATCH /auth/me */
-export async function updateCurrentUserHandler(req, res) {
-  const user = await updateCurrentUserProfile(req.user.id, req.body);
-
-  res.json({
-    success: true,
-    message: "Profile updated successfully.",
-    user,
-  });
-}
-
-/** POST /auth/me/avatar */
-export async function updateCurrentUserAvatarHandler(req, res) {
-  const user = await updateCurrentUserAvatar(req.user.id, req.file);
-
-  res.json({
-    success: true,
-    message: "Profile photo updated successfully.",
-    user,
   });
 }
 

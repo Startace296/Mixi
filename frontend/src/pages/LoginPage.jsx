@@ -1,28 +1,14 @@
-import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import toast from 'react-hot-toast';
 
 import { Logo, Footer } from '../components/auth-comp/AuthSiteChrome';
 import FloatingInput from '../components/auth-comp/FloatingInput';
 import PasswordInput from '../components/auth-comp/PasswordInput';
 import GoogleLoginButton from '../components/auth-comp/GoogleLoginButton';
-import { login } from '../services/api.js';
-import { handleAuthSuccess } from '../utils/authUtils.js';
+import { useSignIn } from '../hooks/useSignIn.js';
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const { email, setEmail, password, setPassword, isLoading, handleSubmit } = useSignIn();
   const navigate = useNavigate();
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      const data = await login({ email, password });
-      handleAuthSuccess(data, navigate);
-    } catch (error) {
-      toast.error(error.message);
-    }
-  };
 
   return (
     <div className="w-full min-h-screen flex flex-col">
@@ -51,9 +37,10 @@ export default function LoginPage() {
             <PasswordInput value={password} onChange={setPassword} label="Password" />
             <button
               type="submit"
+              disabled={isLoading}
               className="px-3 py-2.5 text-base font-semibold rounded-full border-none bg-indigo-600 text-white cursor-pointer transition-colors duration-150 hover:bg-indigo-700 active:bg-indigo-800"
             >
-              Log in
+              {isLoading ? 'Logging in...' : 'Log in'}
             </button>
             <button
               type="button"

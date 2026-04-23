@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
-import { completeRegistration, completeGoogleRegistration } from '../services/api.js';
+import { completeRegistration, completeGoogleRegistration } from '../lib/api.js';
 
 function validateAge(day, month, year) {
   const birthDate = new Date(Number(year), Number(month) - 1, Number(day));

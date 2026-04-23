@@ -1,14 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 
-import { updateMyProfile, uploadMyAvatar } from '../../services/api.js';
+import { useUpdateProfile } from '../../hooks/useUpdateProfile.js';
+import { useUploadAvatar } from '../../hooks/useUploadAvatar.js';
+import { useAuthStore } from '../../stores/useAuthStore.js';
 
 const GENDERS = ['Male', 'Female', 'Other'];
 const MAX_BIO_CHARACTERS = 280;
 const MAX_BIO_LINES = 4;
-const ALLOWED_AVATAR_TYPES = new Set(['image/png', 'image/jpeg']);
-const MAX_AVATAR_BYTES = 1024 * 1024;
-
 function toDateInputValue(value) {
   if (!value) return '';
   const date = new Date(value);
@@ -71,8 +70,8 @@ function UserAvatar({ user, size = 'lg', className = '' }) {
 
 function EditProfileModal({ user, onClose, onSaved }) {
   const [form, setForm] = useState(() => createFormState(user));
-  const [loading, setLoading] = useState(false);
   const [bioError, setBioError] = useState('');
+  const { isLoading: loading, handleUpdateProfile } = useUpdateProfile({ onSaved, onClose });
 
   useEffect(() => {
     setForm(createFormState(user));
@@ -99,20 +98,7 @@ function EditProfileModal({ user, onClose, onSaved }) {
       toast.error(bioError);
       return;
     }
-    setLoading(true);
-
-    try {
-      const response = await updateMyProfile(form);
-      if (response?.user) {
-        onSaved(response.user);
-        toast.success(response.message || 'Profile updated successfully.');
-      }
-      onClose();
-    } catch (error) {
-      toast.error(error.message);
-    } finally {
-      setLoading(false);
-    }
+    await handleUpdateProfile(form);
   };
 
   const canSubmit =
@@ -264,7 +250,7 @@ function AvatarModal({ onClose, onSaved }) {
   const inputRef = useRef(null);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [pendingFile, setPendingFile] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const { isLoading: loading, validateAvatarFile, handleUploadAvatar } = useUploadAvatar({ onSaved, onClose });
 
   function closeAll() {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
@@ -279,14 +265,9 @@ function AvatarModal({ onClose, onSaved }) {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!ALLOWED_AVATAR_TYPES.has(file.type)) {
-      toast.error('Only PNG and JPEG images are allowed.');
-      resetFileInput();
-      return;
-    }
-
-    if (file.size > MAX_AVATAR_BYTES) {
-      toast.error('Avatar image must be 1 MB or smaller.');
+    const check = validateAvatarFile(file);
+    if (!check.valid) {
+      toast.error(check.message);
       resetFileInput();
       return;
     }
@@ -304,18 +285,9 @@ function AvatarModal({ onClose, onSaved }) {
 
   async function handleConfirm() {
     if (!pendingFile) return;
-    setLoading(true);
-    try {
-      const response = await uploadMyAvatar(pendingFile);
-      if (response?.user) {
-        onSaved(response.user);
-        toast.success(response.message || 'Profile photo updated successfully.');
-      }
+    const success = await handleUploadAvatar(pendingFile);
+    if (success) {
       closeAll();
-    } catch (error) {
-      toast.error(error.response?.data?.message || error.message || 'Upload failed');
-    } finally {
-      setLoading(false);
     }
   }
 
@@ -376,12 +348,12 @@ function AvatarModal({ onClose, onSaved }) {
 export default function ProfileSectionView({ user, displayName, onUserChange }) {
   const [editOpen, setEditOpen] = useState(false);
   const [avatarOpen, setAvatarOpen] = useState(false);
+  const setAuthUser = useAuthStore((state) => state.setAuthUser);
   const currentName = user?.displayName || displayName || 'You';
 
   const handleSaved = (nextUser) => {
     onUserChange?.(nextUser);
-    localStorage.setItem('user', JSON.stringify(nextUser));
-    window.dispatchEvent(new Event('auth:user-updated'));
+    setAuthUser(nextUser);
   };
 
   return (

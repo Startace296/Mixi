@@ -4,6 +4,7 @@ import helmet from "helmet";
 import compression from "compression";
 
 import authRouter from "./routes/auth.routes.js";
+import userRouter from "./routes/user.routes.js";
 import { errorHandler, notFoundHandler } from "./middlewares/error.middleware.js";
 
 const app = express();
@@ -31,6 +32,7 @@ app.get("/", (_req, res) => {
 });
 
 app.use("/auth", authRouter);
+app.use("/users", userRouter);
 app.use(notFoundHandler);
 app.use(errorHandler);
 

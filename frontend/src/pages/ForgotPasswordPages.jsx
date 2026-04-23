@@ -1,36 +1,15 @@
-import { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import toast from 'react-hot-toast';
-
 import AuthCard from '../components/auth-comp/AuthCard';
 import FloatingInput from '../components/auth-comp/FloatingInput';
 import PasswordInput from '../components/auth-comp/PasswordInput';
 import {
-  requestForgotPasswordOtp,
-  verifyForgotPasswordOtp,
-  resetPasswordWithOtp,
-} from '../services/api.js';
+  useForgotPasswordRequest,
+  useForgotPasswordVerify,
+  useResetPassword,
+} from '../hooks/useForgotPassword.js';
 
 /** /forgot-password */
 export function ForgotPasswordPage() {
-  const [email, setEmail] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const navigate = useNavigate();
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!email.trim()) return;
-    setIsLoading(true);
-    try {
-      await requestForgotPasswordOtp({ email: email.trim() });
-      toast.success('OTP has been sent to your email.');
-      navigate('/forgot-verify', { state: { email: email.trim() } });
-    } catch (error) {
-      toast.error(error.message);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const { email, setEmail, isLoading, handleSubmit, navigate } = useForgotPasswordRequest();
 
   return (
     <AuthCard
@@ -66,53 +45,7 @@ export function ForgotPasswordPage() {
 
 /** /forgot-verify */
 export function ForgotVerifyPage() {
-  const [code, setCode] = useState('');
-  const [timeLeft, setTimeLeft] = useState(60);
-  const [isLoading, setIsLoading] = useState(false);
-  const navigate = useNavigate();
-  const location = useLocation();
-  const email = location.state?.email;
-
-  useEffect(() => {
-    if (!email) {
-      navigate('/forgot-password', { replace: true });
-    }
-  }, [email, navigate]);
-
-  useEffect(() => {
-    if (timeLeft <= 0) return;
-    const timer = setInterval(() => setTimeLeft((prev) => prev - 1), 1000);
-    return () => clearInterval(timer);
-  }, [timeLeft]);
-
-  const handleVerify = async (e) => {
-    e.preventDefault();
-    if (code.length !== 6 || !email) return;
-    setIsLoading(true);
-    try {
-      await verifyForgotPasswordOtp({ email, otpCode: code });
-      toast.success('OTP verified successfully.');
-      navigate('/reset-password', { state: { email, code } });
-    } catch (error) {
-      toast.error(error.message);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleResend = async () => {
-    if (timeLeft > 0) return;
-    setIsLoading(true);
-    try {
-      await requestForgotPasswordOtp({ email });
-      setTimeLeft(60);
-      toast.success('OTP has been resent to your email.');
-    } catch (error) {
-      toast.error(error.message);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const { email, code, setCode, timeLeft, isLoading, handleVerify, handleResend } = useForgotPasswordVerify();
 
   if (!email) return null;
 
@@ -176,48 +109,19 @@ export function ForgotVerifyPage() {
 
 /** /reset-password */
 export function ResetPasswordPage() {
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [passwordError, setPasswordError] = useState('');
-  const [confirmError, setConfirmError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const navigate = useNavigate();
-  const location = useLocation();
-  const { email, code } = location.state || {};
-
-  useEffect(() => {
-    if (!email || !code) navigate('/forgot-password', { replace: true });
-  }, [email, code, navigate]);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setPasswordError('');
-    setConfirmError('');
-    if (
-      !password.trim() ||
-      password.trim().length < 8 ||
-      password !== confirmPassword
-    ) {
-      if (!password.trim()) setPasswordError('Password is required');
-      else if (password.trim().length < 8) setPasswordError('Password must be at least 8 characters');
-      if (password !== confirmPassword) setConfirmError('Password not match');
-      return;
-    }
-    setIsLoading(true);
-    try {
-      const data = await resetPasswordWithOtp({
-        email,
-        otpCode: code,
-        newPassword: password,
-      });
-      toast.success(data.message || 'Password reset successful.');
-      navigate('/login', { replace: true });
-    } catch (error) {
-      toast.error(error.message);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const {
+    email,
+    password,
+    setPassword,
+    confirmPassword,
+    setConfirmPassword,
+    passwordError,
+    setPasswordError,
+    confirmError,
+    setConfirmError,
+    isLoading,
+    handleSubmit,
+  } = useResetPassword();
 
   if (!email) return null;
 

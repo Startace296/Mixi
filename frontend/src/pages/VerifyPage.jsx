@@ -1,58 +1,13 @@
-import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import toast from 'react-hot-toast';
 
 import AuthCard from '../components/auth-comp/AuthCard';
-import { requestSignupOtp, verifyOtp } from '../services/api.js';
+import { useVerifyOtp } from '../hooks/useVerifyOtp.js';
 
 export default function VerifyPage() {
-  const [code, setCode] = useState('');
-  const [timeLeft, setTimeLeft] = useState(60);
-  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const email = location.state?.email;
-
-  useEffect(() => {
-    if (!email) {
-      navigate('/signup', { replace: true });
-    }
-  }, [email, navigate]);
-
-  useEffect(() => {
-    if (timeLeft <= 0) return;
-    const timer = setInterval(() => setTimeLeft((prev) => prev - 1), 1000);
-    return () => clearInterval(timer);
-  }, [timeLeft]);
-
-  const handleConfirm = async (e) => {
-    e.preventDefault();
-    if (code.length !== 6 || !email) return;
-    setIsLoading(true);
-    try {
-      await verifyOtp({ email, otpCode: code });
-      navigate('/register', { state: { email } });
-      toast.success('Email verified successfully.');
-    } catch (error) {
-      toast.error(error.message);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleResend = async () => {
-    if (timeLeft > 0) return;
-    setIsLoading(true);
-    try {
-      await requestSignupOtp({ email });
-      setTimeLeft(60);
-      toast.success('OTP resent successfully.');
-    } catch (error) {
-      toast.error(error.message);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const { code, setCode, timeLeft, isLoading, handleConfirm, handleResend } = useVerifyOtp(email);
 
   if (!email) return null;
 

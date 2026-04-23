@@ -11,6 +11,7 @@ import {
 import SignUpPage from './pages/SignUpPage';
 import VerifyPage from './pages/VerifyPage';
 import RegisterPage from './pages/RegisterPage';
+import AuthCallbackPage from './pages/AuthCallbackPage';
 import { AboutUsPage, HelpPage, PoliciesPage } from './pages/InfoPages';
 import HomePage from './pages/HomePage';
 
@@ -34,6 +35,8 @@ export default function App() {
         <Route path="/signup" element={<SignUpPage />} />
         <Route path="/verify" element={<VerifyPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/auth/callback" element={<AuthCallbackPage />} />
+        <Route path="/auth/callback/:provider" element={<AuthCallbackPage />} />
         <Route element={<MainLayout />}>
           <Route path="/home" element={<HomePage />} />
         </Route>
