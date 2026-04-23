@@ -2,6 +2,7 @@ import { Router } from "express";
 
 import {
   getCurrentUserHandler,
+  searchUsersHandler,
   updateCurrentUserAvatarHandler,
   updateCurrentUserHandler,
 } from "../controllers/user.controller.js";
@@ -14,6 +15,7 @@ import { updateProfileSchema } from "../validation/auth.schemas.js";
 const router = Router();
 
 router.get("/me", requireAuth, asyncHandler(getCurrentUserHandler));
+router.get("/search", requireAuth, asyncHandler(searchUsersHandler));
 router.patch("/me", requireAuth, validateBody(updateProfileSchema), asyncHandler(updateCurrentUserHandler));
 router.post("/me/avatar", requireAuth, avatarUpload.single("avatar"), asyncHandler(updateCurrentUserAvatarHandler));
 

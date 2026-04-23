@@ -247,7 +247,9 @@ export async function loginWithGoogle({ idToken }) {
 
   if (user) {
     user.displayName = user.displayName || googleProfile.displayName;
-    user.avatarUrl = googleProfile.avatarUrl || user.avatarUrl;
+    // Keep a user-uploaded avatar on later Google logins; only fall back to Google's
+    // photo if the account does not already have a custom avatar stored.
+    user.avatarUrl = user.avatarUrl || googleProfile.avatarUrl;
     user.isEmailVerified = true;
     user.lastLoginAt = new Date();
     await user.save();

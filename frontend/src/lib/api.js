@@ -61,6 +61,53 @@ export const uploadMyAvatar = async (file) => {
   return response.data;
 };
 
+export const searchUsers = async ({ q, limit = 20 } = {}) => {
+  const response = await axiosInstance.get('/users/search', {
+    params: {
+      q,
+      limit,
+    },
+  });
+  return response.data;
+};
+
+// --- Friends ---
+
+export const getFriends = async ({ q, limit = 20 } = {}) => {
+  const response = await axiosInstance.get('/friends', {
+    params: {
+      q,
+      limit,
+    },
+  });
+  return response.data;
+};
+
+export const getFriendRequests = async ({ q, limit = 20 } = {}) => {
+  const response = await axiosInstance.get('/friends/requests', {
+    params: {
+      q,
+      limit,
+    },
+  });
+  return response.data;
+};
+
+export const createFriendRequest = async ({ receiverId }) => {
+  const response = await axiosInstance.post('/friends/requests', { receiverId });
+  return response.data;
+};
+
+export const acceptFriendRequest = async ({ requestId }) => {
+  const response = await axiosInstance.post(`/friends/requests/${requestId}/accept`);
+  return response.data;
+};
+
+export const declineFriendRequest = async ({ requestId }) => {
+  const response = await axiosInstance.delete(`/friends/requests/${requestId}`);
+  return response.data;
+};
+
 // --- Google Auth ---
 
 export const googleLogin = async ({ idToken }) => {

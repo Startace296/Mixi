@@ -1,5 +1,6 @@
 import {
   getCurrentUserProfile,
+  searchUsers,
   updateCurrentUserAvatar,
   updateCurrentUserProfile,
 } from "../services/user.service.js";
@@ -33,5 +34,15 @@ export async function updateCurrentUserAvatarHandler(req, res) {
     success: true,
     message: "Profile photo updated successfully.",
     user,
+  });
+}
+
+/** GET /users/search */
+export async function searchUsersHandler(req, res) {
+  const results = await searchUsers(req.user.id, req.query.q, req.query.limit);
+
+  res.json({
+    success: true,
+    users: results,
   });
 }

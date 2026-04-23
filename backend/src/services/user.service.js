@@ -1,12 +1,15 @@
 import sharp from "sharp";
 import { Readable } from "node:stream";
 
+import FriendRequest from "../models/FriendRequest.js";
 import User from "../models/User.js";
 import { getCloudinary } from "../config/cloudinary.js";
 import { AppError } from "../utils/app-error.js";
+import { getSearchScore } from "../utils/search.utils.js";
 
 const MAX_BIO_CHARACTERS = 280;
 const MAX_BIO_LINES = 4;
+const DEFAULT_SEARCH_LIMIT = 20;
 
 function ensureAdult(birthDate) {
   const today = new Date();
@@ -49,7 +52,7 @@ function normalizeBio(bio) {
   return value;
 }
 
-function sanitizeUser(user) {
+export function sanitizeUser(user) {
   const u = {
     id: user._id,
     email: user.email,
@@ -111,6 +114,77 @@ export async function getCurrentUserProfile(userId) {
   }
 
   return sanitizeUser(user);
+}
+
+export async function searchUsers(currentUserId, rawQuery, rawLimit = DEFAULT_SEARCH_LIMIT) {
+  const query = typeof rawQuery === "string" ? rawQuery.trim() : "";
+  const limit = Math.min(
+    Math.max(Number.parseInt(rawLimit, 10) || DEFAULT_SEARCH_LIMIT, 1),
+    50,
+  );
+
+  const currentUser = currentUserId
+    ? String(currentUserId)
+    : null;
+
+  const visibleUsersQuery = {
+    _id: currentUser ? { $ne: currentUser } : { $exists: true },
+    isEmailVerified: true,
+    displayName: { $ne: "" },
+  };
+
+  if (!query) {
+    return [];
+  }
+
+  const currentId = currentUserId ? String(currentUserId) : null;
+  const relations = currentId
+    ? await FriendRequest.find({
+      $or: [{ requestedById: currentId }, { receiverId: currentId }],
+    }).select("requestedById receiverId status")
+    : [];
+
+  const relationMap = new Map();
+  for (const relation of relations) {
+    const requesterId = String(relation.requestedById);
+    const receiverId = String(relation.receiverId);
+    const isRequester = requesterId === currentId;
+    const otherUserId = isRequester ? receiverId : requesterId;
+    const relationshipStatus = relation.status === "accepted"
+      ? "friends"
+      : isRequester
+        ? "requested"
+        : "incoming";
+
+    relationMap.set(otherUserId, {
+      relationshipStatus,
+      friendRequestId: String(relation._id),
+    });
+  }
+
+  const users = await User.find(visibleUsersQuery)
+    .select("displayName avatarUrl provider lastLoginAt createdAt email");
+
+  return users
+    .map((user) => ({
+      user,
+      score: getSearchScore(user.displayName || "", query),
+    }))
+    .filter(({ score }) => Number.isFinite(score))
+    .sort((left, right) => {
+      if (left.score !== right.score) return left.score - right.score;
+      return (left.user.displayName || "").localeCompare(right.user.displayName || "");
+    })
+    .slice(0, limit)
+    .map(({ user }) => {
+      const relationInfo = relationMap.get(String(user._id));
+
+      return {
+        ...sanitizeUser(user),
+        relationshipStatus: relationInfo?.relationshipStatus || "none",
+        friendRequestId: relationInfo?.friendRequestId || null,
+      };
+    });
 }
 
 export async function updateCurrentUserProfile(

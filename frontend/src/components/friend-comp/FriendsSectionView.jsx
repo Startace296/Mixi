@@ -1,41 +1,28 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
+import toast from 'react-hot-toast';
 
+import {
+  acceptFriendRequest,
+  createFriendRequest,
+  declineFriendRequest,
+  getFriendRequests,
+  getFriends,
+  searchUsers,
+} from '../../lib/api.js';
 import { HOME_SUB_SECTION } from '../home-comp/homeSections';
 
-const MOCK_INCOMING_REQUESTS = [
-  { id: 'u1', displayName: 'Mai Linh' },
-  { id: 'u3', displayName: 'Ngoc Linh' },
-];
-
-const MOCK_NOT_FRIEND_USERS = [
-  { id: 'u2', displayName: 'Long Trần' },
-  { id: 'u4', displayName: 'Bảo An' },
-  { id: 'u5', displayName: 'Ngọc Linh' },
-];
-
-const MOCK_FRIENDS = [
-  { id: 'f1', name: 'Quoc Huy' },
-  { id: 'f2', name: 'Thu Trang' },
-  { id: 'f3', name: 'Duc Anh' },
-];
-
-function normalizeSearchText(value) {
-  return (value || '')
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/đ/g, 'd')
-    .replace(/Đ/g, 'D')
-    .toLowerCase()
+function getInitials(displayName) {
+  const parts = (displayName || '')
     .trim()
-    .replace(/\s+/g, ' ');
-}
+    .split(/\s+/)
+    .filter(Boolean);
 
-function matchesSearch(value, query) {
-  if (!query) return true;
-  const normalizedValue = normalizeSearchText(value);
-  const paddedValue = ` ${normalizedValue} `;
-  const paddedQuery = ` ${query} `;
-  return paddedValue.includes(paddedQuery);
+  if (parts.length === 0) return '?';
+  return parts
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join('')
+    .toUpperCase();
 }
 
 function SectionDivider({ title, count }) {
@@ -47,22 +34,49 @@ function SectionDivider({ title, count }) {
   );
 }
 
-function FriendRequestCard({ displayName }) {
+function Avatar({ displayName, avatarUrl }) {
+  if (avatarUrl) {
+    return (
+      <img
+        src={avatarUrl}
+        alt={displayName}
+        className="h-12 w-12 shrink-0 rounded-full object-cover ring-1 ring-black/5"
+      />
+    );
+  }
+
+  return (
+    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-base font-semibold text-indigo-700">
+      {getInitials(displayName)}
+    </div>
+  );
+}
+
+function FriendRequestCard({ request, onAccept, onDecline, busy }) {
   return (
     <div className="flex flex-col gap-3 rounded-lg border border-[#e4e6eb] bg-white p-4 shadow-[0_2px_4px_rgba(0,0,0,0.08),0_8px_16px_rgba(0,0,0,0.06)]">
       <div className="flex items-center gap-3">
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-base font-semibold text-indigo-700">
-          {displayName[0]}
-        </div>
+        <Avatar displayName={request.displayName} avatarUrl={request.avatarUrl} />
         <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-[#1c1e21]">{displayName}</p>
+          <p className="truncate text-sm font-semibold text-[#1c1e21]">{request.displayName}</p>
+          {request.email && <p className="truncate text-xs text-[#8a8d91]">{request.email}</p>}
         </div>
       </div>
       <div className="flex gap-2">
-        <button type="button" className="flex-1 rounded-full bg-indigo-600 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-indigo-700">
+        <button
+          type="button"
+          onClick={() => onAccept(request)}
+          disabled={busy}
+          className="flex-1 rounded-full bg-indigo-600 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
+        >
           Accept
         </button>
-        <button type="button" className="flex-1 rounded-full border border-[#e4e6eb] py-1.5 text-sm font-semibold text-[#65676b] transition-colors hover:bg-[#f0f2f5]">
+        <button
+          type="button"
+          onClick={() => onDecline(request)}
+          disabled={busy}
+          className="flex-1 rounded-full border border-[#e4e6eb] py-1.5 text-sm font-semibold text-[#65676b] transition-colors hover:bg-[#f0f2f5] disabled:cursor-not-allowed disabled:opacity-60"
+        >
           Decline
         </button>
       </div>
@@ -70,73 +84,194 @@ function FriendRequestCard({ displayName }) {
   );
 }
 
-function UserSearchCard({ displayName }) {
+function UserSearchCard({ user, onAddFriend, busy }) {
+  const relationshipStatus = user.relationshipStatus || 'none';
+  const isConnected = relationshipStatus !== 'none';
+  const buttonLabel =
+    relationshipStatus === 'friends'
+      ? 'Friends'
+      : relationshipStatus === 'requested' || relationshipStatus === 'incoming'
+        ? 'Requested'
+        : 'Add friend';
+
   return (
     <div className="flex items-center gap-3 rounded-lg border border-[#e4e6eb] bg-white p-4 shadow-[0_2px_4px_rgba(0,0,0,0.08),0_8px_16px_rgba(0,0,0,0.06)]">
-      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-base font-semibold text-indigo-700">
-        {displayName[0]}
-      </div>
+      <Avatar displayName={user.displayName} avatarUrl={user.avatarUrl} />
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-semibold text-[#1c1e21]">{displayName}</p>
+        <p className="truncate text-sm font-semibold text-[#1c1e21]">{user.displayName}</p>
+        {user.email && <p className="truncate text-xs text-[#8a8d91]">{user.email}</p>}
       </div>
-      <button type="button" className="shrink-0 rounded-full bg-indigo-600 px-4 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-indigo-700">
-        Add friend
+      <button
+        type="button"
+        onClick={() => onAddFriend(user)}
+        disabled={busy || isConnected}
+        className="shrink-0 rounded-full bg-indigo-600 px-4 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-[#ccd0d5] disabled:text-[#65676b]"
+      >
+        {buttonLabel}
       </button>
     </div>
   );
 }
 
-function FriendCard({ name }) {
+function FriendCard({ friend }) {
   return (
     <div className="flex items-center gap-3 rounded-lg border border-[#e4e6eb] bg-white p-4 shadow-[0_2px_4px_rgba(0,0,0,0.08),0_8px_16px_rgba(0,0,0,0.06)]">
-      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-base font-semibold text-indigo-700">
-        {name[0]}
-      </div>
+      <Avatar displayName={friend.displayName} avatarUrl={friend.avatarUrl} />
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-semibold text-[#1c1e21]">{name}</p>
+        <p className="truncate text-sm font-semibold text-[#1c1e21]">{friend.displayName}</p>
+        {friend.email && <p className="truncate text-xs text-[#8a8d91]">{friend.email}</p>}
       </div>
-      <button type="button" className="shrink-0 rounded-full border border-[#e4e6eb] px-4 py-1.5 text-sm font-semibold text-[#65676b] transition-colors hover:bg-[#f0f2f5]">
-        Message
-      </button>
     </div>
   );
 }
 
 export default function FriendsSectionView({ subSection }) {
   const [searchText, setSearchText] = useState('');
-  const [submittedSearch, setSubmittedSearch] = useState('');
-  const normalized = normalizeSearchText(submittedSearch);
+  const [debouncedSearchText, setDebouncedSearchText] = useState('');
+  const [friends, setFriends] = useState([]);
+  const [incomingRequests, setIncomingRequests] = useState([]);
+  const [searchResults, setSearchResults] = useState([]);
+  const [busyActionId, setBusyActionId] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const filteredIncomingRequests = useMemo(() => {
-    if (!normalized) return MOCK_INCOMING_REQUESTS;
-    return MOCK_INCOMING_REQUESTS.filter((user) =>
-      matchesSearch(user.displayName, normalized)
-    );
-  }, [normalized]);
+  const query = debouncedSearchText.trim();
 
-  const filteredSearchUsers = useMemo(() => {
-    if (!normalized) return [];
-    return MOCK_NOT_FRIEND_USERS.filter((user) =>
-      matchesSearch(user.displayName, normalized)
-    );
-  }, [normalized]);
+  async function fetchSectionData(activeSubSection = subSection, activeQuery = query) {
+    if (activeSubSection === HOME_SUB_SECTION.friends_all) {
+      const response = await getFriends({ q: activeQuery || undefined, limit: 20 });
 
-  const filteredFriends = useMemo(() => {
-    if (!normalized) return MOCK_FRIENDS;
-    return MOCK_FRIENDS.filter((friend) => matchesSearch(friend.name, normalized));
-  }, [normalized]);
-
-  const handleSearchKeyDown = (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      setSubmittedSearch(searchText.trim());
+      return {
+        friends: response.friends || [],
+        incomingRequests: [],
+        searchResults: [],
+      };
     }
-  };
+
+    const requestsPromise = getFriendRequests({ q: activeQuery || undefined, limit: 20 });
+    const usersPromise = activeQuery
+      ? searchUsers({ q: activeQuery, limit: 20 })
+      : Promise.resolve({ users: [] });
+
+    const [requestsResponse, usersResponse] = await Promise.all([requestsPromise, usersPromise]);
+
+    return {
+      friends: [],
+      incomingRequests: requestsResponse.requests || [],
+      searchResults: usersResponse.users || [],
+    };
+  }
+
+  function applySectionData(data) {
+    setFriends(data.friends || []);
+    setIncomingRequests(data.incomingRequests || []);
+    setSearchResults(data.searchResults || []);
+  }
 
   useEffect(() => {
     setSearchText('');
-    setSubmittedSearch('');
+    setDebouncedSearchText('');
+    setFriends([]);
+    setIncomingRequests([]);
+    setSearchResults([]);
+    setBusyActionId(null);
+    setLoading(false);
+    setError('');
   }, [subSection]);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setDebouncedSearchText(searchText);
+    }, 350);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [searchText]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadData() {
+      setLoading(true);
+      setError('');
+
+      try {
+        const data = await fetchSectionData(subSection, query);
+        if (cancelled) return;
+        applySectionData(data);
+      } catch (err) {
+        if (!cancelled) {
+          setError(err.message || 'Failed to load friends');
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadData();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [query, subSection]);
+
+  const refreshCurrentSection = async () => {
+    setLoading(true);
+    setError('');
+
+    try {
+      const data = await fetchSectionData(subSection, query);
+      applySectionData(data);
+    } catch (err) {
+      setError(err.message || 'Failed to load friends');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddFriend = async (user) => {
+    try {
+      setBusyActionId(user.id);
+      await createFriendRequest({ receiverId: user.id });
+      toast.success(`Friend request sent to ${user.displayName}.`);
+    } catch (err) {
+      toast.error(err.message || 'Failed to send friend request');
+    } finally {
+      setBusyActionId(null);
+      await refreshCurrentSection();
+    }
+  };
+
+  const handleAcceptRequest = async (request) => {
+    try {
+      setBusyActionId(request.requestId);
+      await acceptFriendRequest({ requestId: request.requestId });
+    } catch (err) {
+      toast.error(err.message || 'Failed to accept request');
+    } finally {
+      setBusyActionId(null);
+      await refreshCurrentSection();
+    }
+  };
+
+  const handleDeclineRequest = async (request) => {
+    try {
+      setBusyActionId(request.requestId);
+      await declineFriendRequest({ requestId: request.requestId });
+      toast.success('Friend request declined.');
+    } catch (err) {
+      toast.error(err.message || 'Failed to decline request');
+    } finally {
+      setBusyActionId(null);
+      await refreshCurrentSection();
+    }
+  };
+
+  const searchPlaceholder =
+    subSection === HOME_SUB_SECTION.friends_all
+      ? 'Search friends...'
+      : 'Type full name to search users...';
 
   if (subSection === HOME_SUB_SECTION.friends_all) {
     return (
@@ -154,16 +289,22 @@ export default function FriendsSectionView({ subSection }) {
           <input
             type="text"
             value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
-            onKeyDown={handleSearchKeyDown}
-            placeholder="Search friends..."
+            onChange={(event) => setSearchText(event.target.value)}
+            placeholder={searchPlaceholder}
             className="w-full rounded-full border border-[#dddfe2] bg-white py-2.5 pl-11 pr-4 text-sm outline-none focus:border-indigo-500"
           />
         </div>
-        <SectionDivider title="All friends" count={filteredFriends.length} />
+
+        {error && <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
+        {loading && <p className="text-sm text-[#65676b]">Loading friends...</p>}
+
+        <SectionDivider title="All friends" count={friends.length} />
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {filteredFriends.map((friend) => <FriendCard key={friend.id} {...friend} />)}
+          {friends.map((friend) => <FriendCard key={friend.id} friend={friend} />)}
         </div>
+        {!loading && friends.length === 0 && !error && (
+          <p className="text-sm text-[#65676b]">No friends found.</p>
+        )}
       </div>
     );
   }
@@ -183,22 +324,47 @@ export default function FriendsSectionView({ subSection }) {
         <input
           type="text"
           value={searchText}
-          onChange={(e) => setSearchText(e.target.value)}
-          onKeyDown={handleSearchKeyDown}
-          placeholder="Type full name and press Enter..."
+          onChange={(event) => setSearchText(event.target.value)}
+          placeholder={searchPlaceholder}
           className="w-full rounded-full border border-[#dddfe2] bg-white py-2.5 pl-11 pr-4 text-sm outline-none focus:border-indigo-500"
         />
       </div>
-      <SectionDivider title="Friend requests" count={filteredIncomingRequests.length} />
+
+      {error && <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
+      {loading && <p className="text-sm text-[#65676b]">Loading requests and users...</p>}
+
+      <SectionDivider title="Friend requests" count={incomingRequests.length} />
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {filteredIncomingRequests.map((request) => <FriendRequestCard key={request.id} {...request} />)}
+        {incomingRequests.map((request) => (
+          <FriendRequestCard
+            key={request.requestId}
+            request={request}
+            busy={busyActionId === request.requestId}
+            onAccept={handleAcceptRequest}
+            onDecline={handleDeclineRequest}
+          />
+        ))}
       </div>
-      {normalized && filteredSearchUsers.length > 0 && (
+      {!loading && incomingRequests.length === 0 && !error && (
+        <p className="text-sm text-[#65676b]">No incoming friend requests.</p>
+      )}
+
+      {query && (
         <>
-          <SectionDivider title="Search users" />
+          <SectionDivider title="Search users" count={searchResults.length} />
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {filteredSearchUsers.map((user) => <UserSearchCard key={user.id} {...user} />)}
+            {searchResults.map((user) => (
+              <UserSearchCard
+                key={user.id}
+                user={user}
+                busy={busyActionId === user.id}
+                onAddFriend={handleAddFriend}
+              />
+            ))}
           </div>
+          {!loading && searchResults.length === 0 && !error && (
+            <p className="text-sm text-[#65676b]">No users matched your search.</p>
+          )}
         </>
       )}
     </div>
