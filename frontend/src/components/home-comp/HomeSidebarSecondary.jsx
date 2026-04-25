@@ -1,4 +1,4 @@
-import { HOME_SECTION, HOME_SUB_SECTION } from './homeSections';
+import { HOME_SECTION, HOME_SUB_SECTION } from '../../lib/homeSections.js';
 
 const MOCK_CHATS = [
   { id: '1', name: 'Minh Anh', preview: 'Okay, see you tomorrow!', time: '14:32', unread: 2 },

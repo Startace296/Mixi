@@ -4,7 +4,7 @@ import { Outlet } from 'react-router-dom';
 import HomeHeader from '../components/home-comp/HomeHeader';
 import HomeSidebarPrimary from '../components/home-comp/HomeSidebarPrimary';
 import HomeSidebarSecondary from '../components/home-comp/HomeSidebarSecondary';
-import { HOME_SECTION, DEFAULT_SUB_SECTION } from '../components/home-comp/homeSections';
+import { HOME_SECTION, DEFAULT_SUB_SECTION } from '../lib/homeSections.js';
 import { useAuthUser } from '../hooks/useAuthUser';
 
 export default function MainLayout() {

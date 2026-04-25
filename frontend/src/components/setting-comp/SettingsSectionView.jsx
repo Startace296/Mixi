@@ -1,4 +1,4 @@
-import { HOME_SUB_SECTION } from '../home-comp/homeSections';
+import { HOME_SUB_SECTION } from '../../lib/homeSections';
 
 function EmptyState({ icon, title, description }) {
   return (

@@ -1,4 +1,4 @@
-import { HOME_SECTION } from './homeSections';
+import { HOME_SECTION } from '../../lib/homeSections.js';
 import HomeSectionView from './HomeSectionView.jsx';
 import FriendsSectionView from '../friend-comp/FriendsSectionView.jsx';
 import ProfileSectionView from '../profile-comp/ProfileSectionView.jsx';

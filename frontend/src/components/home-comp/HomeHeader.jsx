@@ -4,7 +4,7 @@ import toast from 'react-hot-toast';
 
 import { BrandMark } from '../auth-comp/AuthSiteChrome';
 import { logout } from '../../lib/api.js';
-import { HOME_SECTION } from './homeSections';
+import { HOME_SECTION } from '../../lib/homeSections.js';
 import { useAuthStore } from '../../stores/useAuthStore.js';
 
 function UserAvatar({ user, className = '' }) {

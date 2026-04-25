@@ -1,4 +1,4 @@
-import { HOME_SECTION, HOME_SECTION_LABELS } from './homeSections';
+import { HOME_SECTION, HOME_SECTION_LABELS } from '../../lib/homeSections.js';
 
 const topItems = [
   HOME_SECTION.home,

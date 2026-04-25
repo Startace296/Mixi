@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { HOME_SECTION } from './homeSections';
+import { HOME_SECTION } from '../../lib/homeSections';
 
 function SkeletonLine({ className = '' }) {
   return <div className={`animate-pulse rounded-md bg-[#e4e6eb] ${className}`} />;

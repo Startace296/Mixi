@@ -9,7 +9,7 @@ import {
   getFriends,
   searchUsers,
 } from '../../lib/api.js';
-import { HOME_SUB_SECTION } from '../home-comp/homeSections';
+import { HOME_SUB_SECTION } from '../../lib/homeSections.js';
 
 function getInitials(displayName) {
   const parts = (displayName || '')
@@ -351,7 +351,7 @@ export default function FriendsSectionView({ subSection }) {
 
       {query && (
         <>
-          <SectionDivider title="Search users" count={searchResults.length} />
+          <SectionDivider title="Search users" />
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {searchResults.map((user) => (
               <UserSearchCard
