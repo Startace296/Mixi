@@ -11,20 +11,36 @@ export default function HomeFeedPlaceholder({
   section,
   subSection,
   selectedChatThread,
+  viewedProfile,
   onUserChange,
+  onOpenProfile,
   onSelectSection,
 }) {
   if (section === HOME_SECTION.home) {
-    return <HomeSectionView displayName={displayName} user={user} onSelectSection={onSelectSection} />;
+    return (
+      <HomeSectionView
+        displayName={displayName}
+        user={user}
+        onOpenProfile={onOpenProfile}
+        onSelectSection={onSelectSection}
+      />
+    );
   }
   if (section === HOME_SECTION.messages) {
-    return <ChatSectionView selectedChatThread={selectedChatThread} />;
+    return <ChatSectionView selectedChatThread={selectedChatThread} onOpenProfile={onOpenProfile} />;
   }
   if (section === HOME_SECTION.friends) {
     return <FriendsSectionView subSection={subSection} />;
   }
   if (section === HOME_SECTION.profile) {
-    return <ProfileSectionView displayName={displayName} user={user} onUserChange={onUserChange} />;
+    return (
+      <ProfileSectionView
+        displayName={displayName}
+        user={user}
+        viewedProfile={viewedProfile}
+        onUserChange={onUserChange}
+      />
+    );
   }
   if (section === HOME_SECTION.settings) {
     return <SettingsSectionView subSection={subSection} />;

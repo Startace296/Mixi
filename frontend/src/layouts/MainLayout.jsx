@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Outlet } from 'react-router-dom';
 
 import HomeHeader from '../components/home-comp/HomeHeader';
@@ -16,14 +16,91 @@ export default function MainLayout() {
   const [activeSection, setActiveSection] = useState(HOME_SECTION.home);
   const [activeSubSection, setActiveSubSection] = useState(DEFAULT_SUB_SECTION[HOME_SECTION.home]);
   const [selectedChatId, setSelectedChatId] = useState(MOCK_CHAT_THREADS[0]?.id ?? null);
+  const [viewedProfile, setViewedProfile] = useState(null);
 
-  function handleSelectSection(section) {
+  const selectedChatThread = useMemo(
+    () => MOCK_CHAT_THREADS.find((thread) => thread.id === selectedChatId) || null,
+    [selectedChatId]
+  );
+
+  function buildNavState(section, subSection, chatId, profile) {
+    return {
+      appNav: true,
+      section,
+      subSection,
+      selectedChatId: chatId,
+      viewedProfile: profile,
+    };
+  }
+
+  function syncBrowserState(section, subSection, chatId, profile, mode = 'push') {
+    const nextState = buildNavState(section, subSection, chatId, profile);
+    if (mode === 'replace') {
+      window.history.replaceState(nextState, '', window.location.href);
+      return;
+    }
+    window.history.pushState(nextState, '', window.location.href);
+  }
+
+  function handleSelectSection(section, shouldPushState = true) {
+    const nextSubSection = DEFAULT_SUB_SECTION[section];
+    const nextProfile = null;
+
     setActiveSection(section);
-    setActiveSubSection(DEFAULT_SUB_SECTION[section]);
+    setActiveSubSection(nextSubSection);
+    setViewedProfile(nextProfile);
+
+    if (shouldPushState) {
+      syncBrowserState(section, nextSubSection, selectedChatId, nextProfile);
+    }
+  }
+
+  function handleOpenProfile(profile, shouldPushState = true) {
+    setViewedProfile(profile || null);
+    setActiveSection(HOME_SECTION.profile);
+    setActiveSubSection(DEFAULT_SUB_SECTION[HOME_SECTION.profile]);
+
+    if (shouldPushState) {
+      syncBrowserState(
+        HOME_SECTION.profile,
+        DEFAULT_SUB_SECTION[HOME_SECTION.profile],
+        selectedChatId,
+        profile || null
+      );
+    }
+  }
+
+  function handleSelectChat(chat, shouldPushState = true) {
+    const nextChatId = chat.id;
+    setSelectedChatId(nextChatId);
+
+    if (shouldPushState) {
+      syncBrowserState(activeSection, activeSubSection, nextChatId, viewedProfile);
+    }
   }
 
   const isProfilePage = activeSection === HOME_SECTION.profile;
-  const selectedChatThread = MOCK_CHAT_THREADS.find((thread) => thread.id === selectedChatId) || null;
+
+  useEffect(() => {
+    syncBrowserState(activeSection, activeSubSection, selectedChatId, viewedProfile, 'replace');
+  }, []);
+
+  useEffect(() => {
+    const handlePopState = (event) => {
+      const state = event.state;
+      if (!state?.appNav) return;
+
+      setActiveSection(state.section || HOME_SECTION.home);
+      setActiveSubSection(state.subSection ?? DEFAULT_SUB_SECTION[state.section || HOME_SECTION.home]);
+      setSelectedChatId(state.selectedChatId ?? MOCK_CHAT_THREADS[0]?.id ?? null);
+      setViewedProfile(state.viewedProfile || null);
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, []);
 
   return (
     <div className="h-screen flex flex-col bg-[#f0f2f5] overflow-hidden">
@@ -41,7 +118,7 @@ export default function MainLayout() {
             {activeSection === HOME_SECTION.messages && (
               <ChatSidebarSecondaryPanel
                 selectedChatId={selectedChatId}
-                onSelectChat={(chat) => setSelectedChatId(chat.id)}
+                onSelectChat={handleSelectChat}
               />
             )}
             {activeSection === HOME_SECTION.friends && (
@@ -64,8 +141,10 @@ export default function MainLayout() {
               activeSection,
               activeSubSection,
               selectedChatThread,
+              viewedProfile,
               user,
               setUser,
+              onOpenProfile: handleOpenProfile,
               onSelectSection: handleSelectSection,
             }}
           />

@@ -63,7 +63,7 @@ const INITIAL_MESSAGES_BY_THREAD = {
   ],
 };
 
-export default function ChatSectionView({ selectedChatThread }) {
+export default function ChatSectionView({ selectedChatThread, onOpenProfile }) {
   const [messagesByThread, setMessagesByThread] = useState(INITIAL_MESSAGES_BY_THREAD);
 
   const selectedChat = selectedChatThread || DEFAULT_CHAT_THREAD;
@@ -117,6 +117,16 @@ export default function ChatSectionView({ selectedChatThread }) {
     alert(`Calling ${selectedChat.name}...`);
   };
 
+  const handleOpenChatProfile = () => {
+    if (selectedChat.type === "group") return;
+
+    onOpenProfile?.({
+      displayName: selectedChat.name,
+      avatarUrl: selectedChat.profilePic,
+      bio: "No bio yet",
+    });
+  };
+
   if (!selectedChat) {
     return (
       <div className="mx-auto w-full max-w-[900px] px-4 py-6">
@@ -133,7 +143,12 @@ export default function ChatSectionView({ selectedChatThread }) {
   return (
     <section className="mx-auto h-[calc(113vh-160px)] w-full max-w-[1200px] border border-[#e4e6eb] bg-white shadow-[0_2px_4px_rgba(0,0,0,0.08),0_8px_16px_rgba(0,0,0,0.06)]">
       <div className="flex h-full flex-col">
-        <ChatHeader chat={selectedChat} onCall={handleCall} />
+        <ChatHeader
+          chat={selectedChat}
+          onCall={handleCall}
+          onOpenProfile={handleOpenChatProfile}
+          canOpenProfile={selectedChat.type !== "group"}
+        />
         <MessageList
           messages={messages}
           currentUserId="me"

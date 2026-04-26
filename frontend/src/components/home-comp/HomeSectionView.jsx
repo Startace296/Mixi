@@ -30,7 +30,7 @@ const MOCK_FEED_POST = {
   ],
 };
 
-export default function HomeSectionView({ displayName, user, onSelectSection }) {
+export default function HomeSectionView({ displayName, user, onOpenProfile, onSelectSection }) {
   const [composerText, setComposerText] = useState("");
   const [composerImageUrl, setComposerImageUrl] = useState("");
   const [isPosting, setIsPosting] = useState(false);
@@ -107,6 +107,7 @@ export default function HomeSectionView({ displayName, user, onSelectSection }) 
             post={post}
             viewerName={displayName}
             viewerAvatar={user?.avatarUrl}
+            onOpenProfile={onOpenProfile}
           />
         ))}
         {isPosting && <PostSkeleton />}

@@ -1,14 +1,31 @@
-export default function ChatHeader({ chat, onCall }) {
+export default function ChatHeader({ chat, onCall, onOpenProfile, canOpenProfile = true }) {
   return (
     <header className="flex items-center justify-between border-b border-[#e4e6eb] px-4 py-3">
       <div className="flex items-center gap-3">
-        <img
-          src={chat.profilePic}
-          alt={chat.name}
-          className="h-10 w-10 rounded-full object-cover"
-        />
+        {canOpenProfile ? (
+          <button
+            type="button"
+            onClick={onOpenProfile}
+            className="rounded-full focus:outline-none"
+            aria-label={`Open ${chat.name} profile`}
+          >
+            <img src={chat.profilePic} alt={chat.name} className="h-10 w-10 rounded-full object-cover" />
+          </button>
+        ) : (
+          <img src={chat.profilePic} alt={chat.name} className="h-10 w-10 rounded-full object-cover" />
+        )}
         <div>
-          <p className="font-semibold text-[#1c1e21]">{chat.name}</p>
+          {canOpenProfile ? (
+            <button
+              type="button"
+              onClick={onOpenProfile}
+              className="font-semibold text-[#1c1e21] hover:underline"
+            >
+              {chat.name}
+            </button>
+          ) : (
+            <p className="font-semibold text-[#1c1e21]">{chat.name}</p>
+          )}
           <p className="text-xs text-[#65676b]">Active now</p>
         </div>
       </div>

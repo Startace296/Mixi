@@ -345,11 +345,13 @@ function AvatarModal({ onClose, onSaved }) {
   );
 }
 
-export default function ProfileSectionView({ user, displayName, onUserChange }) {
+export default function ProfileSectionView({ user, viewedProfile, displayName, onUserChange }) {
   const [editOpen, setEditOpen] = useState(false);
   const [avatarOpen, setAvatarOpen] = useState(false);
   const setAuthUser = useAuthStore((state) => state.setAuthUser);
-  const currentName = user?.displayName || displayName || 'You';
+  const profileUser = viewedProfile || user;
+  const isOwnProfile = !viewedProfile || viewedProfile?.email === user?.email;
+  const currentName = profileUser?.displayName || displayName || 'You';
 
   const handleSaved = (nextUser) => {
     onUserChange?.(nextUser);
@@ -361,24 +363,34 @@ export default function ProfileSectionView({ user, displayName, onUserChange }) 
       <div className="flex items-center justify-between gap-4 rounded-xl border border-[#e4e6eb] bg-white p-5 shadow-[0_2px_4px_rgba(0,0,0,0.06)]">
         <div className="flex items-center gap-4">
           <div className="relative shrink-0">
-            <button type="button" onClick={() => setAvatarOpen(true)} className="block rounded-full focus:outline-none">
-              <UserAvatar user={user} size="xl" />
-            </button>
+            {isOwnProfile ? (
+              <button
+                type="button"
+                onClick={() => setAvatarOpen(true)}
+                className="block rounded-full focus:outline-none"
+              >
+                <UserAvatar user={profileUser} size="xl" />
+              </button>
+            ) : (
+              <UserAvatar user={profileUser} size="xl" />
+            )}
           </div>
           <div className="min-w-0">
             <h1 className="text-2xl font-bold text-[#1c1e21]">{currentName}</h1>
-            <p className="mt-1 text-sm text-[#65676b]">{user?.bio || 'No bio yet'}</p>
+            <p className="mt-1 text-sm text-[#65676b]">{profileUser?.bio || 'No bio yet'}</p>
             <p className="mt-1 text-sm text-[#8a8d91]">0 friend(s)</p>
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={() => setEditOpen(true)}
-          className="shrink-0 rounded-lg border border-[#e4e6eb] px-4 py-2 text-sm font-semibold text-[#65676b] transition-colors hover:bg-[#f0f2f5]"
-        >
-          Edit profile
-        </button>
+        {isOwnProfile && (
+          <button
+            type="button"
+            onClick={() => setEditOpen(true)}
+            className="shrink-0 rounded-lg border border-[#e4e6eb] px-4 py-2 text-sm font-semibold text-[#65676b] transition-colors hover:bg-[#f0f2f5]"
+          >
+            Edit profile
+          </button>
+        )}
       </div>
 
       <div className="rounded-xl border border-[#e4e6eb] bg-white p-5 shadow-[0_2px_4px_rgba(0,0,0,0.06)]">
@@ -388,19 +400,19 @@ export default function ProfileSectionView({ user, displayName, onUserChange }) 
             <svg className="h-5 w-5 shrink-0 text-[#65676b]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636" />
             </svg>
-            <span className="text-sm text-[#1c1e21]">{user?.gender || '—'}</span>
+            <span className="text-sm text-[#1c1e21]">{profileUser?.gender || '—'}</span>
           </div>
           <div className="flex items-center gap-3">
             <svg className="h-5 w-5 shrink-0 text-[#65676b]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
             </svg>
-            <span className="text-sm text-[#1c1e21]">{formatDate(user?.dateOfBirth)}</span>
+            <span className="text-sm text-[#1c1e21]">{formatDate(profileUser?.dateOfBirth)}</span>
           </div>
           <div className="flex items-center gap-3">
             <svg className="h-5 w-5 shrink-0 text-[#65676b]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0zM19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
             </svg>
-            <span className="text-sm text-[#1c1e21]">{user?.location || 'None'}</span>
+            <span className="text-sm text-[#1c1e21]">{profileUser?.location || 'None'}</span>
           </div>
         </div>
       </div>
@@ -410,15 +422,15 @@ export default function ProfileSectionView({ user, displayName, onUserChange }) 
         <p className="mt-1 text-sm text-[#65676b]">Your future posts will appear here.</p>
       </div>
 
-      {editOpen && (
+      {isOwnProfile && editOpen && (
         <EditProfileModal
-          user={user}
+          user={profileUser}
           onClose={() => setEditOpen(false)}
           onSaved={handleSaved}
         />
       )}
 
-      {avatarOpen && (
+      {isOwnProfile && avatarOpen && (
         <AvatarModal onClose={() => setAvatarOpen(false)} onSaved={handleSaved} />
       )}
     </div>

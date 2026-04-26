@@ -19,7 +19,7 @@ function CommentAvatar({ avatarUrl, authorName }) {
   );
 }
 
-export default function FeedPostCard({ post, viewerName, viewerAvatar }) {
+export default function FeedPostCard({ post, viewerName, viewerAvatar, onOpenProfile }) {
   const MAX_COMMENT_INPUT_ROWS = 3;
   const [isLiked, setIsLiked] = useState(false);
   const [isCommentOpen, setIsCommentOpen] = useState(false);
@@ -111,13 +111,33 @@ export default function FeedPostCard({ post, viewerName, viewerAvatar }) {
   return (
     <article className="overflow-hidden rounded-lg border border-[#e4e6eb] bg-white shadow-[0_2px_4px_rgba(0,0,0,0.08),0_8px_16px_rgba(0,0,0,0.06)]">
       <div className="flex items-center gap-3 p-4">
-        <img
-          src={post.authorAvatar}
-          alt={post.authorName}
-          className="h-10 w-10 shrink-0 rounded-full object-cover"
-        />
+        <button
+          type="button"
+          onClick={() =>
+            onOpenProfile?.({
+              displayName: post.authorName,
+              avatarUrl: post.authorAvatar,
+              bio: "No bio yet",
+            })
+          }
+          className="shrink-0 rounded-full focus:outline-none"
+        >
+          <img src={post.authorAvatar} alt={post.authorName} className="h-10 w-10 rounded-full object-cover" />
+        </button>
         <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-[#1c1e21]">{post.authorName}</p>
+          <button
+            type="button"
+            onClick={() =>
+              onOpenProfile?.({
+                displayName: post.authorName,
+                avatarUrl: post.authorAvatar,
+                bio: "No bio yet",
+              })
+            }
+            className="truncate text-left text-sm font-semibold text-[#1c1e21] hover:underline"
+          >
+            {post.authorName}
+          </button>
           <p className="text-xs text-[#8a8d91]">{post.createdAt}</p>
         </div>
       </div>
@@ -182,10 +202,34 @@ export default function FeedPostCard({ post, viewerName, viewerAvatar }) {
           <div className="max-h-[300px] space-y-2 overflow-y-auto pr-1">
             {comments.map((comment) => (
               <div key={comment.id} className="flex items-start gap-2">
-                <CommentAvatar avatarUrl={comment.authorAvatar} authorName={comment.authorName} />
+                <button
+                  type="button"
+                  onClick={() =>
+                    onOpenProfile?.({
+                      displayName: comment.authorName,
+                      avatarUrl: comment.authorAvatar,
+                      bio: "No bio yet",
+                    })
+                  }
+                  className="shrink-0 rounded-full focus:outline-none"
+                >
+                  <CommentAvatar avatarUrl={comment.authorAvatar} authorName={comment.authorName} />
+                </button>
                 <div className="relative min-w-0 flex-1 pr-8">
                   <div className="max-w-[95%] rounded-lg bg-[#f0f2f5] px-3 py-2">
-                    <p className="text-xs font-semibold text-[#1c1e21]">{comment.authorName}</p>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        onOpenProfile?.({
+                          displayName: comment.authorName,
+                          avatarUrl: comment.authorAvatar,
+                          bio: "No bio yet",
+                        })
+                      }
+                      className="text-xs font-semibold text-[#1c1e21] hover:underline"
+                    >
+                      {comment.authorName}
+                    </button>
                     {editingCommentId === comment.id ? (
                       <div className="mt-1 space-y-2">
                         <textarea
