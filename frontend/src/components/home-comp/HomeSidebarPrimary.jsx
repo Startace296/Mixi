@@ -20,8 +20,20 @@ function IconHome({ active }) {
 
 function IconChat({ active }) {
   return (
-    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" strokeWidth={active ? 2.25 : 1.75} stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337L5.454 21.11A.75.75 0 014 20.25v-4.568c0-1.121-.504-2.176-1.332-2.93C2.629 11.364 2.25 10.746 2.25 10c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
+    <svg
+      className="w-6 h-6"
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={active ? 2.25 : 2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719" />
+      <path d="M8 12h.01" />
+      <path d="M12 12h.01" />
+      <path d="M16 12h.01" />
     </svg>
   );
 }

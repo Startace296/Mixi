@@ -3,7 +3,8 @@ import { useOutletContext } from 'react-router-dom';
 import HomeFeedPlaceholder from '../components/home-comp/HomeFeedPlaceholder';
 
 export default function HomePage() {
-  const { activeSection, activeSubSection, user, setUser, onSelectSection } = useOutletContext();
+  const { activeSection, activeSubSection, selectedChatThread, user, setUser, onSelectSection } =
+    useOutletContext();
   const displayName =
     user?.displayName ||
     user?.username ||
@@ -16,6 +17,7 @@ export default function HomePage() {
       displayName={displayName}
       section={activeSection}
       subSection={activeSubSection}
+      selectedChatThread={selectedChatThread}
       onUserChange={setUser}
       onSelectSection={onSelectSection}
     />

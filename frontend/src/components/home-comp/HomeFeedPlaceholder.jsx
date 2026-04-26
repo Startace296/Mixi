@@ -5,12 +5,20 @@ import ProfileSectionView from '../profile-comp/ProfileSectionView.jsx';
 import SettingsSectionView from '../setting-comp/SettingsSectionView.jsx';
 import ChatSectionView from '../chat-comp/ChatSectionView.jsx';
 
-export default function HomeFeedPlaceholder({ user, displayName, section, subSection, onUserChange, onSelectSection }) {
+export default function HomeFeedPlaceholder({
+  user,
+  displayName,
+  section,
+  subSection,
+  selectedChatThread,
+  onUserChange,
+  onSelectSection,
+}) {
   if (section === HOME_SECTION.home) {
     return <HomeSectionView displayName={displayName} user={user} onSelectSection={onSelectSection} />;
   }
   if (section === HOME_SECTION.messages) {
-    return <ChatSectionView />;
+    return <ChatSectionView selectedChatThread={selectedChatThread} />;
   }
   if (section === HOME_SECTION.friends) {
     return <FriendsSectionView subSection={subSection} />;

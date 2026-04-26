@@ -1,41 +1,147 @@
-function EmptyState({ icon, title, description }) {
-  return (
-    <div className="rounded-lg border border-[#e4e6eb] bg-white px-8 py-16 text-center shadow-[0_2px_4px_rgba(0,0,0,0.08),0_8px_16px_rgba(0,0,0,0.06)]">
-      <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-indigo-50 text-indigo-400">
-        {icon}
+import { useState } from "react";
+import ChatHeader from "./ChatHeader.jsx";
+import MessageList from "./MessageList.jsx";
+import MessageInput from "./MessageInput.jsx";
+import { MOCK_CHAT_THREADS } from "../../lib/chatSidebarData.js";
+
+const DEFAULT_CHAT_THREAD = MOCK_CHAT_THREADS[0] || null;
+
+const INITIAL_MESSAGES_BY_THREAD = {
+  "1": [
+    {
+      _id: "m_1",
+      senderId: "1",
+      text: "Hey, are we still meeting this afternoon?",
+      createdAt: "2026-04-26T02:10:00.000Z",
+    },
+    {
+      _id: "m_2",
+      senderId: "me",
+      text: "Yes, see you at 2 PM.",
+      createdAt: "2026-04-26T02:12:00.000Z",
+    },
+  ],
+  "3": [
+    {
+      _id: "m_3",
+      senderId: "3",
+      text: "I uploaded the latest design file.",
+      createdAt: "2026-04-25T09:00:00.000Z",
+    },
+  ],
+  "4": [
+    {
+      _id: "m_4",
+      senderId: "4",
+      text: "The merge is done, please pull main.",
+      createdAt: "2026-04-24T08:40:00.000Z",
+    },
+  ],
+  g1: [
+    {
+      _id: "m_5",
+      senderId: "u_teacher",
+      senderName: "Teacher",
+      senderAvatar: "https://i.pravatar.cc/100?img=45",
+      text: "Deadline next week, please prepare your slides.",
+      createdAt: "2026-04-23T06:10:00.000Z",
+    },
+    {
+      _id: "m_6",
+      senderId: "u_huy",
+      senderName: "Huy",
+      senderAvatar: "https://i.pravatar.cc/100?img=62",
+      text: "I can present the API flow.",
+      createdAt: "2026-04-23T06:18:00.000Z",
+    },
+    {
+      _id: "m_7",
+      senderId: "me",
+      text: "Great, I will handle the frontend demo.",
+      createdAt: "2026-04-23T06:23:00.000Z",
+    },
+  ],
+};
+
+export default function ChatSectionView({ selectedChatThread }) {
+  const [messagesByThread, setMessagesByThread] = useState(INITIAL_MESSAGES_BY_THREAD);
+
+  const selectedChat = selectedChatThread || DEFAULT_CHAT_THREAD;
+  const activeThreadId = selectedChat?.id;
+  const messages = activeThreadId ? messagesByThread[activeThreadId] || [] : [];
+
+  const handleSendMessage = (text) => {
+    if (!activeThreadId) return;
+
+    const newMessage = {
+      _id: `m_${Date.now()}`,
+      senderId: "me",
+      text,
+      createdAt: new Date().toISOString(),
+    };
+
+    setMessagesByThread((prevMessagesByThread) => ({
+      ...prevMessagesByThread,
+      [activeThreadId]: [...(prevMessagesByThread[activeThreadId] || []), newMessage],
+    }));
+  };
+
+  const handleDeleteMessage = (messageId) => {
+    if (!activeThreadId) return;
+
+    setMessagesByThread((prevMessagesByThread) => ({
+      ...prevMessagesByThread,
+      [activeThreadId]: (prevMessagesByThread[activeThreadId] || []).filter(
+        (message) => message._id !== messageId
+      ),
+    }));
+  };
+
+  const handleAttachImage = (file) => {
+    if (!activeThreadId) return;
+
+    const newMessage = {
+      _id: `m_${Date.now()}`,
+      senderId: "me",
+      text: `Attached image: ${file.name}`,
+      createdAt: new Date().toISOString(),
+    };
+
+    setMessagesByThread((prevMessagesByThread) => ({
+      ...prevMessagesByThread,
+      [activeThreadId]: [...(prevMessagesByThread[activeThreadId] || []), newMessage],
+    }));
+  };
+
+  const handleCall = () => {
+    alert(`Calling ${selectedChat.name}...`);
+  };
+
+  if (!selectedChat) {
+    return (
+      <div className="mx-auto w-full max-w-[900px] px-4 py-6">
+        <div className="rounded-lg border border-[#e4e6eb] bg-white px-8 py-16 text-center shadow-[0_2px_4px_rgba(0,0,0,0.08),0_8px_16px_rgba(0,0,0,0.06)]">
+          <p className="text-base font-semibold text-[#1c1e21]">No conversation selected yet</p>
+          <p className="mt-1 text-sm text-[#65676b]">
+            Choose a conversation from the sidebar to open it here.
+          </p>
+        </div>
       </div>
-      <p className="text-base font-semibold text-[#1c1e21]">{title}</p>
-      {description && <p className="mt-1 text-sm text-[#65676b]">{description}</p>}
-    </div>
-  );
-}
+    );
+  }
 
-function FeedShell({ title, description, children }) {
   return (
-    <div className="mx-auto w-full max-w-[900px] space-y-4 px-4 py-6">
-      <div className="rounded-lg border border-[#e4e6eb] bg-white px-5 py-4 shadow-[0_2px_4px_rgba(0,0,0,0.08),0_8px_16px_rgba(0,0,0,0.06)]">
-        <h1 className="text-xl font-bold text-[#1c1e21]">{title}</h1>
-        {description && <p className="mt-1 text-sm text-[#65676b]">{description}</p>}
+    <section className="mx-auto h-[calc(113vh-160px)] w-full max-w-[1200px] border border-[#e4e6eb] bg-white shadow-[0_2px_4px_rgba(0,0,0,0.08),0_8px_16px_rgba(0,0,0,0.06)]">
+      <div className="flex h-full flex-col">
+        <ChatHeader chat={selectedChat} onCall={handleCall} />
+        <MessageList
+          messages={messages}
+          currentUserId="me"
+          isGroupChat={selectedChat.type === "group"}
+          onDeleteMessage={handleDeleteMessage}
+        />
+        <MessageInput onSend={handleSendMessage} onAttachImage={handleAttachImage} />
       </div>
-      {children}
-    </div>
-  );
-}
-
-const ICON_CHAT = (
-  <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337L5.454 21.11A.75.75 0 014 20.25v-4.568c0-1.121-.504-2.176-1.332-2.93C2.629 11.364 2.25 10.746 2.25 10c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
-  </svg>
-);
-
-export default function ChatSectionView() {
-  return (
-    <FeedShell title="Messages" description="Choose a conversation from the sidebar to open it here.">
-      <EmptyState
-        icon={ICON_CHAT}
-        title="No conversation selected yet"
-        description="Select a message thread from the left panel to view it."
-      />
-    </FeedShell>
+    </section>
   );
 }

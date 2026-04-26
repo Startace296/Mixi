@@ -88,8 +88,18 @@ export default function HomeHeader({ user, onSelectSection }) {
             className="flex h-10 w-10 items-center justify-center rounded-full text-[#65676b] hover:bg-[#f0f2f5] transition-colors"
             aria-label="Notifications"
           >
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+            <svg
+              className="w-6 h-6"
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M10.268 21a2 2 0 0 0 3.464 0" />
+              <path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326" />
             </svg>
           </button>
 
@@ -121,8 +131,19 @@ export default function HomeHeader({ user, onSelectSection }) {
                     onClick={() => { setMenuOpen(false); onSelectSection(HOME_SECTION.profile); }}
                     className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-[#1c1e21] font-medium hover:bg-[#f0f2f5] transition-colors"
                   >
-                    <svg className="w-4 h-4 text-[#65676b]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                    <svg
+                      className="w-4 h-4 text-[#65676b]"
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M17.925 20.056a6 6 0 0 0-11.851.001" />
+                      <circle cx="12" cy="11" r="4" />
+                      <circle cx="12" cy="12" r="10" />
                     </svg>
                     View Profile
                   </button>
