@@ -98,6 +98,11 @@ export const createFriendRequest = async ({ receiverId }) => {
   return response.data;
 };
 
+export const cancelFriendRequest = async ({ requestId }) => {
+  const response = await axiosInstance.delete(`/friends/requests/${requestId}/cancel`);
+  return response.data;
+};
+
 export const acceptFriendRequest = async ({ requestId }) => {
   const response = await axiosInstance.post(`/friends/requests/${requestId}/accept`);
   return response.data;
@@ -105,6 +110,11 @@ export const acceptFriendRequest = async ({ requestId }) => {
 
 export const declineFriendRequest = async ({ requestId }) => {
   const response = await axiosInstance.delete(`/friends/requests/${requestId}`);
+  return response.data;
+};
+
+export const removeFriend = async ({ relationshipId }) => {
+  const response = await axiosInstance.delete(`/friends/${relationshipId}`);
   return response.data;
 };
 

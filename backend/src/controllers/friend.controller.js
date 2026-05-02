@@ -1,10 +1,20 @@
 import {
   acceptFriendRequest,
+  cancelFriendRequest,
   createFriendRequest,
   declineFriendRequest,
   listFriends,
   listIncomingFriendRequests,
+  removeFriend,
 } from "../services/friend.service.js";
+import { emitToUser } from "../socket.js";
+
+function emitFriendEvent(userId, eventName, payload) {
+  emitToUser(userId, eventName, {
+    ...payload,
+    changedAt: new Date().toISOString(),
+  });
+}
 
 /** GET /friends */
 export async function getFriendsHandler(req, res) {
@@ -30,6 +40,12 @@ export async function getFriendRequestsHandler(req, res) {
 export async function createFriendRequestHandler(req, res) {
   const request = await createFriendRequest(req.user.id, req.body.receiverId);
 
+  emitFriendEvent(request.receiverId, "friend:request_created", {
+    requestId: String(request.requestId),
+    requesterId: String(request.requesterId),
+    receiverId: String(request.receiverId),
+  });
+
   res.status(201).json({
     success: true,
     message: "Friend request sent successfully.",
@@ -40,6 +56,12 @@ export async function createFriendRequestHandler(req, res) {
 /** POST /friends/requests/:requestId/accept */
 export async function acceptFriendRequestHandler(req, res) {
   const request = await acceptFriendRequest(req.user.id, req.params.requestId);
+
+  emitFriendEvent(request.requesterId, "friend:request_accepted", {
+    requestId: String(request.requestId),
+    requesterId: String(request.requesterId),
+    receiverId: String(request.receiverId),
+  });
 
   res.json({
     success: true,
@@ -52,9 +74,53 @@ export async function acceptFriendRequestHandler(req, res) {
 export async function declineFriendRequestHandler(req, res) {
   const request = await declineFriendRequest(req.user.id, req.params.requestId);
 
+  emitFriendEvent(request.requesterId, "friend:request_declined", {
+    requestId: String(request.requestId),
+    requesterId: String(request.requesterId),
+    receiverId: String(request.receiverId),
+  });
+
   res.json({
     success: true,
     message: "Friend request declined successfully.",
     request,
+  });
+}
+
+/** DELETE /friends/requests/:requestId/cancel */
+export async function cancelFriendRequestHandler(req, res) {
+  const request = await cancelFriendRequest(req.user.id, req.params.requestId);
+
+  emitFriendEvent(request.receiverId, "friend:request_cancelled", {
+    requestId: String(request.requestId),
+    requesterId: String(request.requesterId),
+    receiverId: String(request.receiverId),
+  });
+
+  res.json({
+    success: true,
+    message: "Friend request cancelled successfully.",
+    request,
+  });
+}
+
+/** DELETE /friends/:relationshipId */
+export async function removeFriendHandler(req, res) {
+  const friendship = await removeFriend(req.user.id, req.params.relationshipId);
+  const currentUserId = String(req.user.id);
+  const otherUserId = currentUserId === String(friendship.requesterId)
+    ? friendship.receiverId
+    : friendship.requesterId;
+
+  emitFriendEvent(otherUserId, "friend:removed", {
+    relationshipId: String(friendship.relationshipId),
+    requesterId: String(friendship.requesterId),
+    receiverId: String(friendship.receiverId),
+  });
+
+  res.json({
+    success: true,
+    message: "Friend removed successfully.",
+    friendship,
   });
 }

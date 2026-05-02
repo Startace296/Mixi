@@ -3,13 +3,16 @@ import toast from 'react-hot-toast';
 
 import {
   acceptFriendRequest,
+  cancelFriendRequest,
   createFriendRequest,
   declineFriendRequest,
   getFriendRequests,
   getFriends,
+  removeFriend,
   searchUsers,
 } from '../../lib/api.js';
 import { HOME_SUB_SECTION } from '../../lib/homeSections.js';
+import { createAuthenticatedSocket, FRIEND_SOCKET_EVENTS } from '../../lib/socket.js';
 
 function getInitials(displayName) {
   const parts = (displayName || '')
@@ -84,15 +87,20 @@ function FriendRequestCard({ request, onAccept, onDecline, busy }) {
   );
 }
 
-function UserSearchCard({ user, onAddFriend, busy }) {
+function UserSearchCard({ user, onAddFriend, onCancelRequest, busy }) {
   const relationshipStatus = user.relationshipStatus || 'none';
-  const isConnected = relationshipStatus !== 'none';
+  const isActionDisabled = relationshipStatus === 'friends' || relationshipStatus === 'incoming';
   const buttonLabel =
     relationshipStatus === 'friends'
       ? 'Friends'
-      : relationshipStatus === 'requested' || relationshipStatus === 'incoming'
-        ? 'Requested'
+      : relationshipStatus === 'requested'
+        ? 'Cancel request'
+        : relationshipStatus === 'incoming'
+          ? 'Requested you'
         : 'Add friend';
+  const buttonClassName = relationshipStatus === 'requested'
+    ? 'shrink-0 rounded-full border border-[#e4e6eb] px-4 py-1.5 text-sm font-semibold text-[#1c1e21] transition-colors hover:bg-[#f0f2f5] disabled:cursor-not-allowed disabled:opacity-60'
+    : 'shrink-0 rounded-full bg-indigo-600 px-4 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-[#ccd0d5] disabled:text-[#65676b]';
 
   return (
     <div className="flex items-center gap-3 rounded-lg border border-[#e4e6eb] bg-white p-4 shadow-[0_2px_4px_rgba(0,0,0,0.08),0_8px_16px_rgba(0,0,0,0.06)]">
@@ -103,9 +111,15 @@ function UserSearchCard({ user, onAddFriend, busy }) {
       </div>
       <button
         type="button"
-        onClick={() => onAddFriend(user)}
-        disabled={busy || isConnected}
-        className="shrink-0 rounded-full bg-indigo-600 px-4 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-[#ccd0d5] disabled:text-[#65676b]"
+        onClick={() => {
+          if (relationshipStatus === 'requested') {
+            onCancelRequest(user);
+            return;
+          }
+          onAddFriend(user);
+        }}
+        disabled={busy || isActionDisabled}
+        className={buttonClassName}
       >
         {buttonLabel}
       </button>
@@ -113,7 +127,7 @@ function UserSearchCard({ user, onAddFriend, busy }) {
   );
 }
 
-function FriendCard({ friend }) {
+function FriendCard({ friend, onRemoveFriend, busy }) {
   return (
     <div className="flex items-center gap-3 rounded-lg border border-[#e4e6eb] bg-white p-4 shadow-[0_2px_4px_rgba(0,0,0,0.08),0_8px_16px_rgba(0,0,0,0.06)]">
       <Avatar displayName={friend.displayName} avatarUrl={friend.avatarUrl} />
@@ -121,6 +135,14 @@ function FriendCard({ friend }) {
         <p className="truncate text-sm font-semibold text-[#1c1e21]">{friend.displayName}</p>
         {friend.email && <p className="truncate text-xs text-[#8a8d91]">{friend.email}</p>}
       </div>
+      <button
+        type="button"
+        onClick={() => onRemoveFriend(friend)}
+        disabled={busy}
+        className="shrink-0 rounded-full border border-[#e4e6eb] px-4 py-1.5 text-sm font-semibold text-[#1c1e21] transition-colors hover:bg-[#f0f2f5] disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        Unfriend
+      </button>
     </div>
   );
 }
@@ -216,8 +238,61 @@ export default function FriendsSectionView({ subSection }) {
     };
   }, [query, subSection]);
 
-  const refreshCurrentSection = async () => {
-    setLoading(true);
+  useEffect(() => {
+    let cancelled = false;
+
+    async function refreshSilently() {
+      try {
+        const data = await fetchSectionData(subSection, query);
+        if (!cancelled) {
+          applySectionData(data);
+        }
+      } catch {
+        // Keep the current list visible; the next normal load can surface errors.
+      }
+    }
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        refreshSilently();
+      }
+    };
+
+    const handleWindowFocus = () => {
+      refreshSilently();
+    };
+
+    const socket = createAuthenticatedSocket();
+    const handleFriendEvent = () => {
+      refreshSilently();
+    };
+
+    if (socket) {
+      FRIEND_SOCKET_EVENTS.forEach((eventName) => {
+        socket.on(eventName, handleFriendEvent);
+      });
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleWindowFocus);
+
+    return () => {
+      cancelled = true;
+      if (socket) {
+        FRIEND_SOCKET_EVENTS.forEach((eventName) => {
+          socket.off(eventName, handleFriendEvent);
+        });
+        socket.disconnect();
+      }
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleWindowFocus);
+    };
+  }, [query, subSection]);
+
+  const refreshCurrentSection = async ({ showLoading = true } = {}) => {
+    if (showLoading) {
+      setLoading(true);
+    }
     setError('');
 
     try {
@@ -226,20 +301,52 @@ export default function FriendsSectionView({ subSection }) {
     } catch (err) {
       setError(err.message || 'Failed to load friends');
     } finally {
-      setLoading(false);
+      if (showLoading) {
+        setLoading(false);
+      }
     }
   };
 
   const handleAddFriend = async (user) => {
     try {
       setBusyActionId(user.id);
-      await createFriendRequest({ receiverId: user.id });
+      const response = await createFriendRequest({ receiverId: user.id });
+      const requestId = response?.request?.requestId || response?.request?.id || null;
+      setSearchResults((prevUsers) =>
+        prevUsers.map((item) =>
+          item.id === user.id
+            ? { ...item, relationshipStatus: 'requested', friendRequestId: requestId }
+            : item
+        )
+      );
       toast.success(`Friend request sent to ${user.displayName}.`);
+      void refreshCurrentSection({ showLoading: false });
     } catch (err) {
       toast.error(err.message || 'Failed to send friend request');
     } finally {
       setBusyActionId(null);
-      await refreshCurrentSection();
+    }
+  };
+
+  const handleCancelRequest = async (user) => {
+    if (!user.friendRequestId) return;
+
+    try {
+      setBusyActionId(user.friendRequestId);
+      await cancelFriendRequest({ requestId: user.friendRequestId });
+      setSearchResults((prevUsers) =>
+        prevUsers.map((item) =>
+          item.id === user.id
+            ? { ...item, relationshipStatus: 'none', friendRequestId: null }
+            : item
+        )
+      );
+      toast.success('Friend request cancelled.');
+      void refreshCurrentSection({ showLoading: false });
+    } catch (err) {
+      toast.error(err.message || 'Failed to cancel friend request');
+    } finally {
+      setBusyActionId(null);
     }
   };
 
@@ -247,11 +354,22 @@ export default function FriendsSectionView({ subSection }) {
     try {
       setBusyActionId(request.requestId);
       await acceptFriendRequest({ requestId: request.requestId });
+      setIncomingRequests((prevRequests) =>
+        prevRequests.filter((item) => item.requestId !== request.requestId)
+      );
+      setSearchResults((prevUsers) =>
+        prevUsers.map((item) =>
+          item.id === request.id
+            ? { ...item, relationshipStatus: 'friends', friendRequestId: request.requestId }
+            : item
+        )
+      );
+      toast.success('Friend request accepted.');
+      void refreshCurrentSection({ showLoading: false });
     } catch (err) {
       toast.error(err.message || 'Failed to accept request');
     } finally {
       setBusyActionId(null);
-      await refreshCurrentSection();
     }
   };
 
@@ -259,12 +377,38 @@ export default function FriendsSectionView({ subSection }) {
     try {
       setBusyActionId(request.requestId);
       await declineFriendRequest({ requestId: request.requestId });
+      setIncomingRequests((prevRequests) =>
+        prevRequests.filter((item) => item.requestId !== request.requestId)
+      );
+      setSearchResults((prevUsers) =>
+        prevUsers.map((item) =>
+          item.id === request.id
+            ? { ...item, relationshipStatus: 'none', friendRequestId: null }
+            : item
+        )
+      );
       toast.success('Friend request declined.');
+      void refreshCurrentSection({ showLoading: false });
     } catch (err) {
       toast.error(err.message || 'Failed to decline request');
     } finally {
       setBusyActionId(null);
-      await refreshCurrentSection();
+    }
+  };
+
+  const handleRemoveFriend = async (friend) => {
+    try {
+      setBusyActionId(friend.relationshipId);
+      await removeFriend({ relationshipId: friend.relationshipId });
+      setFriends((prevFriends) =>
+        prevFriends.filter((item) => item.relationshipId !== friend.relationshipId)
+      );
+      toast.success(`${friend.displayName} removed from friends.`);
+      void refreshCurrentSection({ showLoading: false });
+    } catch (err) {
+      toast.error(err.message || 'Failed to remove friend');
+    } finally {
+      setBusyActionId(null);
     }
   };
 
@@ -300,7 +444,14 @@ export default function FriendsSectionView({ subSection }) {
 
         <SectionDivider title="All friends" count={friends.length} />
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {friends.map((friend) => <FriendCard key={friend.id} friend={friend} />)}
+          {friends.map((friend) => (
+            <FriendCard
+              key={friend.id}
+              friend={friend}
+              busy={busyActionId === friend.relationshipId}
+              onRemoveFriend={handleRemoveFriend}
+            />
+          ))}
         </div>
         {!loading && friends.length === 0 && !error && (
           <p className="text-sm text-[#65676b]">No friends found.</p>
@@ -357,8 +508,9 @@ export default function FriendsSectionView({ subSection }) {
               <UserSearchCard
                 key={user.id}
                 user={user}
-                busy={busyActionId === user.id}
+                busy={busyActionId === user.id || (user.friendRequestId && busyActionId === user.friendRequestId)}
                 onAddFriend={handleAddFriend}
+                onCancelRequest={handleCancelRequest}
               />
             ))}
           </div>

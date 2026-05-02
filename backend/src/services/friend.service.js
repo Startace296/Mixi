@@ -202,6 +202,8 @@ export async function acceptFriendRequest(currentUserId, requestId) {
   return {
     id: relation._id,
     requestId: relation._id,
+    requesterId: toIdString(relation.requestedById),
+    receiverId: toIdString(relation.receiverId),
     status: relation.status,
     respondedAt: relation.respondedAt,
   };
@@ -221,6 +223,48 @@ export async function declineFriendRequest(currentUserId, requestId) {
   return {
     id: relation._id,
     requestId: relation._id,
+    requesterId: toIdString(relation.requestedById),
+    receiverId: toIdString(relation.receiverId),
     status: "declined",
+  };
+}
+
+export async function cancelFriendRequest(currentUserId, requestId) {
+  const relation = await FriendRequest.findOneAndDelete({
+    _id: requestId,
+    requestedById: currentUserId,
+    status: "pending",
+  });
+
+  if (!relation) {
+    throw new AppError("Friend request not found", 404);
+  }
+
+  return {
+    id: relation._id,
+    requestId: relation._id,
+    requesterId: toIdString(relation.requestedById),
+    receiverId: toIdString(relation.receiverId),
+    status: "cancelled",
+  };
+}
+
+export async function removeFriend(currentUserId, relationshipId) {
+  const relation = await FriendRequest.findOneAndDelete({
+    _id: relationshipId,
+    status: "accepted",
+    $or: [{ requestedById: currentUserId }, { receiverId: currentUserId }],
+  });
+
+  if (!relation) {
+    throw new AppError("Friendship not found", 404);
+  }
+
+  return {
+    id: relation._id,
+    relationshipId: relation._id,
+    requesterId: toIdString(relation.requestedById),
+    receiverId: toIdString(relation.receiverId),
+    status: "removed",
   };
 }
