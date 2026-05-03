@@ -20,3 +20,18 @@ export const avatarUpload = multer({
     return cb(null, true);
   },
 });
+
+export const chatImageUpload = multer({
+  storage,
+  limits: {
+    fileSize: 8 * 1024 * 1024,
+    files: 1,
+  },
+  fileFilter(_req, file, cb) {
+    if (!ALLOWED_MIME_TYPES.has(file.mimetype)) {
+      return cb(new AppError("Only PNG and JPEG images are allowed", 400));
+    }
+
+    return cb(null, true);
+  },
+});

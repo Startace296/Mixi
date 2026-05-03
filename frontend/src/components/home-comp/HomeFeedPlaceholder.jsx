@@ -27,7 +27,7 @@ export default function HomeFeedPlaceholder({
     );
   }
   if (section === HOME_SECTION.messages) {
-    return <ChatSectionView selectedChatThread={selectedChatThread} onOpenProfile={onOpenProfile} />;
+    return <ChatSectionView selectedChatThread={selectedChatThread} onOpenProfile={onOpenProfile} user={user} />;
   }
   if (section === HOME_SECTION.friends) {
     return <FriendsSectionView subSection={subSection} />;

@@ -118,6 +118,63 @@ export const removeFriend = async ({ relationshipId }) => {
   return response.data;
 };
 
+// --- Chat ---
+
+export const getChatConversations = async ({ limit = 50 } = {}) => {
+  const response = await axiosInstance.get('/chat/conversations', {
+    params: {
+      limit,
+    },
+  });
+  return response.data;
+};
+
+export const createDirectConversation = async ({ friendId }) => {
+  const response = await axiosInstance.post(`/chat/conversations/direct/${friendId}`);
+  return response.data;
+};
+
+export const getChatMessages = async ({ conversationId, limit = 50, before } = {}) => {
+  const response = await axiosInstance.get(`/chat/conversations/${conversationId}/messages`, {
+    params: {
+      limit,
+      before,
+    },
+  });
+  return response.data;
+};
+
+export const sendChatMessage = async ({ conversationId, text, imageUrl }) => {
+  const response = await axiosInstance.post(`/chat/conversations/${conversationId}/messages`, {
+    text,
+    imageUrl,
+  });
+  return response.data;
+};
+
+export const sendChatImage = async ({ conversationId, file }) => {
+  const formData = new FormData();
+  formData.append('image', file);
+
+  const response = await axiosInstance.post(`/chat/conversations/${conversationId}/images`, formData);
+  return response.data;
+};
+
+export const markChatConversationRead = async ({ conversationId }) => {
+  const response = await axiosInstance.patch(`/chat/conversations/${conversationId}/read`);
+  return response.data;
+};
+
+export const hideChatConversation = async ({ conversationId }) => {
+  const response = await axiosInstance.patch(`/chat/conversations/${conversationId}/hide`);
+  return response.data;
+};
+
+export const deleteChatMessage = async ({ messageId }) => {
+  const response = await axiosInstance.delete(`/chat/messages/${messageId}`);
+  return response.data;
+};
+
 // --- Google Auth ---
 
 export const googleLogin = async ({ idToken }) => {

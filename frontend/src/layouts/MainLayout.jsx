@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Outlet } from 'react-router-dom';
 
 import HomeHeader from '../components/home-comp/HomeHeader';
@@ -8,20 +8,15 @@ import ChatSidebarSecondaryPanel from '../components/chat-comp/ChatSidebarSecond
 import FriendsSidebarSecondaryPanel from '../components/friend-comp/FriendsSidebarSecondaryPanel.jsx';
 import SettingsSidebarSecondaryPanel from '../components/setting-comp/SettingsSidebarSecondaryPanel.jsx';
 import { HOME_SECTION, DEFAULT_SUB_SECTION } from '../lib/homeSections.js';
-import { MOCK_CHAT_THREADS } from '../lib/chatSidebarData.js';
 import { useAuthUser } from '../hooks/useAuthUser';
 
 export default function MainLayout() {
   const { authUser: user, setAuthUser: setUser } = useAuthUser();
   const [activeSection, setActiveSection] = useState(HOME_SECTION.home);
   const [activeSubSection, setActiveSubSection] = useState(DEFAULT_SUB_SECTION[HOME_SECTION.home]);
-  const [selectedChatId, setSelectedChatId] = useState(MOCK_CHAT_THREADS[0]?.id ?? null);
+  const [selectedChatId, setSelectedChatId] = useState(null);
+  const [selectedChatThread, setSelectedChatThread] = useState(null);
   const [viewedProfile, setViewedProfile] = useState(null);
-
-  const selectedChatThread = useMemo(
-    () => MOCK_CHAT_THREADS.find((thread) => thread.id === selectedChatId) || null,
-    [selectedChatId]
-  );
 
   function buildNavState(section, subSection, chatId, profile) {
     return {
@@ -71,8 +66,9 @@ export default function MainLayout() {
   }
 
   function handleSelectChat(chat, shouldPushState = true) {
-    const nextChatId = chat.id;
+    const nextChatId = chat?.id || null;
     setSelectedChatId(nextChatId);
+    setSelectedChatThread(chat || null);
 
     if (shouldPushState) {
       syncBrowserState(activeSection, activeSubSection, nextChatId, viewedProfile);
@@ -92,7 +88,7 @@ export default function MainLayout() {
 
       setActiveSection(state.section || HOME_SECTION.home);
       setActiveSubSection(state.subSection ?? DEFAULT_SUB_SECTION[state.section || HOME_SECTION.home]);
-      setSelectedChatId(state.selectedChatId ?? MOCK_CHAT_THREADS[0]?.id ?? null);
+      setSelectedChatId(state.selectedChatId ?? null);
       setViewedProfile(state.viewedProfile || null);
     };
 
