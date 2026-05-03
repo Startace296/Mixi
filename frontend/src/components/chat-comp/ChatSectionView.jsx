@@ -1,116 +1,159 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import ChatHeader from "./ChatHeader.jsx";
 import MessageList from "./MessageList.jsx";
 import MessageInput from "./MessageInput.jsx";
-import { MOCK_CHAT_THREADS } from "../../lib/chatSidebarData.js";
+import {
+  deleteChatMessage,
+  getChatMessages,
+  markChatConversationRead,
+  sendChatImage,
+  sendChatMessage,
+} from "../../lib/api.js";
+import { getAuthenticatedSocket } from "../../lib/socket.js";
 
-const DEFAULT_CHAT_THREAD = MOCK_CHAT_THREADS[0] || null;
+function appendMessageOnce(messages, nextMessage) {
+  if (!nextMessage?._id) return messages;
+  if (messages.some((message) => message._id === nextMessage._id)) return messages;
+  return [...messages, nextMessage];
+}
 
-const INITIAL_MESSAGES_BY_THREAD = {
-  "1": [
-    {
-      _id: "m_1",
-      senderId: "1",
-      text: "Hey, are we still meeting this afternoon?",
-      createdAt: "2026-04-26T02:10:00.000Z",
-    },
-    {
-      _id: "m_2",
-      senderId: "me",
-      text: "Yes, see you at 2 PM.",
-      createdAt: "2026-04-26T02:12:00.000Z",
-    },
-  ],
-  "3": [
-    {
-      _id: "m_3",
-      senderId: "3",
-      text: "I uploaded the latest design file.",
-      createdAt: "2026-04-25T09:00:00.000Z",
-    },
-  ],
-  "4": [
-    {
-      _id: "m_4",
-      senderId: "4",
-      text: "The merge is done, please pull main.",
-      createdAt: "2026-04-24T08:40:00.000Z",
-    },
-  ],
-  g1: [
-    {
-      _id: "m_5",
-      senderId: "u_teacher",
-      senderName: "Teacher",
-      senderAvatar: "https://i.pravatar.cc/100?img=45",
-      text: "Deadline next week, please prepare your slides.",
-      createdAt: "2026-04-23T06:10:00.000Z",
-    },
-    {
-      _id: "m_6",
-      senderId: "u_huy",
-      senderName: "Huy",
-      senderAvatar: "https://i.pravatar.cc/100?img=62",
-      text: "I can present the API flow.",
-      createdAt: "2026-04-23T06:18:00.000Z",
-    },
-    {
-      _id: "m_7",
-      senderId: "me",
-      text: "Great, I will handle the frontend demo.",
-      createdAt: "2026-04-23T06:23:00.000Z",
-    },
-  ],
-};
+export default function ChatSectionView({ selectedChatThread, onOpenProfile, user }) {
+  const [messages, setMessages] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingOlder, setIsLoadingOlder] = useState(false);
+  const [hasOlderMessages, setHasOlderMessages] = useState(false);
+  const [olderCursor, setOlderCursor] = useState(null);
+  const [error, setError] = useState("");
 
-export default function ChatSectionView({ selectedChatThread, onOpenProfile }) {
-  const [messagesByThread, setMessagesByThread] = useState(INITIAL_MESSAGES_BY_THREAD);
-
-  const selectedChat = selectedChatThread || DEFAULT_CHAT_THREAD;
+  const selectedChat = selectedChatThread || null;
   const activeThreadId = selectedChat?.id;
-  const messages = activeThreadId ? messagesByThread[activeThreadId] || [] : [];
 
-  const handleSendMessage = (text) => {
-    if (!activeThreadId) return;
+  useEffect(() => {
+    let isMounted = true;
 
-    const newMessage = {
-      _id: `m_${Date.now()}`,
-      senderId: "me",
-      text,
-      createdAt: new Date().toISOString(),
+    async function loadMessages() {
+      if (!activeThreadId) {
+        setMessages([]);
+        return;
+      }
+
+      setIsLoading(true);
+      setError("");
+
+      try {
+        const data = await getChatMessages({ conversationId: activeThreadId });
+        if (isMounted) {
+          setMessages(data?.messages || []);
+          setHasOlderMessages(Boolean(data?.pageInfo?.hasMore));
+          setOlderCursor(data?.pageInfo?.nextBefore || null);
+        }
+      } catch (err) {
+        if (isMounted) setError(err.message || "Failed to load messages");
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    }
+
+    loadMessages();
+
+    return () => {
+      isMounted = false;
     };
+  }, [activeThreadId]);
 
-    setMessagesByThread((prevMessagesByThread) => ({
-      ...prevMessagesByThread,
-      [activeThreadId]: [...(prevMessagesByThread[activeThreadId] || []), newMessage],
-    }));
+  const handleLoadOlderMessages = async () => {
+    if (!activeThreadId || !olderCursor || isLoadingOlder) return;
+
+    setIsLoadingOlder(true);
+
+    try {
+      const data = await getChatMessages({
+        conversationId: activeThreadId,
+        before: olderCursor,
+      });
+      const olderMessages = data?.messages || [];
+
+      setMessages((prevMessages) => {
+        const existingIds = new Set(prevMessages.map((message) => message._id));
+        return [
+          ...olderMessages.filter((message) => !existingIds.has(message._id)),
+          ...prevMessages,
+        ];
+      });
+      setHasOlderMessages(Boolean(data?.pageInfo?.hasMore));
+      setOlderCursor(data?.pageInfo?.nextBefore || null);
+    } catch (err) {
+      setError(err.message || "Failed to load older messages");
+    } finally {
+      setIsLoadingOlder(false);
+    }
   };
 
-  const handleDeleteMessage = (messageId) => {
-    if (!activeThreadId) return;
+  useEffect(() => {
+    if (!activeThreadId) return undefined;
 
-    setMessagesByThread((prevMessagesByThread) => ({
-      ...prevMessagesByThread,
-      [activeThreadId]: (prevMessagesByThread[activeThreadId] || []).filter(
-        (message) => message._id !== messageId
-      ),
-    }));
-  };
+    const socket = getAuthenticatedSocket();
+    if (!socket) return undefined;
 
-  const handleAttachImage = (file) => {
-    if (!activeThreadId) return;
+    const handleMessageCreated = (payload) => {
+      if (payload?.conversationId !== activeThreadId || !payload?.message) return;
 
-    const newMessage = {
-      _id: `m_${Date.now()}`,
-      senderId: "me",
-      text: `Attached image: ${file.name}`,
-      createdAt: new Date().toISOString(),
+      setMessages((prevMessages) => {
+        return appendMessageOnce(prevMessages, payload.message);
+      });
+
+      if (payload.message.senderId !== user?.id) {
+        markChatConversationRead({ conversationId: activeThreadId }).catch(() => {});
+      }
     };
 
-    setMessagesByThread((prevMessagesByThread) => ({
-      ...prevMessagesByThread,
-      [activeThreadId]: [...(prevMessagesByThread[activeThreadId] || []), newMessage],
-    }));
+    const handleMessageDeleted = (payload) => {
+      if (payload?.conversationId !== activeThreadId || !payload?.message) return;
+
+      setMessages((prevMessages) => prevMessages.map((message) => (
+        message._id === payload.message._id ? payload.message : message
+      )));
+    };
+
+    socket.on("chat:message_created", handleMessageCreated);
+    socket.on("chat:message_deleted", handleMessageDeleted);
+
+    return () => {
+      socket.off("chat:message_created", handleMessageCreated);
+      socket.off("chat:message_deleted", handleMessageDeleted);
+    };
+  }, [activeThreadId, user?.id]);
+
+  const handleSendMessage = async (text) => {
+    if (!activeThreadId) return;
+
+    const data = await sendChatMessage({ conversationId: activeThreadId, text });
+    if (data?.message) {
+      setMessages((prevMessages) => appendMessageOnce(prevMessages, data.message));
+    }
+  };
+
+  const handleDeleteMessage = async (messageId) => {
+    if (!activeThreadId) return;
+
+    await deleteChatMessage({ messageId });
+    setMessages((prevMessages) => prevMessages.map((message) => (
+      message._id === messageId
+        ? { ...message, text: "", imageUrl: "", isDeleted: true }
+        : message
+    )));
+  };
+
+  const handleAttachImage = async (file) => {
+    if (!activeThreadId) return;
+
+    const data = await sendChatImage({
+      conversationId: activeThreadId,
+      file,
+    });
+    if (data?.message) {
+      setMessages((prevMessages) => appendMessageOnce(prevMessages, data.message));
+    }
   };
 
   const handleCall = () => {
@@ -121,6 +164,7 @@ export default function ChatSectionView({ selectedChatThread, onOpenProfile }) {
     if (selectedChat.type === "group") return;
 
     onOpenProfile?.({
+      id: selectedChat.friendId,
       displayName: selectedChat.name,
       avatarUrl: selectedChat.profilePic,
       bio: "No bio yet",
@@ -151,9 +195,14 @@ export default function ChatSectionView({ selectedChatThread, onOpenProfile }) {
         />
         <MessageList
           messages={messages}
-          currentUserId="me"
+          currentUserId={user?.id}
           isGroupChat={selectedChat.type === "group"}
           onDeleteMessage={handleDeleteMessage}
+          isLoading={isLoading}
+          error={error}
+          hasOlderMessages={hasOlderMessages}
+          isLoadingOlder={isLoadingOlder}
+          onLoadOlderMessages={handleLoadOlderMessages}
         />
         <MessageInput onSend={handleSendMessage} onAttachImage={handleAttachImage} />
       </div>

@@ -8,14 +8,25 @@ function formatMessageTime(createdAt) {
   }).format(date);
 }
 
-export default function MessageList({ messages, currentUserId, isGroupChat, onDeleteMessage }) {
+export default function MessageList({
+  messages,
+  currentUserId,
+  isGroupChat,
+  onDeleteMessage,
+  isLoading = false,
+  hasOlderMessages = false,
+  isLoadingOlder = false,
+  onLoadOlderMessages,
+  error = "",
+}) {
   const listRef = useRef(null);
   const [openMenuId, setOpenMenuId] = useState(null);
+  const lastMessageId = messages[messages.length - 1]?._id || "";
 
   useEffect(() => {
     if (!listRef.current) return;
     listRef.current.scrollTop = listRef.current.scrollHeight;
-  }, [messages]);
+  }, [lastMessageId]);
 
   useEffect(() => {
     const handleWindowClick = () => {
@@ -28,6 +39,22 @@ export default function MessageList({ messages, currentUserId, isGroupChat, onDe
     };
   }, []);
 
+  if (isLoading) {
+    return (
+      <div className="flex flex-1 items-center justify-center px-4 py-8 text-sm text-[#65676b]">
+        Loading messages...
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-1 items-center justify-center px-4 py-8 text-sm text-red-500">
+        {error}
+      </div>
+    );
+  }
+
   if (!messages.length) {
     return (
       <div className="flex min-h-0 flex-1 items-center justify-center px-4 py-8 text-sm text-[#65676b]">
@@ -37,9 +64,30 @@ export default function MessageList({ messages, currentUserId, isGroupChat, onDe
   }
 
   return (
+<<<<<<< HEAD
     <div ref={listRef} className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-4">
+=======
+    <div ref={listRef} className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
+      {hasOlderMessages && (
+        <div className="flex justify-center">
+          <button
+            type="button"
+            onClick={onLoadOlderMessages}
+            disabled={isLoadingOlder}
+            className="rounded-full border border-[#dadde1] bg-white px-3 py-1.5 text-xs font-semibold text-[#65676b] transition hover:bg-[#f0f2f5] disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {isLoadingOlder ? "Loading..." : "Load older messages"}
+          </button>
+        </div>
+      )}
+>>>>>>> 09d38febc0cf8ab294fd5d39178ca2e76f9a0eef
       {messages.map((message) => {
         const isMine = message.senderId === currentUserId;
+        const bubbleClassName = message.isDeleted
+          ? "bg-[#f0f2f5] text-[#65676b]"
+          : isMine
+            ? "bg-blue-500 text-white"
+            : "bg-[#f0f2f5] text-[#1c1e21]";
 
         return (
           <div key={message._id} className={`group flex w-full ${isMine ? "justify-end" : "justify-start"}`}>
@@ -53,17 +101,28 @@ export default function MessageList({ messages, currentUserId, isGroupChat, onDe
 
             <div className={`relative flex max-w-[75%] flex-col ${isMine ? "items-end" : "items-start"}`}>
               <div
-                className={`w-fit max-w-full rounded-2xl px-3 py-2 ${
-                  isMine ? "bg-blue-500 text-white" : "bg-[#f0f2f5] text-[#1c1e21]"
-                }`}
+                className={`w-fit max-w-full rounded-2xl px-3 py-2 ${bubbleClassName}`}
               >
-                <p className="break-words whitespace-pre-wrap text-sm">{message.text}</p>
-                <p className={`mt-1 text-[11px] ${isMine ? "text-blue-100" : "text-[#65676b]"}`}>
+                {message.isDeleted ? (
+                  <p className="break-words whitespace-pre-wrap text-sm italic">This message was deleted</p>
+                ) : (
+                  <>
+                    {message.imageUrl && (
+                      <img
+                        src={message.imageUrl}
+                        alt=""
+                        className="mb-2 max-h-[280px] max-w-full rounded-xl object-contain"
+                      />
+                    )}
+                    {message.text && <p className="break-words whitespace-pre-wrap text-sm">{message.text}</p>}
+                  </>
+                )}
+                <p className={`mt-1 text-[11px] ${isMine && !message.isDeleted ? "text-blue-100" : "text-[#65676b]"}`}>
                   {formatMessageTime(message.createdAt)}
                 </p>
               </div>
 
-              {isMine && (
+              {isMine && !message.isDeleted && (
                 <>
                   <button
                     type="button"

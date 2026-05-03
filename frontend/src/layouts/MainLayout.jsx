@@ -1,5 +1,10 @@
+<<<<<<< HEAD
 import { useEffect, useMemo, useRef } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
+=======
+import { useEffect, useState } from 'react';
+import { Outlet } from 'react-router-dom';
+>>>>>>> 09d38febc0cf8ab294fd5d39178ca2e76f9a0eef
 
 import HomeHeader from '../components/home-comp/HomeHeader';
 import HomeSidebarPrimary from '../components/home-comp/HomeSidebarPrimary';
@@ -7,6 +12,7 @@ import HomeSidebarSecondaryPanel from '../components/home-comp/HomeSidebarSecond
 import ChatSidebarSecondaryPanel from '../components/chat-comp/ChatSidebarSecondaryPanel.jsx';
 import FriendsSidebarSecondaryPanel from '../components/friend-comp/FriendsSidebarSecondaryPanel.jsx';
 import SettingsSidebarSecondaryPanel from '../components/setting-comp/SettingsSidebarSecondaryPanel.jsx';
+<<<<<<< HEAD
 import { HOME_SECTION, HOME_SUB_SECTION } from '../lib/homeSections.js';
 import { parseMainPath } from '../lib/appPaths.js';
 import {
@@ -14,10 +20,14 @@ import {
   MOCK_RECENT_CHATS,
   getDefaultChatThreadId,
 } from '../lib/chatSidebarData.js';
+=======
+import { HOME_SECTION, DEFAULT_SUB_SECTION } from '../lib/homeSections.js';
+>>>>>>> 09d38febc0cf8ab294fd5d39178ca2e76f9a0eef
 import { useAuthUser } from '../hooks/useAuthUser';
 
 export default function MainLayout() {
   const { authUser: user, setAuthUser: setUser } = useAuthUser();
+<<<<<<< HEAD
   const navigate = useNavigate();
   const { pathname, state: locationState } = useLocation();
 
@@ -77,6 +87,22 @@ export default function MainLayout() {
       default:
         navigate('/home');
     }
+=======
+  const [activeSection, setActiveSection] = useState(HOME_SECTION.home);
+  const [activeSubSection, setActiveSubSection] = useState(DEFAULT_SUB_SECTION[HOME_SECTION.home]);
+  const [selectedChatId, setSelectedChatId] = useState(null);
+  const [selectedChatThread, setSelectedChatThread] = useState(null);
+  const [viewedProfile, setViewedProfile] = useState(null);
+
+  function buildNavState(section, subSection, chatId, profile) {
+    return {
+      appNav: true,
+      section,
+      subSection,
+      selectedChatId: chatId,
+      viewedProfile: profile,
+    };
+>>>>>>> 09d38febc0cf8ab294fd5d39178ca2e76f9a0eef
   }
 
   function handleOpenProfile(profile) {
@@ -111,6 +137,7 @@ export default function MainLayout() {
       navigate('/home');
       return;
     }
+<<<<<<< HEAD
     if (activeSection === HOME_SECTION.friends) {
       if (subKey === HOME_SUB_SECTION.friends_requests) {
         navigate('/friends/requests');
@@ -125,11 +152,46 @@ export default function MainLayout() {
       } else if (subKey === HOME_SUB_SECTION.settings_help) {
         navigate('/settings/help');
       }
+=======
+  }
+
+  function handleSelectChat(chat, shouldPushState = true) {
+    const nextChatId = chat?.id || null;
+    setSelectedChatId(nextChatId);
+    setSelectedChatThread(chat || null);
+
+    if (shouldPushState) {
+      syncBrowserState(activeSection, activeSubSection, nextChatId, viewedProfile);
+>>>>>>> 09d38febc0cf8ab294fd5d39178ca2e76f9a0eef
     }
   }
 
   const isProfilePage = activeSection === HOME_SECTION.profile;
 
+<<<<<<< HEAD
+=======
+  useEffect(() => {
+    syncBrowserState(activeSection, activeSubSection, selectedChatId, viewedProfile, 'replace');
+  }, []);
+
+  useEffect(() => {
+    const handlePopState = (event) => {
+      const state = event.state;
+      if (!state?.appNav) return;
+
+      setActiveSection(state.section || HOME_SECTION.home);
+      setActiveSubSection(state.subSection ?? DEFAULT_SUB_SECTION[state.section || HOME_SECTION.home]);
+      setSelectedChatId(state.selectedChatId ?? null);
+      setViewedProfile(state.viewedProfile || null);
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, []);
+
+>>>>>>> 09d38febc0cf8ab294fd5d39178ca2e76f9a0eef
   return (
     <div className="h-screen flex flex-col bg-[#f0f2f5] overflow-hidden">
       <HomeHeader user={user} onSelectSection={handleSelectSection} />

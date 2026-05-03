@@ -12,7 +12,7 @@ import {
   searchUsers,
 } from '../../lib/api.js';
 import { HOME_SUB_SECTION } from '../../lib/homeSections.js';
-import { createAuthenticatedSocket, FRIEND_SOCKET_EVENTS } from '../../lib/socket.js';
+import { FRIEND_SOCKET_EVENTS, getAuthenticatedSocket } from '../../lib/socket.js';
 
 function getInitials(displayName) {
   const parts = (displayName || '')
@@ -315,7 +315,7 @@ export default function FriendsSectionView({ subSection, onOpenChatWithFriend, o
       refreshSilently();
     };
 
-    const socket = createAuthenticatedSocket();
+    const socket = getAuthenticatedSocket();
     const handleFriendEvent = () => {
       refreshSilently();
     };
@@ -335,7 +335,6 @@ export default function FriendsSectionView({ subSection, onOpenChatWithFriend, o
         FRIEND_SOCKET_EVENTS.forEach((eventName) => {
           socket.off(eventName, handleFriendEvent);
         });
-        socket.disconnect();
       }
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('focus', handleWindowFocus);
