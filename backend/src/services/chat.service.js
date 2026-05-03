@@ -120,6 +120,7 @@ function sanitizeConversation(conversation, currentUserId) {
       .filter((participant) => participant?._id)
       .map((participant) => sanitizeUser(participant)),
     preview: conversation.lastMessageText || "No messages yet",
+    lastMessageSenderId: conversation.lastMessageSenderId ? String(conversation.lastMessageSenderId) : null,
     time: conversation.lastMessageAt || conversation.updatedAt,
     unread: conversation.unreadCounts?.get?.(currentId) || 0,
     lastMessageAt: conversation.lastMessageAt,
@@ -163,7 +164,7 @@ export async function getOrCreateDirectConversation(currentUserId, friendId) {
       },
     },
     {
-      new: true,
+      returnDocument: "after",
       upsert: true,
     },
   ).populate("participantIds", USER_SELECT_FIELDS);
@@ -288,6 +289,7 @@ export async function sendMessage(currentUserId, conversationId, { text = "", im
 
   conversation.lastMessageId = message._id;
   conversation.lastMessageText = cleanText || "Image";
+  conversation.lastMessageSenderId = currentUserId;
   conversation.lastMessageAt = message.createdAt;
   for (const participantId of conversation.participantIds) {
     const participantKey = toIdString(participantId);
@@ -333,6 +335,7 @@ export async function deleteMessage(currentUserId, messageId) {
   await Conversation.findByIdAndUpdate(message.conversationId, {
     lastMessageId: latestVisibleMessage?._id || null,
     lastMessageText: latestVisibleMessage?.text || (latestVisibleMessage?.imageUrl ? "Image" : ""),
+    lastMessageSenderId: latestVisibleMessage?.senderId || null,
     lastMessageAt: latestVisibleMessage?.createdAt || null,
   });
 

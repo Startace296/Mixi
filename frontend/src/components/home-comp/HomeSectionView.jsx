@@ -98,7 +98,6 @@ export default function HomeSectionView({ displayName, user, onOpenProfile, onSe
 
       <div className="flex items-center justify-between px-1">
         <h2 className="text-base font-bold text-[#1c1e21]">Feed</h2>
-        <span className="text-xs font-medium text-[#8a8d91]">API integration coming soon</span>
       </div>
       <div className="space-y-4">
         {feedPosts.map((post) => (

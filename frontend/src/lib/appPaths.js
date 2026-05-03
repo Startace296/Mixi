@@ -41,6 +41,15 @@ export function parseMainPath(pathname) {
     };
   }
 
+  if (pathname === '/messages') {
+    return {
+      section: HOME_SECTION.messages,
+      subSection: null,
+      threadId: null,
+      profileUserId: null,
+    };
+  }
+
   if (pathname === '/profile') {
     return {
       section: HOME_SECTION.profile,

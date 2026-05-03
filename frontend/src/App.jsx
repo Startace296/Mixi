@@ -14,7 +14,6 @@ import RegisterPage from './pages/RegisterPage';
 import AuthCallbackPage from './pages/AuthCallbackPage';
 import { AboutUsPage, HelpPage, PoliciesPage } from './pages/InfoPages';
 import HomePage from './pages/HomePage';
-import { getDefaultChatThreadId } from './lib/chatSidebarData.js';
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -50,7 +49,7 @@ export default function App() {
           <Route path="/friends/all" element={<HomePage />} />
           <Route
             path="/messages"
-            element={<Navigate to={`/messages/${getDefaultChatThreadId()}`} replace />}
+            element={<HomePage />}
           />
           <Route path="/messages/:threadId" element={<HomePage />} />
           <Route path="/profile" element={<HomePage />} />

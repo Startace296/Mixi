@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import ChatHeader from "./ChatHeader.jsx";
 import MessageList from "./MessageList.jsx";
 import MessageInput from "./MessageInput.jsx";
@@ -24,9 +24,35 @@ export default function ChatSectionView({ selectedChatThread, onOpenProfile, use
   const [hasOlderMessages, setHasOlderMessages] = useState(false);
   const [olderCursor, setOlderCursor] = useState(null);
   const [error, setError] = useState("");
+  const messageCacheRef = useRef(new Map());
+  const pageInfoCacheRef = useRef(new Map());
 
   const selectedChat = selectedChatThread || null;
   const activeThreadId = selectedChat?.id;
+
+  const applyPageInfo = (threadId, nextHasOlderMessages, nextOlderCursor) => {
+    setHasOlderMessages(nextHasOlderMessages);
+    setOlderCursor(nextOlderCursor);
+    pageInfoCacheRef.current.set(threadId, {
+      hasOlderMessages: nextHasOlderMessages,
+      olderCursor: nextOlderCursor,
+    });
+  };
+
+  const applyMessagesForThread = (threadId, nextMessages) => {
+    setMessages(nextMessages);
+    messageCacheRef.current.set(threadId, nextMessages);
+  };
+
+  const updateMessagesForActiveThread = (updater) => {
+    setMessages((prevMessages) => {
+      const nextMessages = updater(prevMessages);
+      if (activeThreadId) {
+        messageCacheRef.current.set(activeThreadId, nextMessages);
+      }
+      return nextMessages;
+    });
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -34,18 +60,33 @@ export default function ChatSectionView({ selectedChatThread, onOpenProfile, use
     async function loadMessages() {
       if (!activeThreadId) {
         setMessages([]);
+        setHasOlderMessages(false);
+        setOlderCursor(null);
         return;
       }
 
-      setIsLoading(true);
+      const cachedMessages = messageCacheRef.current.get(activeThreadId);
+      const cachedPageInfo = pageInfoCacheRef.current.get(activeThreadId);
+
+      if (cachedMessages) {
+        setMessages(cachedMessages);
+        setHasOlderMessages(Boolean(cachedPageInfo?.hasOlderMessages));
+        setOlderCursor(cachedPageInfo?.olderCursor || null);
+        setIsLoading(false);
+      } else {
+        setIsLoading(true);
+      }
       setError("");
 
       try {
         const data = await getChatMessages({ conversationId: activeThreadId });
         if (isMounted) {
-          setMessages(data?.messages || []);
-          setHasOlderMessages(Boolean(data?.pageInfo?.hasMore));
-          setOlderCursor(data?.pageInfo?.nextBefore || null);
+          const nextMessages = data?.messages || [];
+          const nextHasOlderMessages = Boolean(data?.pageInfo?.hasMore);
+          const nextOlderCursor = data?.pageInfo?.nextBefore || null;
+
+          applyMessagesForThread(activeThreadId, nextMessages);
+          applyPageInfo(activeThreadId, nextHasOlderMessages, nextOlderCursor);
         }
       } catch (err) {
         if (isMounted) setError(err.message || "Failed to load messages");
@@ -73,15 +114,16 @@ export default function ChatSectionView({ selectedChatThread, onOpenProfile, use
       });
       const olderMessages = data?.messages || [];
 
-      setMessages((prevMessages) => {
+      updateMessagesForActiveThread((prevMessages) => {
         const existingIds = new Set(prevMessages.map((message) => message._id));
         return [
           ...olderMessages.filter((message) => !existingIds.has(message._id)),
           ...prevMessages,
         ];
       });
-      setHasOlderMessages(Boolean(data?.pageInfo?.hasMore));
-      setOlderCursor(data?.pageInfo?.nextBefore || null);
+      const nextHasOlderMessages = Boolean(data?.pageInfo?.hasMore);
+      const nextOlderCursor = data?.pageInfo?.nextBefore || null;
+      applyPageInfo(activeThreadId, nextHasOlderMessages, nextOlderCursor);
     } catch (err) {
       setError(err.message || "Failed to load older messages");
     } finally {
@@ -98,9 +140,7 @@ export default function ChatSectionView({ selectedChatThread, onOpenProfile, use
     const handleMessageCreated = (payload) => {
       if (payload?.conversationId !== activeThreadId || !payload?.message) return;
 
-      setMessages((prevMessages) => {
-        return appendMessageOnce(prevMessages, payload.message);
-      });
+      updateMessagesForActiveThread((prevMessages) => appendMessageOnce(prevMessages, payload.message));
 
       if (payload.message.senderId !== user?.id) {
         markChatConversationRead({ conversationId: activeThreadId }).catch(() => {});
@@ -110,9 +150,11 @@ export default function ChatSectionView({ selectedChatThread, onOpenProfile, use
     const handleMessageDeleted = (payload) => {
       if (payload?.conversationId !== activeThreadId || !payload?.message) return;
 
-      setMessages((prevMessages) => prevMessages.map((message) => (
-        message._id === payload.message._id ? payload.message : message
-      )));
+      updateMessagesForActiveThread((prevMessages) => (
+        prevMessages.map((message) => (
+          message._id === payload.message._id ? payload.message : message
+        ))
+      ));
     };
 
     socket.on("chat:message_created", handleMessageCreated);
@@ -129,7 +171,7 @@ export default function ChatSectionView({ selectedChatThread, onOpenProfile, use
 
     const data = await sendChatMessage({ conversationId: activeThreadId, text });
     if (data?.message) {
-      setMessages((prevMessages) => appendMessageOnce(prevMessages, data.message));
+      updateMessagesForActiveThread((prevMessages) => appendMessageOnce(prevMessages, data.message));
     }
   };
 
@@ -137,11 +179,13 @@ export default function ChatSectionView({ selectedChatThread, onOpenProfile, use
     if (!activeThreadId) return;
 
     await deleteChatMessage({ messageId });
-    setMessages((prevMessages) => prevMessages.map((message) => (
-      message._id === messageId
-        ? { ...message, text: "", imageUrl: "", isDeleted: true }
-        : message
-    )));
+    updateMessagesForActiveThread((prevMessages) => (
+      prevMessages.map((message) => (
+        message._id === messageId
+          ? { ...message, text: "", imageUrl: "", isDeleted: true }
+          : message
+      ))
+    ));
   };
 
   const handleAttachImage = async (file) => {
@@ -152,7 +196,7 @@ export default function ChatSectionView({ selectedChatThread, onOpenProfile, use
       file,
     });
     if (data?.message) {
-      setMessages((prevMessages) => appendMessageOnce(prevMessages, data.message));
+      updateMessagesForActiveThread((prevMessages) => appendMessageOnce(prevMessages, data.message));
     }
   };
 

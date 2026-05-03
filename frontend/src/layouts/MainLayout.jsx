@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 
 import HomeHeader from '../components/home-comp/HomeHeader';
 import HomeSidebarPrimary from '../components/home-comp/HomeSidebarPrimary';
@@ -9,21 +10,18 @@ import FriendsSidebarSecondaryPanel from '../components/friend-comp/FriendsSideb
 import SettingsSidebarSecondaryPanel from '../components/setting-comp/SettingsSidebarSecondaryPanel.jsx';
 import { HOME_SECTION, HOME_SUB_SECTION } from '../lib/homeSections.js';
 import { parseMainPath } from '../lib/appPaths.js';
-import {
-  MOCK_CHAT_THREADS,
-  MOCK_RECENT_CHATS,
-  getDefaultChatThreadId,
-} from '../lib/chatSidebarData.js';
+import { createDirectConversation } from '../lib/api.js';
 import { useAuthUser } from '../hooks/useAuthUser';
 
 export default function MainLayout() {
   const { authUser: user, setAuthUser: setUser } = useAuthUser();
   const navigate = useNavigate();
   const { pathname, state: locationState } = useLocation();
+  const [selectedChatThread, setSelectedChatThread] = useState(null);
 
   const parsed = useMemo(() => parseMainPath(pathname), [pathname]);
 
-  const lastChatIdRef = useRef(getDefaultChatThreadId());
+  const lastChatIdRef = useRef(null);
 
   useEffect(() => {
     if (parsed.section === HOME_SECTION.messages && parsed.threadId) {
@@ -36,10 +34,18 @@ export default function MainLayout() {
       ? parsed.threadId
       : lastChatIdRef.current;
 
-  const selectedChatThread = useMemo(
-    () => MOCK_CHAT_THREADS.find((thread) => thread.id === selectedChatId) || null,
-    [selectedChatId]
-  );
+  useEffect(() => {
+    if (parsed.section !== HOME_SECTION.messages) {
+      return;
+    }
+    if (!selectedChatId) {
+      setSelectedChatThread(null);
+      return;
+    }
+    if (selectedChatThread?.id !== selectedChatId) {
+      setSelectedChatThread(null);
+    }
+  }, [parsed.section, selectedChatId, selectedChatThread?.id]);
 
   const viewedProfile = useMemo(() => {
     if (parsed.section !== HOME_SECTION.profile) {
@@ -54,8 +60,7 @@ export default function MainLayout() {
   const activeSection = parsed.section;
   const activeSubSection = parsed.subSection;
 
-  function handleSelectSection(section) {
-    const defaultChat = getDefaultChatThreadId();
+  const handleSelectSection = useCallback((section) => {
     switch (section) {
       case HOME_SECTION.home:
         navigate('/home');
@@ -64,8 +69,8 @@ export default function MainLayout() {
         navigate('/friends/requests');
         break;
       case HOME_SECTION.messages: {
-        const id = lastChatIdRef.current || defaultChat;
-        navigate(`/messages/${id}`);
+        const id = lastChatIdRef.current;
+        navigate(id ? `/messages/${id}` : '/messages');
         break;
       }
       case HOME_SECTION.profile:
@@ -77,9 +82,9 @@ export default function MainLayout() {
       default:
         navigate('/home');
     }
-  }
+  }, [navigate]);
 
-  function handleOpenProfile(profile) {
+  const handleOpenProfile = useCallback((profile) => {
     if (!profile) {
       navigate('/profile', { state: {} });
       return;
@@ -89,24 +94,47 @@ export default function MainLayout() {
       return;
     }
     navigate('/profile', { state: { viewedProfile: profile } });
-  }
+  }, [navigate]);
 
-  function handleSelectChat(chat) {
+  const handleSelectChat = useCallback((chat, shouldNavigate = true) => {
+    if (!chat?.id) {
+      setSelectedChatThread(null);
+      if (shouldNavigate) {
+        navigate('/messages');
+      }
+      return;
+    }
+
     lastChatIdRef.current = chat.id;
-    navigate(`/messages/${chat.id}`);
-  }
+    setSelectedChatThread((prevChat) => (prevChat?.id === chat.id ? prevChat : chat));
+    if (shouldNavigate) {
+      navigate(`/messages/${chat.id}`);
+    }
+  }, [navigate]);
 
-  function handleOpenChatWithFriend(friend) {
-    const name = (friend?.displayName || '').trim().toLowerCase();
-    const match = MOCK_CHAT_THREADS.find(
-      (t) => t.type === 'direct' && (t.name || '').trim().toLowerCase() === name
-    );
-    const nextChatId = match?.id ?? MOCK_RECENT_CHATS[0]?.id ?? getDefaultChatThreadId();
-    lastChatIdRef.current = nextChatId;
-    navigate(`/messages/${nextChatId}`);
-  }
+  const handleOpenChatWithFriend = useCallback(async (friend) => {
+    const friendId = friend?.id ?? friend?.friendId ?? friend?.userId;
+    if (!friendId) {
+      toast.error('Cannot open chat for this user.');
+      return;
+    }
 
-  function handleSubSectionChange(subKey) {
+    try {
+      const response = await createDirectConversation({ friendId: String(friendId) });
+      const conversation = response?.conversation;
+      if (!conversation?.id) {
+        throw new Error('Conversation not available');
+      }
+
+      lastChatIdRef.current = conversation.id;
+      setSelectedChatThread(conversation);
+      navigate(`/messages/${conversation.id}`);
+    } catch (err) {
+      toast.error(err.message || 'Failed to open conversation');
+    }
+  }, [navigate]);
+
+  const handleSubSectionChange = useCallback((subKey) => {
     if (activeSection === HOME_SECTION.home) {
       navigate('/home');
       return;
@@ -126,7 +154,7 @@ export default function MainLayout() {
         navigate('/settings/help');
       }
     }
-  }
+  }, [activeSection, navigate]);
 
   const isProfilePage = activeSection === HOME_SECTION.profile;
 
@@ -147,6 +175,7 @@ export default function MainLayout() {
               <ChatSidebarSecondaryPanel
                 selectedChatId={selectedChatId}
                 onSelectChat={handleSelectChat}
+                currentUserId={user?.id}
               />
             )}
             {activeSection === HOME_SECTION.friends && (

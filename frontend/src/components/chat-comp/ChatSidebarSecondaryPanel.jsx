@@ -1,8 +1,19 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getChatConversations, hideChatConversation } from "../../lib/api.js";
 import { CHAT_SOCKET_EVENTS, getAuthenticatedSocket } from "../../lib/socket.js";
 
-function RowChat({ chat, isActive, onSelectChat, onDeleteChat }) {
+function formatPreview(chat, currentUserId) {
+  const previewText = (chat.preview || "").trim();
+  if (!previewText || previewText === "No messages yet") {
+    return "No messages yet.";
+  }
+  if (chat.lastMessageSenderId && currentUserId && String(chat.lastMessageSenderId) === String(currentUserId)) {
+    return `You: ${previewText}`;
+  }
+  return previewText;
+}
+
+function RowChat({ chat, currentUserId, isActive, onSelectChat, onDeleteChat }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const timeLabel = chat.time
     ? new Intl.DateTimeFormat("en-GB", {
@@ -29,7 +40,7 @@ function RowChat({ chat, isActive, onSelectChat, onDeleteChat }) {
             <span className="truncate">{chat.name}</span>
             <span className="shrink-0 text-xs font-normal text-[#8a8d91]">{timeLabel}</span>
           </div>
-          <p className="truncate text-xs font-normal text-[#65676b]">{chat.preview}</p>
+          <p className="truncate text-xs font-normal text-[#65676b]">{formatPreview(chat, currentUserId)}</p>
         </div>
         {chat.unread > 0 && (
           <span className="mt-0.5 flex h-5 min-w-5 shrink-0 items-center justify-center self-center rounded-full bg-indigo-600 px-1 text-[10px] font-bold text-white">
@@ -69,17 +80,22 @@ function RowChat({ chat, isActive, onSelectChat, onDeleteChat }) {
   );
 }
 
-export default function ChatSidebarSecondaryPanel({ selectedChatId, onSelectChat }) {
+export default function ChatSidebarSecondaryPanel({ selectedChatId, onSelectChat, currentUserId }) {
   const [conversations, setConversations] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  const hasLoadedOnceRef = useRef(false);
 
   useEffect(() => {
     let isMounted = true;
 
-    async function loadConversations() {
-      setIsLoading(true);
-      setError("");
+    async function loadConversations({ silent = false } = {}) {
+      if (!hasLoadedOnceRef.current) {
+        setIsLoading(true);
+      }
+      if (!silent) {
+        setError("");
+      }
 
       try {
         const data = await getChatConversations();
@@ -87,12 +103,18 @@ export default function ChatSidebarSecondaryPanel({ selectedChatId, onSelectChat
 
         if (!isMounted) return;
         setConversations(nextConversations);
+        hasLoadedOnceRef.current = true;
 
-        if (!selectedChatId && nextConversations.length > 0) {
+        if (selectedChatId) {
+          const matchedConversation = nextConversations.find((conversation) => conversation.id === selectedChatId);
+          if (matchedConversation) {
+            onSelectChat(matchedConversation, false);
+          }
+        } else if (nextConversations.length > 0) {
           onSelectChat(nextConversations[0], false);
         }
       } catch (err) {
-        if (isMounted) setError(err.message || "Failed to load conversations");
+        if (isMounted && !silent) setError(err.message || "Failed to load conversations");
       } finally {
         if (isMounted) setIsLoading(false);
       }
@@ -103,17 +125,16 @@ export default function ChatSidebarSecondaryPanel({ selectedChatId, onSelectChat
     return () => {
       isMounted = false;
     };
-  }, [onSelectChat, selectedChatId]);
+  }, [onSelectChat]);
 
   useEffect(() => {
-    let isMounted = true;
     const socket = getAuthenticatedSocket();
     if (!socket) return undefined;
 
     const refreshConversations = async () => {
       try {
         const data = await getChatConversations();
-        if (isMounted) setConversations(data?.conversations || []);
+        setConversations(data?.conversations || []);
       } catch {
         // Keep the existing sidebar state during transient socket refresh failures.
       }
@@ -124,7 +145,6 @@ export default function ChatSidebarSecondaryPanel({ selectedChatId, onSelectChat
     });
 
     return () => {
-      isMounted = false;
       CHAT_SOCKET_EVENTS.forEach((eventName) => {
         socket.off(eventName, refreshConversations);
       });
@@ -136,12 +156,13 @@ export default function ChatSidebarSecondaryPanel({ selectedChatId, onSelectChat
     if (!confirmed) return;
 
     await hideChatConversation({ conversationId: chat.id });
-    setConversations((prevConversations) => prevConversations.filter((conversation) => conversation.id !== chat.id));
-
-    if (selectedChatId === chat.id) {
-      const nextConversation = conversations.find((conversation) => conversation.id !== chat.id) || null;
-      onSelectChat(nextConversation, false);
-    }
+    setConversations((prevConversations) => {
+      const nextConversations = prevConversations.filter((conversation) => conversation.id !== chat.id);
+      if (selectedChatId === chat.id) {
+        onSelectChat(nextConversations[0] || null, false);
+      }
+      return nextConversations;
+    });
   };
 
   return (
@@ -164,6 +185,7 @@ export default function ChatSidebarSecondaryPanel({ selectedChatId, onSelectChat
             <RowChat
               key={chat.id}
               chat={chat}
+              currentUserId={currentUserId}
               isActive={selectedChatId === chat.id}
               onSelectChat={onSelectChat}
               onDeleteChat={handleDeleteChat}

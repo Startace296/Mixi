@@ -46,6 +46,11 @@ const conversationSchema = new Schema(
       trim: true,
       default: "",
     },
+    lastMessageSenderId: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
     lastMessageAt: {
       type: Date,
       default: null,
