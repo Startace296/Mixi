@@ -14,6 +14,7 @@ import RegisterPage from './pages/RegisterPage';
 import AuthCallbackPage from './pages/AuthCallbackPage';
 import { AboutUsPage, HelpPage, PoliciesPage } from './pages/InfoPages';
 import HomePage from './pages/HomePage';
+import { getDefaultChatThreadId } from './lib/chatSidebarData.js';
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -37,13 +38,27 @@ export default function App() {
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/auth/callback" element={<AuthCallbackPage />} />
         <Route path="/auth/callback/:provider" element={<AuthCallbackPage />} />
-        <Route element={<MainLayout />}>
-          <Route path="/home" element={<HomePage />} />
-        </Route>
         <Route element={<InfoLayout />}>
           <Route path="about" element={<AboutUsPage />} />
           <Route path="help" element={<HelpPage />} />
           <Route path="policies" element={<PoliciesPage />} />
+        </Route>
+        <Route element={<MainLayout />}>
+          <Route path="/home" element={<HomePage />} />
+          <Route path="/friends" element={<Navigate to="/friends/requests" replace />} />
+          <Route path="/friends/requests" element={<HomePage />} />
+          <Route path="/friends/all" element={<HomePage />} />
+          <Route
+            path="/messages"
+            element={<Navigate to={`/messages/${getDefaultChatThreadId()}`} replace />}
+          />
+          <Route path="/messages/:threadId" element={<HomePage />} />
+          <Route path="/profile" element={<HomePage />} />
+          <Route path="/profile/:userId" element={<HomePage />} />
+          <Route path="/settings" element={<Navigate to="/settings/notifications" replace />} />
+          <Route path="/settings/notifications" element={<HomePage />} />
+          <Route path="/settings/help" element={<HomePage />} />
+          <Route path="*" element={<Navigate to="/home" replace />} />
         </Route>
         <Route path="/" element={<Navigate to="/login" replace />} />
       </Routes>

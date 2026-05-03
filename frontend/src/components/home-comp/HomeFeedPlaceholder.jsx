@@ -15,6 +15,7 @@ export default function HomeFeedPlaceholder({
   onUserChange,
   onOpenProfile,
   onSelectSection,
+  onOpenChatWithFriend,
 }) {
   if (section === HOME_SECTION.home) {
     return (
@@ -30,7 +31,13 @@ export default function HomeFeedPlaceholder({
     return <ChatSectionView selectedChatThread={selectedChatThread} onOpenProfile={onOpenProfile} />;
   }
   if (section === HOME_SECTION.friends) {
-    return <FriendsSectionView subSection={subSection} />;
+    return (
+      <FriendsSectionView
+        subSection={subSection}
+        onOpenChatWithFriend={onOpenChatWithFriend}
+        onOpenProfile={onOpenProfile}
+      />
+    );
   }
   if (section === HOME_SECTION.profile) {
     return (

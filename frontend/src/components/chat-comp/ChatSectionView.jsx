@@ -129,8 +129,8 @@ export default function ChatSectionView({ selectedChatThread, onOpenProfile }) {
 
   if (!selectedChat) {
     return (
-      <div className="mx-auto w-full max-w-[900px] px-4 py-6">
-        <div className="rounded-lg border border-[#e4e6eb] bg-white px-8 py-16 text-center shadow-[0_2px_4px_rgba(0,0,0,0.08),0_8px_16px_rgba(0,0,0,0.06)]">
+      <div className="flex min-h-0 flex-1 items-center justify-center bg-white px-4 py-6">
+        <div className="w-full max-w-md rounded-lg border border-[#e4e6eb] bg-white px-8 py-16 text-center shadow-[0_2px_4px_rgba(0,0,0,0.08),0_8px_16px_rgba(0,0,0,0.06)]">
           <p className="text-base font-semibold text-[#1c1e21]">No conversation selected yet</p>
           <p className="mt-1 text-sm text-[#65676b]">
             Choose a conversation from the sidebar to open it here.
@@ -141,8 +141,8 @@ export default function ChatSectionView({ selectedChatThread, onOpenProfile }) {
   }
 
   return (
-    <section className="mx-auto h-[calc(113vh-160px)] w-full max-w-[1200px] border border-[#e4e6eb] bg-white shadow-[0_2px_4px_rgba(0,0,0,0.08),0_8px_16px_rgba(0,0,0,0.06)]">
-      <div className="flex h-full flex-col">
+    <section className="flex min-h-0 flex-1 flex-col bg-white">
+      <div className="flex min-h-0 flex-1 flex-col">
         <ChatHeader
           chat={selectedChat}
           onCall={handleCall}

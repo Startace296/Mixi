@@ -120,9 +120,6 @@ export default function HomeHeader({ user, onSelectSection }) {
               <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.15)] border border-[#e4e6eb] py-1.5 z-50">
                 <div className="px-4 py-3 border-b border-[#f0f2f5]">
                   <p className="text-sm font-semibold text-[#1c1e21] truncate">{displayName}</p>
-                  {user?.email && (
-                    <p className="text-xs text-[#65676b] truncate mt-0.5">{user.email}</p>
-                  )}
                 </div>
                 
                 <div className="py-1">

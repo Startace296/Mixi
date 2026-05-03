@@ -42,6 +42,10 @@ export const MOCK_GROUP_CHATS = [
 
 export const MOCK_CHAT_THREADS = [...MOCK_RECENT_CHATS, ...MOCK_GROUP_CHATS];
 
+export function getDefaultChatThreadId() {
+  return MOCK_CHAT_THREADS[0]?.id ?? '1';
+}
+
 export function getMockChatThreadById(threadId) {
   return MOCK_CHAT_THREADS.find((thread) => thread.id === threadId) || null;
 }

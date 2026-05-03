@@ -30,14 +30,14 @@ export default function MessageList({ messages, currentUserId, isGroupChat, onDe
 
   if (!messages.length) {
     return (
-      <div className="flex flex-1 items-center justify-center px-4 py-8 text-sm text-[#65676b]">
+      <div className="flex min-h-0 flex-1 items-center justify-center px-4 py-8 text-sm text-[#65676b]">
         No messages yet. Send a message to start the conversation.
       </div>
     );
   }
 
   return (
-    <div ref={listRef} className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
+    <div ref={listRef} className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-4">
       {messages.map((message) => {
         const isMine = message.senderId === currentUserId;
 

@@ -350,7 +350,11 @@ export default function ProfileSectionView({ user, viewedProfile, displayName, o
   const [avatarOpen, setAvatarOpen] = useState(false);
   const setAuthUser = useAuthStore((state) => state.setAuthUser);
   const profileUser = viewedProfile || user;
-  const isOwnProfile = !viewedProfile || viewedProfile?.email === user?.email;
+  const sameId =
+    user?.id != null &&
+    viewedProfile?.id != null &&
+    String(viewedProfile.id) === String(user.id);
+  const isOwnProfile = !viewedProfile || sameId || viewedProfile?.email === user?.email;
   const currentName = profileUser?.displayName || displayName || 'You';
 
   const handleSaved = (nextUser) => {

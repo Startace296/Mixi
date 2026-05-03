@@ -1,14 +1,5 @@
 import { MOCK_GROUP_CHATS, MOCK_RECENT_CHATS } from "../../lib/chatSidebarData.js";
 
-function SecondaryHeader({ title, subtitle }) {
-  return (
-    <div className="border-b border-[#e4e6eb] px-4 py-3">
-      <h2 className="text-lg font-bold text-[#1c1e21]">{title}</h2>
-      {subtitle ? <p className="mt-0.5 text-xs text-[#65676b]">{subtitle}</p> : null}
-    </div>
-  );
-}
-
 function RowChat({ chat, isActive, onSelectChat }) {
   return (
     <button
@@ -42,7 +33,6 @@ function RowChat({ chat, isActive, onSelectChat }) {
 export default function ChatSidebarSecondaryPanel({ selectedChatId, onSelectChat }) {
   return (
     <aside className="flex h-full w-[300px] shrink-0 flex-col border-r border-[#e4e6eb] bg-white overflow-hidden">
-      <SecondaryHeader title="Messages" subtitle="Conversations" />
       <div className="flex-1 overflow-y-auto p-3 space-y-4">
         <div className="space-y-0.5">
           <p className="px-3 pt-2 pb-1 text-[11px] font-bold uppercase tracking-wide text-[#8a8d91]">

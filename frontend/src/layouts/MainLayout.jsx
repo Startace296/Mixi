@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Outlet } from 'react-router-dom';
+import { useEffect, useMemo, useRef } from 'react';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 
 import HomeHeader from '../components/home-comp/HomeHeader';
 import HomeSidebarPrimary from '../components/home-comp/HomeSidebarPrimary';
@@ -7,100 +7,128 @@ import HomeSidebarSecondaryPanel from '../components/home-comp/HomeSidebarSecond
 import ChatSidebarSecondaryPanel from '../components/chat-comp/ChatSidebarSecondaryPanel.jsx';
 import FriendsSidebarSecondaryPanel from '../components/friend-comp/FriendsSidebarSecondaryPanel.jsx';
 import SettingsSidebarSecondaryPanel from '../components/setting-comp/SettingsSidebarSecondaryPanel.jsx';
-import { HOME_SECTION, DEFAULT_SUB_SECTION } from '../lib/homeSections.js';
-import { MOCK_CHAT_THREADS } from '../lib/chatSidebarData.js';
+import { HOME_SECTION, HOME_SUB_SECTION } from '../lib/homeSections.js';
+import { parseMainPath } from '../lib/appPaths.js';
+import {
+  MOCK_CHAT_THREADS,
+  MOCK_RECENT_CHATS,
+  getDefaultChatThreadId,
+} from '../lib/chatSidebarData.js';
 import { useAuthUser } from '../hooks/useAuthUser';
 
 export default function MainLayout() {
   const { authUser: user, setAuthUser: setUser } = useAuthUser();
-  const [activeSection, setActiveSection] = useState(HOME_SECTION.home);
-  const [activeSubSection, setActiveSubSection] = useState(DEFAULT_SUB_SECTION[HOME_SECTION.home]);
-  const [selectedChatId, setSelectedChatId] = useState(MOCK_CHAT_THREADS[0]?.id ?? null);
-  const [viewedProfile, setViewedProfile] = useState(null);
+  const navigate = useNavigate();
+  const { pathname, state: locationState } = useLocation();
+
+  const parsed = useMemo(() => parseMainPath(pathname), [pathname]);
+
+  const lastChatIdRef = useRef(getDefaultChatThreadId());
+
+  useEffect(() => {
+    if (parsed.section === HOME_SECTION.messages && parsed.threadId) {
+      lastChatIdRef.current = parsed.threadId;
+    }
+  }, [parsed.section, parsed.threadId]);
+
+  const selectedChatId =
+    parsed.section === HOME_SECTION.messages && parsed.threadId
+      ? parsed.threadId
+      : lastChatIdRef.current;
 
   const selectedChatThread = useMemo(
     () => MOCK_CHAT_THREADS.find((thread) => thread.id === selectedChatId) || null,
     [selectedChatId]
   );
 
-  function buildNavState(section, subSection, chatId, profile) {
-    return {
-      appNav: true,
-      section,
-      subSection,
-      selectedChatId: chatId,
-      viewedProfile: profile,
-    };
+  const viewedProfile = useMemo(() => {
+    if (parsed.section !== HOME_SECTION.profile) {
+      return null;
+    }
+    if (parsed.profileUserId) {
+      return { id: parsed.profileUserId };
+    }
+    return locationState?.viewedProfile ?? null;
+  }, [parsed.section, parsed.profileUserId, locationState?.viewedProfile]);
+
+  const activeSection = parsed.section;
+  const activeSubSection = parsed.subSection;
+
+  function handleSelectSection(section) {
+    const defaultChat = getDefaultChatThreadId();
+    switch (section) {
+      case HOME_SECTION.home:
+        navigate('/home');
+        break;
+      case HOME_SECTION.friends:
+        navigate('/friends/requests');
+        break;
+      case HOME_SECTION.messages: {
+        const id = lastChatIdRef.current || defaultChat;
+        navigate(`/messages/${id}`);
+        break;
+      }
+      case HOME_SECTION.profile:
+        navigate('/profile', { state: {} });
+        break;
+      case HOME_SECTION.settings:
+        navigate('/settings/notifications');
+        break;
+      default:
+        navigate('/home');
+    }
   }
 
-  function syncBrowserState(section, subSection, chatId, profile, mode = 'push') {
-    const nextState = buildNavState(section, subSection, chatId, profile);
-    if (mode === 'replace') {
-      window.history.replaceState(nextState, '', window.location.href);
+  function handleOpenProfile(profile) {
+    if (!profile) {
+      navigate('/profile', { state: {} });
       return;
     }
-    window.history.pushState(nextState, '', window.location.href);
-  }
-
-  function handleSelectSection(section, shouldPushState = true) {
-    const nextSubSection = DEFAULT_SUB_SECTION[section];
-    const nextProfile = null;
-
-    setActiveSection(section);
-    setActiveSubSection(nextSubSection);
-    setViewedProfile(nextProfile);
-
-    if (shouldPushState) {
-      syncBrowserState(section, nextSubSection, selectedChatId, nextProfile);
+    if (profile.id != null && String(profile.id).length > 0) {
+      navigate(`/profile/${encodeURIComponent(String(profile.id))}`, { state: {} });
+      return;
     }
+    navigate('/profile', { state: { viewedProfile: profile } });
   }
 
-  function handleOpenProfile(profile, shouldPushState = true) {
-    setViewedProfile(profile || null);
-    setActiveSection(HOME_SECTION.profile);
-    setActiveSubSection(DEFAULT_SUB_SECTION[HOME_SECTION.profile]);
+  function handleSelectChat(chat) {
+    lastChatIdRef.current = chat.id;
+    navigate(`/messages/${chat.id}`);
+  }
 
-    if (shouldPushState) {
-      syncBrowserState(
-        HOME_SECTION.profile,
-        DEFAULT_SUB_SECTION[HOME_SECTION.profile],
-        selectedChatId,
-        profile || null
-      );
+  function handleOpenChatWithFriend(friend) {
+    const name = (friend?.displayName || '').trim().toLowerCase();
+    const match = MOCK_CHAT_THREADS.find(
+      (t) => t.type === 'direct' && (t.name || '').trim().toLowerCase() === name
+    );
+    const nextChatId = match?.id ?? MOCK_RECENT_CHATS[0]?.id ?? getDefaultChatThreadId();
+    lastChatIdRef.current = nextChatId;
+    navigate(`/messages/${nextChatId}`);
+  }
+
+  function handleSubSectionChange(subKey) {
+    if (activeSection === HOME_SECTION.home) {
+      navigate('/home');
+      return;
     }
-  }
-
-  function handleSelectChat(chat, shouldPushState = true) {
-    const nextChatId = chat.id;
-    setSelectedChatId(nextChatId);
-
-    if (shouldPushState) {
-      syncBrowserState(activeSection, activeSubSection, nextChatId, viewedProfile);
+    if (activeSection === HOME_SECTION.friends) {
+      if (subKey === HOME_SUB_SECTION.friends_requests) {
+        navigate('/friends/requests');
+      } else if (subKey === HOME_SUB_SECTION.friends_all) {
+        navigate('/friends/all');
+      }
+      return;
+    }
+    if (activeSection === HOME_SECTION.settings) {
+      if (subKey === HOME_SUB_SECTION.settings_notifications) {
+        navigate('/settings/notifications');
+      } else if (subKey === HOME_SUB_SECTION.settings_help) {
+        navigate('/settings/help');
+      }
     }
   }
 
   const isProfilePage = activeSection === HOME_SECTION.profile;
-
-  useEffect(() => {
-    syncBrowserState(activeSection, activeSubSection, selectedChatId, viewedProfile, 'replace');
-  }, []);
-
-  useEffect(() => {
-    const handlePopState = (event) => {
-      const state = event.state;
-      if (!state?.appNav) return;
-
-      setActiveSection(state.section || HOME_SECTION.home);
-      setActiveSubSection(state.subSection ?? DEFAULT_SUB_SECTION[state.section || HOME_SECTION.home]);
-      setSelectedChatId(state.selectedChatId ?? MOCK_CHAT_THREADS[0]?.id ?? null);
-      setViewedProfile(state.viewedProfile || null);
-    };
-
-    window.addEventListener('popstate', handlePopState);
-    return () => {
-      window.removeEventListener('popstate', handlePopState);
-    };
-  }, []);
 
   return (
     <div className="h-screen flex flex-col bg-[#f0f2f5] overflow-hidden">
@@ -112,7 +140,7 @@ export default function MainLayout() {
             {activeSection === HOME_SECTION.home && (
               <HomeSidebarSecondaryPanel
                 activeSubSection={activeSubSection}
-                onSelectSubSection={setActiveSubSection}
+                onSelectSubSection={handleSubSectionChange}
               />
             )}
             {activeSection === HOME_SECTION.messages && (
@@ -124,18 +152,18 @@ export default function MainLayout() {
             {activeSection === HOME_SECTION.friends && (
               <FriendsSidebarSecondaryPanel
                 activeSubSection={activeSubSection}
-                onSelectSubSection={setActiveSubSection}
+                onSelectSubSection={handleSubSectionChange}
               />
             )}
             {activeSection === HOME_SECTION.settings && (
               <SettingsSidebarSecondaryPanel
                 activeSubSection={activeSubSection}
-                onSelectSubSection={setActiveSubSection}
+                onSelectSubSection={handleSubSectionChange}
               />
             )}
           </div>
         )}
-        <main className="flex-1 min-w-0 overflow-y-auto">
+        <main className="flex min-h-0 flex-1 min-w-0 flex-col overflow-y-auto">
           <Outlet
             context={{
               activeSection,
@@ -146,6 +174,7 @@ export default function MainLayout() {
               setUser,
               onOpenProfile: handleOpenProfile,
               onSelectSection: handleSelectSection,
+              onOpenChatWithFriend: handleOpenChatWithFriend,
             }}
           />
         </main>

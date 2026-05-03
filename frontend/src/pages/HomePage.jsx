@@ -3,6 +3,7 @@ import { useOutletContext } from 'react-router-dom';
 import HomeFeedPlaceholder from '../components/home-comp/HomeFeedPlaceholder';
 
 export default function HomePage() {
+  const outlet = useOutletContext() ?? {};
   const {
     activeSection,
     activeSubSection,
@@ -12,8 +13,8 @@ export default function HomePage() {
     setUser,
     onOpenProfile,
     onSelectSection,
-  } =
-    useOutletContext();
+    onOpenChatWithFriend,
+  } = outlet;
   const displayName =
     user?.displayName ||
     user?.username ||
@@ -31,6 +32,7 @@ export default function HomePage() {
       onUserChange={setUser}
       onOpenProfile={onOpenProfile}
       onSelectSection={onSelectSection}
+      onOpenChatWithFriend={onOpenChatWithFriend}
     />
   );
 }

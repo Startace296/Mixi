@@ -55,22 +55,63 @@ function Avatar({ displayName, avatarUrl }) {
   );
 }
 
-function FriendRequestCard({ request, onAccept, onDecline, busy }) {
+/** Payload for profile preview — no email (privacy). */
+function toFriendProfilePreview(entry) {
+  const rawId = entry?.id ?? entry?.friendId ?? entry?.userId;
+  const preview = {
+    displayName: entry?.displayName || '',
+    avatarUrl: entry?.avatarUrl || '',
+  };
+  if (rawId != null) {
+    preview.id = String(rawId);
+  }
+  return preview;
+}
+
+function ProfileHitArea({ source, onOpenProfile, displayName, avatarUrl }) {
+  const open = () => onOpenProfile?.(toFriendProfilePreview(source));
+  const disabled = !onOpenProfile;
+
   return (
-    <div className="flex flex-col gap-3 rounded-lg border border-[#e4e6eb] bg-white p-4 shadow-[0_2px_4px_rgba(0,0,0,0.08),0_8px_16px_rgba(0,0,0,0.06)]">
-      <div className="flex items-center gap-3">
-        <Avatar displayName={request.displayName} avatarUrl={request.avatarUrl} />
-        <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-[#1c1e21]">{request.displayName}</p>
-          {request.email && <p className="truncate text-xs text-[#8a8d91]">{request.email}</p>}
-        </div>
+    <div className="flex w-full min-w-0 items-center gap-3">
+      <button
+        type="button"
+        onClick={open}
+        disabled={disabled}
+        className="shrink-0 rounded-full focus:outline-none disabled:cursor-default disabled:opacity-60"
+        aria-label={`Open ${displayName || 'user'} profile`}
+      >
+        <Avatar displayName={displayName} avatarUrl={avatarUrl} />
+      </button>
+      <div className="min-w-0 flex-1">
+        <button
+          type="button"
+          onClick={open}
+          disabled={disabled}
+          className="truncate text-left text-sm font-semibold text-[#1c1e21] hover:underline disabled:cursor-default disabled:text-[#65676b] disabled:no-underline"
+        >
+          {displayName}
+        </button>
       </div>
-      <div className="flex gap-2">
+    </div>
+  );
+}
+
+function FriendRequestCard({ request, onAccept, onDecline, busy, onOpenProfile }) {
+  return (
+    <div className="flex min-h-[140px] flex-col gap-4 rounded-lg border border-[#e4e6eb] bg-white p-5 shadow-[0_2px_4px_rgba(0,0,0,0.08),0_8px_16px_rgba(0,0,0,0.06)]">
+      <ProfileHitArea
+        source={request}
+        onOpenProfile={onOpenProfile}
+        displayName={request.displayName}
+        avatarUrl={request.avatarUrl}
+      />
+      <div className="mt-auto flex w-full gap-2">
         <button
           type="button"
           onClick={() => onAccept(request)}
           disabled={busy}
-          className="flex-1 rounded-full bg-indigo-600 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
+          className="flex-1 rounded-full bg-indigo-600 py-2 text-sm font-semibold text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
         >
           Accept
         </button>
@@ -78,7 +119,7 @@ function FriendRequestCard({ request, onAccept, onDecline, busy }) {
           type="button"
           onClick={() => onDecline(request)}
           disabled={busy}
-          className="flex-1 rounded-full border border-[#e4e6eb] py-1.5 text-sm font-semibold text-[#65676b] transition-colors hover:bg-[#f0f2f5] disabled:cursor-not-allowed disabled:opacity-60"
+          className="flex-1 rounded-full border border-[#e4e6eb] py-2 text-sm font-semibold text-[#65676b] transition-colors hover:bg-[#f0f2f5] disabled:cursor-not-allowed disabled:opacity-60"
         >
           Decline
         </button>
@@ -87,7 +128,7 @@ function FriendRequestCard({ request, onAccept, onDecline, busy }) {
   );
 }
 
-function UserSearchCard({ user, onAddFriend, onCancelRequest, busy }) {
+function UserSearchCard({ user, onAddFriend, onCancelRequest, busy, onOpenProfile }) {
   const relationshipStatus = user.relationshipStatus || 'none';
   const isActionDisabled = relationshipStatus === 'friends' || relationshipStatus === 'incoming';
   const buttonLabel =
@@ -99,16 +140,17 @@ function UserSearchCard({ user, onAddFriend, onCancelRequest, busy }) {
           ? 'Requested you'
         : 'Add friend';
   const buttonClassName = relationshipStatus === 'requested'
-    ? 'shrink-0 rounded-full border border-[#e4e6eb] px-4 py-1.5 text-sm font-semibold text-[#1c1e21] transition-colors hover:bg-[#f0f2f5] disabled:cursor-not-allowed disabled:opacity-60'
-    : 'shrink-0 rounded-full bg-indigo-600 px-4 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-[#ccd0d5] disabled:text-[#65676b]';
+    ? 'w-full rounded-full border border-[#e4e6eb] py-2 text-sm font-semibold text-[#1c1e21] transition-colors hover:bg-[#f0f2f5] disabled:cursor-not-allowed disabled:opacity-60'
+    : 'w-full rounded-full bg-indigo-600 py-2 text-sm font-semibold text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-[#ccd0d5] disabled:text-[#65676b]';
 
   return (
-    <div className="flex items-center gap-3 rounded-lg border border-[#e4e6eb] bg-white p-4 shadow-[0_2px_4px_rgba(0,0,0,0.08),0_8px_16px_rgba(0,0,0,0.06)]">
-      <Avatar displayName={user.displayName} avatarUrl={user.avatarUrl} />
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-semibold text-[#1c1e21]">{user.displayName}</p>
-        {user.email && <p className="truncate text-xs text-[#8a8d91]">{user.email}</p>}
-      </div>
+    <div className="flex min-h-[140px] flex-col gap-4 rounded-lg border border-[#e4e6eb] bg-white p-5 shadow-[0_2px_4px_rgba(0,0,0,0.08),0_8px_16px_rgba(0,0,0,0.06)]">
+      <ProfileHitArea
+        source={user}
+        onOpenProfile={onOpenProfile}
+        displayName={user.displayName}
+        avatarUrl={user.avatarUrl}
+      />
       <button
         type="button"
         onClick={() => {
@@ -119,7 +161,7 @@ function UserSearchCard({ user, onAddFriend, onCancelRequest, busy }) {
           onAddFriend(user);
         }}
         disabled={busy || isActionDisabled}
-        className={buttonClassName}
+        className={`mt-auto ${buttonClassName}`}
       >
         {buttonLabel}
       </button>
@@ -127,27 +169,38 @@ function UserSearchCard({ user, onAddFriend, onCancelRequest, busy }) {
   );
 }
 
-function FriendCard({ friend, onRemoveFriend, busy }) {
+function FriendCard({ friend, onRemoveFriend, onChat, busy, onOpenProfile }) {
   return (
-    <div className="flex items-center gap-3 rounded-lg border border-[#e4e6eb] bg-white p-4 shadow-[0_2px_4px_rgba(0,0,0,0.08),0_8px_16px_rgba(0,0,0,0.06)]">
-      <Avatar displayName={friend.displayName} avatarUrl={friend.avatarUrl} />
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-semibold text-[#1c1e21]">{friend.displayName}</p>
-        {friend.email && <p className="truncate text-xs text-[#8a8d91]">{friend.email}</p>}
+    <div className="flex min-h-[140px] flex-col gap-4 rounded-lg border border-[#e4e6eb] bg-white p-5 shadow-[0_2px_4px_rgba(0,0,0,0.08),0_8px_16px_rgba(0,0,0,0.06)]">
+      <ProfileHitArea
+        source={friend}
+        onOpenProfile={onOpenProfile}
+        displayName={friend.displayName}
+        avatarUrl={friend.avatarUrl}
+      />
+      <div className="mt-auto flex w-full gap-2">
+        <button
+          type="button"
+          onClick={() => onChat(friend)}
+          disabled={busy || !onChat}
+          className="flex-1 rounded-full bg-indigo-600 py-2 text-sm font-semibold text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          Chat
+        </button>
+        <button
+          type="button"
+          onClick={() => onRemoveFriend(friend)}
+          disabled={busy}
+          className="flex-1 rounded-full border border-[#e4e6eb] py-2 text-sm font-semibold text-[#1c1e21] transition-colors hover:bg-[#f0f2f5] disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          Unfriend
+        </button>
       </div>
-      <button
-        type="button"
-        onClick={() => onRemoveFriend(friend)}
-        disabled={busy}
-        className="shrink-0 rounded-full border border-[#e4e6eb] px-4 py-1.5 text-sm font-semibold text-[#1c1e21] transition-colors hover:bg-[#f0f2f5] disabled:cursor-not-allowed disabled:opacity-60"
-      >
-        Unfriend
-      </button>
     </div>
   );
 }
 
-export default function FriendsSectionView({ subSection }) {
+export default function FriendsSectionView({ subSection, onOpenChatWithFriend, onOpenProfile }) {
   const [searchText, setSearchText] = useState('');
   const [debouncedSearchText, setDebouncedSearchText] = useState('');
   const [friends, setFriends] = useState([]);
@@ -450,6 +503,8 @@ export default function FriendsSectionView({ subSection }) {
               friend={friend}
               busy={busyActionId === friend.relationshipId}
               onRemoveFriend={handleRemoveFriend}
+              onChat={onOpenChatWithFriend}
+              onOpenProfile={onOpenProfile}
             />
           ))}
         </div>
@@ -493,6 +548,7 @@ export default function FriendsSectionView({ subSection }) {
             busy={busyActionId === request.requestId}
             onAccept={handleAcceptRequest}
             onDecline={handleDeclineRequest}
+            onOpenProfile={onOpenProfile}
           />
         ))}
       </div>
@@ -511,6 +567,7 @@ export default function FriendsSectionView({ subSection }) {
                 busy={busyActionId === user.id || (user.friendRequestId && busyActionId === user.friendRequestId)}
                 onAddFriend={handleAddFriend}
                 onCancelRequest={handleCancelRequest}
+                onOpenProfile={onOpenProfile}
               />
             ))}
           </div>
