@@ -64,10 +64,7 @@ export default function MessageList({
   }
 
   return (
-<<<<<<< HEAD
     <div ref={listRef} className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-4">
-=======
-    <div ref={listRef} className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
       {hasOlderMessages && (
         <div className="flex justify-center">
           <button
@@ -80,7 +77,6 @@ export default function MessageList({
           </button>
         </div>
       )}
->>>>>>> 09d38febc0cf8ab294fd5d39178ca2e76f9a0eef
       {messages.map((message) => {
         const isMine = message.senderId === currentUserId;
         const bubbleClassName = message.isDeleted

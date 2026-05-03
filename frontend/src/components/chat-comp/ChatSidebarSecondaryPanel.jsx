@@ -2,18 +2,6 @@ import { useEffect, useState } from "react";
 import { getChatConversations, hideChatConversation } from "../../lib/api.js";
 import { CHAT_SOCKET_EVENTS, getAuthenticatedSocket } from "../../lib/socket.js";
 
-<<<<<<< HEAD
-function RowChat({ chat, isActive, onSelectChat }) {
-=======
-function SecondaryHeader({ title, subtitle }) {
-  return (
-    <div className="border-b border-[#e4e6eb] px-4 py-3">
-      <h2 className="text-lg font-bold text-[#1c1e21]">{title}</h2>
-      {subtitle ? <p className="mt-0.5 text-xs text-[#65676b]">{subtitle}</p> : null}
-    </div>
-  );
-}
-
 function RowChat({ chat, isActive, onSelectChat, onDeleteChat }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const timeLabel = chat.time
@@ -22,8 +10,6 @@ function RowChat({ chat, isActive, onSelectChat, onDeleteChat }) {
       minute: "2-digit",
     }).format(new Date(chat.time))
     : "";
-
->>>>>>> 09d38febc0cf8ab294fd5d39178ca2e76f9a0eef
   return (
     <div className="group relative">
       <button

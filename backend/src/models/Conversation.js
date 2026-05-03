@@ -20,7 +20,6 @@ const conversationSchema = new Schema(
       type: String,
       trim: true,
       default: "",
-      index: true,
     },
     name: {
       type: String,
