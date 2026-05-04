@@ -1,11 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import { getChatConversations, hideChatConversation } from "../../lib/api.js";
-import { CHAT_SOCKET_EVENTS, getAuthenticatedSocket } from "../../lib/socket.js";
+import { CHAT_SOCKET_EVENTS, PRESENCE_SOCKET_EVENTS, getAuthenticatedSocket } from "../../lib/socket.js";
+import { formatMessengerTime } from "../../lib/timeFormat.js";
 
 function formatPreview(chat, currentUserId) {
   const previewText = (chat.preview || "").trim();
   if (!previewText || previewText === "No messages yet") {
     return "No messages yet.";
+  }
+  if (previewText === "This message was deleted") {
+    return previewText;
   }
   if (chat.lastMessageSenderId && currentUserId && String(chat.lastMessageSenderId) === String(currentUserId)) {
     return `You: ${previewText}`;
@@ -15,12 +19,7 @@ function formatPreview(chat, currentUserId) {
 
 function RowChat({ chat, currentUserId, isActive, onSelectChat, onDeleteChat }) {
   const [menuOpen, setMenuOpen] = useState(false);
-  const timeLabel = chat.time
-    ? new Intl.DateTimeFormat("en-GB", {
-      hour: "2-digit",
-      minute: "2-digit",
-    }).format(new Date(chat.time))
-    : "";
+  const timeLabel = formatMessengerTime(chat.time);
   return (
     <div className="group relative">
       <button
@@ -30,11 +29,19 @@ function RowChat({ chat, currentUserId, isActive, onSelectChat, onDeleteChat }) 
           isActive ? "bg-indigo-50 text-indigo-600" : "text-[#1c1e21] hover:bg-[#f0f2f5]"
         }`}
       >
-        <img
-          src={chat.profilePic}
-          alt={chat.name}
-          className="h-10 w-10 shrink-0 rounded-full object-cover ring-1 ring-black/5"
-        />
+        <span className="relative h-10 w-10 shrink-0">
+          <img
+            src={chat.profilePic}
+            alt={chat.name}
+            className="h-10 w-10 rounded-full object-cover ring-1 ring-black/5"
+          />
+          {chat.type !== "group" && (
+            <span
+              className={`absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white ${getPresenceDotClassName(chat.presenceStatus)}`}
+              title={chat.presenceStatus || "offline"}
+            />
+          )}
+        </span>
         <div className="min-w-0 flex-1">
           <div className="flex items-baseline justify-between gap-2">
             <span className="truncate">{chat.name}</span>
@@ -78,6 +85,16 @@ function RowChat({ chat, currentUserId, isActive, onSelectChat, onDeleteChat }) 
       )}
     </div>
   );
+}
+
+function getConversationSortTime(conversation) {
+  return new Date(conversation?.time || conversation?.lastMessageAt || conversation?.updatedAt || 0).getTime();
+}
+
+function getPresenceDotClassName(status) {
+  if (status === "online") return "bg-emerald-500";
+  if (status === "away") return "bg-amber-400";
+  return "bg-[#bcc0c4]";
 }
 
 export default function ChatSidebarSecondaryPanel({ selectedChatId, onSelectChat, currentUserId }) {
@@ -131,6 +148,28 @@ export default function ChatSidebarSecondaryPanel({ selectedChatId, onSelectChat
     const socket = getAuthenticatedSocket();
     if (!socket) return undefined;
 
+    const applyConversationUpdate = (conversation) => {
+      if (!conversation?.id) return false;
+
+      setConversations((prevConversations) => {
+        const existingIndex = prevConversations.findIndex((item) => item.id === conversation.id);
+        if (existingIndex === -1) return [conversation, ...prevConversations];
+
+        const nextConversations = [...prevConversations];
+        nextConversations[existingIndex] = {
+          ...nextConversations[existingIndex],
+          ...conversation,
+        };
+        return nextConversations.sort((left, right) => getConversationSortTime(right) - getConversationSortTime(left));
+      });
+
+      if (selectedChatId === conversation.id) {
+        onSelectChat(conversation, false);
+      }
+
+      return true;
+    };
+
     const refreshConversations = async () => {
       try {
         const data = await getChatConversations();
@@ -140,16 +179,71 @@ export default function ChatSidebarSecondaryPanel({ selectedChatId, onSelectChat
       }
     };
 
+    const handleChatEvent = (payload) => {
+      if (!applyConversationUpdate(payload?.conversation)) {
+        refreshConversations();
+      }
+    };
+
     CHAT_SOCKET_EVENTS.forEach((eventName) => {
-      socket.on(eventName, refreshConversations);
+      socket.on(eventName, handleChatEvent);
     });
 
     return () => {
       CHAT_SOCKET_EVENTS.forEach((eventName) => {
-        socket.off(eventName, refreshConversations);
+        socket.off(eventName, handleChatEvent);
       });
     };
-  }, []);
+  }, [onSelectChat, selectedChatId]);
+
+  useEffect(() => {
+    if (!selectedChatId) return;
+
+    setConversations((prevConversations) => (
+      prevConversations.map((conversation) => (
+        conversation.id === selectedChatId
+          ? { ...conversation, unread: 0 }
+          : conversation
+      ))
+    ));
+  }, [selectedChatId]);
+
+  useEffect(() => {
+    const socket = getAuthenticatedSocket();
+    if (!socket) return undefined;
+
+    const handlePresenceChanged = (payload) => {
+      if (!payload?.userId) return;
+
+      setConversations((prevConversations) => (
+        prevConversations.map((conversation) => {
+          if (String(conversation.friendId) !== String(payload.userId)) return conversation;
+
+          const nextConversation = {
+            ...conversation,
+            presenceStatus: payload.status || "offline",
+            lastActiveAt: payload.lastActiveAt || conversation.lastActiveAt || null,
+          };
+
+          if (selectedChatId === conversation.id) {
+            onSelectChat(nextConversation, false);
+          }
+
+          return nextConversation;
+        })
+      ));
+    };
+
+    PRESENCE_SOCKET_EVENTS.forEach((eventName) => {
+      socket.on(eventName, handlePresenceChanged);
+    });
+
+    return () => {
+      PRESENCE_SOCKET_EVENTS.forEach((eventName) => {
+        socket.off(eventName, handlePresenceChanged);
+      });
+    };
+  }, [onSelectChat, selectedChatId]);
 
   const handleDeleteChat = async (chat) => {
     const confirmed = window.confirm("Delete this chat from your inbox?");

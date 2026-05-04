@@ -10,10 +10,11 @@ import {
 } from "../services/chat.service.js";
 import { emitToUser } from "../socket.js";
 
-function emitChatEvent(participantIds, eventName, payload) {
+function emitChatEventWithUserConversation(participantIds, eventName, payload, conversationsByUserId = {}) {
   for (const participantId of participantIds) {
     emitToUser(participantId, eventName, {
       ...payload,
+      conversation: conversationsByUserId[String(participantId)] || payload.conversation || null,
       changedAt: new Date().toISOString(),
     });
   }
@@ -43,6 +44,14 @@ export async function createDirectConversationHandler(req, res) {
 export async function getMessagesHandler(req, res) {
   const result = await listMessages(req.user.id, req.params.conversationId, req.query);
 
+  if (result.readChanged) {
+    emitChatEventWithUserConversation(result.participantIds, "chat:conversation_read", {
+      conversationId: result.readConversation.id,
+      userId: String(req.user.id),
+      conversation: result.readConversation,
+    }, result.conversationsByUserId);
+  }
+
   res.json({
     success: true,
     messages: result.messages,
@@ -54,11 +63,11 @@ export async function getMessagesHandler(req, res) {
 export async function sendMessageHandler(req, res) {
   const result = await sendMessage(req.user.id, req.params.conversationId, req.body);
 
-  emitChatEvent(result.participantIds, "chat:message_created", {
+  emitChatEventWithUserConversation(result.participantIds, "chat:message_created", {
     conversationId: result.conversation.id,
     message: result.message,
     conversation: result.conversation,
-  });
+  }, result.conversationsByUserId);
 
   res.status(201).json({
     success: true,
@@ -71,11 +80,11 @@ export async function sendMessageHandler(req, res) {
 export async function sendImageMessageHandler(req, res) {
   const result = await sendChatImage(req.user.id, req.params.conversationId, req.file);
 
-  emitChatEvent(result.participantIds, "chat:message_created", {
+  emitChatEventWithUserConversation(result.participantIds, "chat:message_created", {
     conversationId: result.conversation.id,
     message: result.message,
     conversation: result.conversation,
-  });
+  }, result.conversationsByUserId);
 
   res.status(201).json({
     success: true,
@@ -88,11 +97,11 @@ export async function sendImageMessageHandler(req, res) {
 export async function markConversationReadHandler(req, res) {
   const result = await markConversationRead(req.user.id, req.params.conversationId);
 
-  emitChatEvent(result.participantIds, "chat:conversation_read", {
+  emitChatEventWithUserConversation(result.participantIds, "chat:conversation_read", {
     conversationId: result.conversation.id,
     userId: String(req.user.id),
     conversation: result.conversation,
-  });
+  }, result.conversationsByUserId);
 
   res.json({
     success: true,
@@ -114,10 +123,11 @@ export async function hideConversationHandler(req, res) {
 export async function deleteMessageHandler(req, res) {
   const result = await deleteMessage(req.user.id, req.params.messageId);
 
-  emitChatEvent(result.participantIds, "chat:message_deleted", {
+  emitChatEventWithUserConversation(result.participantIds, "chat:message_deleted", {
     conversationId: result.message.conversationId,
     message: result.message,
-  });
+    conversation: result.conversation,
+  }, result.conversationsByUserId);
 
   res.json({
     success: true,

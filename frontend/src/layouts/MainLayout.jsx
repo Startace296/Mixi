@@ -11,7 +11,10 @@ import SettingsSidebarSecondaryPanel from '../components/setting-comp/SettingsSi
 import { HOME_SECTION, HOME_SUB_SECTION } from '../lib/homeSections.js';
 import { parseMainPath } from '../lib/appPaths.js';
 import { createDirectConversation } from '../lib/api.js';
+import { emitPresenceStatus, getAuthenticatedSocket } from '../lib/socket.js';
 import { useAuthUser } from '../hooks/useAuthUser';
+
+const AWAY_AFTER_MS = 60000;
 
 export default function MainLayout() {
   const { authUser: user, setAuthUser: setUser } = useAuthUser();
@@ -33,6 +36,60 @@ export default function MainLayout() {
     parsed.section === HOME_SECTION.messages && parsed.threadId
       ? parsed.threadId
       : lastChatIdRef.current;
+
+  useEffect(() => {
+    if (!user?.id) return undefined;
+
+    const socket = getAuthenticatedSocket();
+    if (!socket) return undefined;
+
+    let awayTimerId = null;
+    let currentStatus = "";
+
+    const setPresenceStatus = (status) => {
+      if (currentStatus === status) return;
+      currentStatus = status;
+      emitPresenceStatus(status);
+    };
+
+    const scheduleAway = () => {
+      window.clearTimeout(awayTimerId);
+      awayTimerId = window.setTimeout(() => {
+        setPresenceStatus("away");
+      }, AWAY_AFTER_MS);
+    };
+
+    const markOnline = () => {
+      if (document.visibilityState === "hidden") return;
+      setPresenceStatus("online");
+      scheduleAway();
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        window.clearTimeout(awayTimerId);
+        setPresenceStatus("away");
+        return;
+      }
+      markOnline();
+    };
+
+    const activityEvents = ["mousemove", "mousedown", "keydown", "touchstart", "scroll"];
+    activityEvents.forEach((eventName) => {
+      window.addEventListener(eventName, markOnline, { passive: true });
+    });
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    markOnline();
+
+    return () => {
+      window.clearTimeout(awayTimerId);
+      activityEvents.forEach((eventName) => {
+        window.removeEventListener(eventName, markOnline);
+      });
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [user?.id]);
 
   useEffect(() => {
     if (parsed.section !== HOME_SECTION.messages) {
@@ -106,7 +163,7 @@ export default function MainLayout() {
     }
 
     lastChatIdRef.current = chat.id;
-    setSelectedChatThread((prevChat) => (prevChat?.id === chat.id ? prevChat : chat));
+    setSelectedChatThread((prevChat) => (prevChat?.id === chat.id ? { ...prevChat, ...chat } : chat));
     if (shouldNavigate) {
       navigate(`/messages/${chat.id}`);
     }

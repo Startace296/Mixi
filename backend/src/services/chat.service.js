@@ -7,11 +7,13 @@ import Conversation from "../models/Conversation.js";
 import FriendRequest from "../models/FriendRequest.js";
 import Message from "../models/Message.js";
 import User from "../models/User.js";
+import { getUserPresence } from "../socket.js";
 import { AppError } from "../utils/app-error.js";
 import { sanitizeUser } from "./user.service.js";
 
 const DEFAULT_MESSAGE_LIMIT = 50;
 const DEFAULT_CONVERSATION_LIMIT = 50;
+const DELETED_MESSAGE_PREVIEW = "This message was deleted";
 const USER_SELECT_FIELDS = "displayName avatarUrl provider lastLoginAt createdAt email";
 
 function toIdString(value) {
@@ -97,10 +99,14 @@ async function uploadChatImageBuffer(buffer) {
 
 function sanitizeConversation(conversation, currentUserId) {
   const currentId = toIdString(currentUserId);
+  const hiddenAt = conversation.hiddenBy?.get?.(currentId);
+  const hasVisibleLastMessage = conversation.lastMessageAt
+    && (!hiddenAt || new Date(conversation.lastMessageAt).getTime() > new Date(hiddenAt).getTime());
   const otherParticipant = conversation.type === "direct"
     ? getOtherParticipant(conversation, currentUserId)
     : null;
   const otherUser = otherParticipant?._id ? sanitizeUser(otherParticipant) : null;
+  const otherUserPresence = otherUser?.id ? getUserPresence(otherUser.id) : null;
   const displayName = conversation.type === "direct"
     ? otherUser?.displayName || "Unknown user"
     : conversation.name || "Group chat";
@@ -116,14 +122,18 @@ function sanitizeConversation(conversation, currentUserId) {
     profilePic: avatarUrl || "https://i.pravatar.cc/100?img=1",
     avatarUrl,
     friendId: otherUser?.id ? String(otherUser.id) : null,
+    presenceStatus: conversation.type === "direct" ? otherUserPresence?.status || "offline" : "",
+    lastActiveAt: conversation.type === "direct" ? otherUserPresence?.lastActiveAt || null : null,
     participants: conversation.participantIds
       .filter((participant) => participant?._id)
       .map((participant) => sanitizeUser(participant)),
-    preview: conversation.lastMessageText || "No messages yet",
-    lastMessageSenderId: conversation.lastMessageSenderId ? String(conversation.lastMessageSenderId) : null,
-    time: conversation.lastMessageAt || conversation.updatedAt,
+    preview: hasVisibleLastMessage ? conversation.lastMessageText || "No messages yet" : "No messages yet",
+    lastMessageSenderId: hasVisibleLastMessage && conversation.lastMessageSenderId
+      ? String(conversation.lastMessageSenderId)
+      : null,
+    time: hasVisibleLastMessage ? conversation.lastMessageAt : null,
     unread: conversation.unreadCounts?.get?.(currentId) || 0,
-    lastMessageAt: conversation.lastMessageAt,
+    lastMessageAt: hasVisibleLastMessage ? conversation.lastMessageAt : null,
     createdAt: conversation.createdAt,
     updatedAt: conversation.updatedAt,
   };
@@ -225,19 +235,30 @@ export async function listMessages(currentUserId, conversationId, { limit: rawLi
   assertObjectId(conversationId, "Invalid conversation id");
 
   const limit = parseLimit(rawLimit, DEFAULT_MESSAGE_LIMIT, 100);
-  const conversation = await Conversation.findById(conversationId).select("participantIds");
+  const conversation = await Conversation.findById(conversationId).select("participantIds hiddenBy");
 
   if (!conversation || !isParticipant(conversation, currentUserId)) {
     throw new AppError("Conversation not found", 404);
   }
 
   const messageQuery = { conversationId };
+  const createdAtQuery = {};
+  const hiddenAt = conversation.hiddenBy?.get?.(toIdString(currentUserId));
+
   if (before) {
     const beforeDate = new Date(before);
     if (Number.isNaN(beforeDate.getTime())) {
       throw new AppError("Invalid message cursor", 400);
     }
-    messageQuery.createdAt = { $lt: beforeDate };
+    createdAtQuery.$lt = beforeDate;
+  }
+
+  if (hiddenAt) {
+    createdAtQuery.$gt = hiddenAt;
+  }
+
+  if (Object.keys(createdAtQuery).length > 0) {
+    messageQuery.createdAt = createdAtQuery;
   }
 
   const messages = await Message.find(messageQuery)
@@ -245,7 +266,7 @@ export async function listMessages(currentUserId, conversationId, { limit: rawLi
     .limit(limit + 1)
     .populate("senderId", USER_SELECT_FIELDS);
 
-  await markConversationRead(currentUserId, conversationId);
+  const readResult = await markConversationRead(currentUserId, conversationId);
 
   const hasMore = messages.length > limit;
   const visibleMessages = hasMore ? messages.slice(0, limit) : messages;
@@ -253,11 +274,26 @@ export async function listMessages(currentUserId, conversationId, { limit: rawLi
 
   return {
     messages: orderedMessages,
+    readConversation: readResult.conversation,
+    readChanged: readResult.readChanged,
+    conversationsByUserId: readResult.conversationsByUserId,
+    participantIds: readResult.participantIds,
     pageInfo: {
       hasMore,
       nextBefore: orderedMessages[0]?.createdAt || null,
     },
   };
+}
+
+function buildConversationPayloadsByUser(conversation) {
+  return Object.fromEntries(
+    conversation.participantIds
+      .filter((participant) => participant?._id)
+      .map((participant) => {
+        const participantId = String(participant._id);
+        return [participantId, sanitizeConversation(conversation, participantId)];
+      }),
+  );
 }
 
 export async function sendMessage(currentUserId, conversationId, { text = "", imageUrl = "" }) {
@@ -306,6 +342,7 @@ export async function sendMessage(currentUserId, conversationId, { text = "", im
   return {
     message: sanitizeMessage(populatedMessage),
     conversation: sanitizeConversation(populatedConversation, currentUserId),
+    conversationsByUserId: buildConversationPayloadsByUser(populatedConversation),
     participantIds: populatedConversation.participantIds.map((participant) => String(participant._id)),
   };
 }
@@ -327,23 +364,27 @@ export async function deleteMessage(currentUserId, messageId) {
   message.imageUrl = "";
   await message.save();
 
-  const latestVisibleMessage = await Message.findOne({
+  const latestMessage = await Message.findOne({
     conversationId: message.conversationId,
-    deletedAt: null,
   }).sort({ createdAt: -1 });
 
-  await Conversation.findByIdAndUpdate(message.conversationId, {
-    lastMessageId: latestVisibleMessage?._id || null,
-    lastMessageText: latestVisibleMessage?.text || (latestVisibleMessage?.imageUrl ? "Image" : ""),
-    lastMessageSenderId: latestVisibleMessage?.senderId || null,
-    lastMessageAt: latestVisibleMessage?.createdAt || null,
-  });
+  if (latestMessage && toIdString(latestMessage._id) === toIdString(message._id)) {
+    await Conversation.findByIdAndUpdate(message.conversationId, {
+      lastMessageId: message._id,
+      lastMessageText: DELETED_MESSAGE_PREVIEW,
+      lastMessageSenderId: message.senderId,
+      lastMessageAt: message.createdAt,
+    });
+  }
 
-  const conversation = await Conversation.findById(message.conversationId).select("participantIds");
+  const conversation = await Conversation.findById(message.conversationId)
+    .populate("participantIds", USER_SELECT_FIELDS);
 
   return {
     message: sanitizeMessage(message),
-    participantIds: conversation?.participantIds.map((participantId) => String(participantId)) || [],
+    conversation: conversation ? sanitizeConversation(conversation, currentUserId) : null,
+    conversationsByUserId: conversation ? buildConversationPayloadsByUser(conversation) : {},
+    participantIds: conversation?.participantIds.map((participantId) => String(participantId._id || participantId)) || [],
   };
 }
 
@@ -355,13 +396,18 @@ export async function markConversationRead(currentUserId, conversationId) {
     throw new AppError("Conversation not found", 404);
   }
 
-  conversation.unreadCounts.set(toIdString(currentUserId), 0);
+  const currentId = toIdString(currentUserId);
+  const currentUnread = conversation.unreadCounts?.get(currentId) || 0;
+
+  conversation.unreadCounts.set(currentId, 0);
   await conversation.save();
 
   const populatedConversation = await Conversation.findById(conversationId).populate("participantIds", USER_SELECT_FIELDS);
 
   return {
     conversation: sanitizeConversation(populatedConversation, currentUserId),
+    conversationsByUserId: buildConversationPayloadsByUser(populatedConversation),
+    readChanged: currentUnread > 0,
     participantIds: populatedConversation.participantIds.map((participant) => String(participant._id)),
   };
 }

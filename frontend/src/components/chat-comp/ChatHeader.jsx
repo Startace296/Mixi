@@ -1,4 +1,26 @@
+function getPresenceMeta(status) {
+  if (status === "online") {
+    return {
+      label: "Online",
+      dotClassName: "bg-emerald-500",
+    };
+  }
+  if (status === "away") {
+    return {
+      label: "Away",
+      dotClassName: "bg-amber-400",
+    };
+  }
+
+  return {
+    label: "Offline",
+    dotClassName: "bg-[#bcc0c4]",
+  };
+}
+
 export default function ChatHeader({ chat, onCall, onOpenProfile, canOpenProfile = true }) {
+  const presence = getPresenceMeta(chat.presenceStatus);
+
   return (
     <header className="flex items-center justify-between border-b border-[#e4e6eb] px-4 py-3">
       <div className="flex items-center gap-3">
@@ -9,10 +31,18 @@ export default function ChatHeader({ chat, onCall, onOpenProfile, canOpenProfile
             className="rounded-full focus:outline-none"
             aria-label={`Open ${chat.name} profile`}
           >
-            <img src={chat.profilePic} alt={chat.name} className="h-10 w-10 rounded-full object-cover" />
+            <span className="relative block h-10 w-10">
+              <img src={chat.profilePic} alt={chat.name} className="h-10 w-10 rounded-full object-cover" />
+              <span className={`absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white ${presence.dotClassName}`} />
+            </span>
           </button>
         ) : (
-          <img src={chat.profilePic} alt={chat.name} className="h-10 w-10 rounded-full object-cover" />
+          <span className="relative block h-10 w-10">
+            <img src={chat.profilePic} alt={chat.name} className="h-10 w-10 rounded-full object-cover" />
+            {chat.type !== "group" && (
+              <span className={`absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white ${presence.dotClassName}`} />
+            )}
+          </span>
         )}
         <div>
           {canOpenProfile ? (
@@ -26,7 +56,12 @@ export default function ChatHeader({ chat, onCall, onOpenProfile, canOpenProfile
           ) : (
             <p className="font-semibold text-[#1c1e21]">{chat.name}</p>
           )}
-          <p className="text-xs text-[#65676b]">Active now</p>
+          <p className="flex items-center gap-1.5 text-xs text-[#65676b]">
+            {chat.type !== "group" && (
+              <span className={`h-2 w-2 rounded-full ${presence.dotClassName}`} />
+            )}
+            <span>{chat.type === "group" ? "Group chat" : presence.label}</span>
+          </p>
         </div>
       </div>
 

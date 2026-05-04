@@ -26,29 +26,33 @@ export default function ChatSectionView({ selectedChatThread, onOpenProfile, use
   const [error, setError] = useState("");
   const messageCacheRef = useRef(new Map());
   const pageInfoCacheRef = useRef(new Map());
+  const previousThreadIdRef = useRef(null);
 
   const selectedChat = selectedChatThread || null;
   const activeThreadId = selectedChat?.id;
+  const activeThreadCacheKey = activeThreadId
+    ? `${activeThreadId}:${selectedChat?.time || selectedChat?.lastMessageAt || ""}`
+    : "";
 
-  const applyPageInfo = (threadId, nextHasOlderMessages, nextOlderCursor) => {
+  const applyPageInfo = (cacheKey, nextHasOlderMessages, nextOlderCursor) => {
     setHasOlderMessages(nextHasOlderMessages);
     setOlderCursor(nextOlderCursor);
-    pageInfoCacheRef.current.set(threadId, {
+    pageInfoCacheRef.current.set(cacheKey, {
       hasOlderMessages: nextHasOlderMessages,
       olderCursor: nextOlderCursor,
     });
   };
 
-  const applyMessagesForThread = (threadId, nextMessages) => {
+  const applyMessagesForThread = (cacheKey, nextMessages) => {
     setMessages(nextMessages);
-    messageCacheRef.current.set(threadId, nextMessages);
+    messageCacheRef.current.set(cacheKey, nextMessages);
   };
 
   const updateMessagesForActiveThread = (updater) => {
     setMessages((prevMessages) => {
       const nextMessages = updater(prevMessages);
-      if (activeThreadId) {
-        messageCacheRef.current.set(activeThreadId, nextMessages);
+      if (activeThreadCacheKey) {
+        messageCacheRef.current.set(activeThreadCacheKey, nextMessages);
       }
       return nextMessages;
     });
@@ -59,14 +63,16 @@ export default function ChatSectionView({ selectedChatThread, onOpenProfile, use
 
     async function loadMessages() {
       if (!activeThreadId) {
+        previousThreadIdRef.current = null;
         setMessages([]);
         setHasOlderMessages(false);
         setOlderCursor(null);
         return;
       }
 
-      const cachedMessages = messageCacheRef.current.get(activeThreadId);
-      const cachedPageInfo = pageInfoCacheRef.current.get(activeThreadId);
+      const isThreadChange = previousThreadIdRef.current !== activeThreadId;
+      const cachedMessages = messageCacheRef.current.get(activeThreadCacheKey);
+      const cachedPageInfo = pageInfoCacheRef.current.get(activeThreadCacheKey);
 
       if (cachedMessages) {
         setMessages(cachedMessages);
@@ -74,8 +80,16 @@ export default function ChatSectionView({ selectedChatThread, onOpenProfile, use
         setOlderCursor(cachedPageInfo?.olderCursor || null);
         setIsLoading(false);
       } else {
-        setIsLoading(true);
+        if (isThreadChange) {
+          setMessages([]);
+          setHasOlderMessages(false);
+          setOlderCursor(null);
+          setIsLoading(true);
+        } else {
+          setIsLoading(false);
+        }
       }
+      previousThreadIdRef.current = activeThreadId;
       setError("");
 
       try {
@@ -85,8 +99,8 @@ export default function ChatSectionView({ selectedChatThread, onOpenProfile, use
           const nextHasOlderMessages = Boolean(data?.pageInfo?.hasMore);
           const nextOlderCursor = data?.pageInfo?.nextBefore || null;
 
-          applyMessagesForThread(activeThreadId, nextMessages);
-          applyPageInfo(activeThreadId, nextHasOlderMessages, nextOlderCursor);
+          applyMessagesForThread(activeThreadCacheKey, nextMessages);
+          applyPageInfo(activeThreadCacheKey, nextHasOlderMessages, nextOlderCursor);
         }
       } catch (err) {
         if (isMounted) setError(err.message || "Failed to load messages");
@@ -100,7 +114,7 @@ export default function ChatSectionView({ selectedChatThread, onOpenProfile, use
     return () => {
       isMounted = false;
     };
-  }, [activeThreadId]);
+  }, [activeThreadId, activeThreadCacheKey]);
 
   const handleLoadOlderMessages = async () => {
     if (!activeThreadId || !olderCursor || isLoadingOlder) return;
@@ -123,7 +137,7 @@ export default function ChatSectionView({ selectedChatThread, onOpenProfile, use
       });
       const nextHasOlderMessages = Boolean(data?.pageInfo?.hasMore);
       const nextOlderCursor = data?.pageInfo?.nextBefore || null;
-      applyPageInfo(activeThreadId, nextHasOlderMessages, nextOlderCursor);
+      applyPageInfo(activeThreadCacheKey, nextHasOlderMessages, nextOlderCursor);
     } catch (err) {
       setError(err.message || "Failed to load older messages");
     } finally {
@@ -164,7 +178,7 @@ export default function ChatSectionView({ selectedChatThread, onOpenProfile, use
       socket.off("chat:message_created", handleMessageCreated);
       socket.off("chat:message_deleted", handleMessageDeleted);
     };
-  }, [activeThreadId, user?.id]);
+  }, [activeThreadId, activeThreadCacheKey, user?.id]);
 
   const handleSendMessage = async (text) => {
     if (!activeThreadId) return;

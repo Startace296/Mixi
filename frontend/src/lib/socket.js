@@ -50,3 +50,13 @@ export const CHAT_SOCKET_EVENTS = [
   'chat:message_deleted',
   'chat:conversation_read',
 ];
+
+export const PRESENCE_SOCKET_EVENTS = [
+  'presence:changed',
+];
+
+export function emitPresenceStatus(status) {
+  const socket = getAuthenticatedSocket();
+  if (!socket) return;
+  socket.emit('presence:set', { status });
+}
