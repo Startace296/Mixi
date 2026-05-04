@@ -22,6 +22,7 @@ export default function HomeFeedPlaceholder({
       <HomeSectionView
         displayName={displayName}
         user={user}
+        subSection={subSection}
         onOpenProfile={onOpenProfile}
         onSelectSection={onSelectSection}
       />

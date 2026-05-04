@@ -26,11 +26,9 @@ export const HOME_SUB_SECTION = {
 
   // Profile
   profile_info:  'profile_info',
-  profile_posts: 'profile_posts',
 
   // Settings
-  settings_notifications: 'settings_notifications',
-  settings_help:          'settings_help',
+  settings_change_password: 'settings_change_password',
 };
 
 /** Default sub-section when switching to a primary section */
@@ -39,6 +37,6 @@ export const DEFAULT_SUB_SECTION = {
   [HOME_SECTION.messages]: null,
   [HOME_SECTION.friends]:  HOME_SUB_SECTION.friends_requests,
   [HOME_SECTION.profile]:  HOME_SUB_SECTION.profile_info,
-  [HOME_SECTION.settings]: HOME_SUB_SECTION.settings_notifications,
+  [HOME_SECTION.settings]: HOME_SUB_SECTION.settings_change_password,
 };
 

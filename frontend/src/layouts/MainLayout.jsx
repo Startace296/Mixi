@@ -9,7 +9,7 @@ import ChatSidebarSecondaryPanel from '../components/chat-comp/ChatSidebarSecond
 import FriendsSidebarSecondaryPanel from '../components/friend-comp/FriendsSidebarSecondaryPanel.jsx';
 import SettingsSidebarSecondaryPanel from '../components/setting-comp/SettingsSidebarSecondaryPanel.jsx';
 import { HOME_SECTION, HOME_SUB_SECTION } from '../lib/homeSections.js';
-import { parseMainPath } from '../lib/appPaths.js';
+import { APP_PATHS, parseMainPath } from '../lib/appPaths.js';
 import { createDirectConversation } from '../lib/api.js';
 import { emitPresenceStatus, getAuthenticatedSocket } from '../lib/socket.js';
 import { useAuthUser } from '../hooks/useAuthUser';
@@ -117,7 +117,7 @@ export default function MainLayout() {
 
   const handleOpenProfile = useCallback((profile) => {
     if (!profile?.id) {
-      navigate('/profile', { state: {} });
+      navigate(APP_PATHS.profile, { state: {} });
       return;
     }
     const id = String(profile.id);
@@ -132,24 +132,24 @@ export default function MainLayout() {
   const handleSelectSection = useCallback((section) => {
     switch (section) {
       case HOME_SECTION.home:
-        navigate('/home');
+        navigate(APP_PATHS.home);
         break;
       case HOME_SECTION.friends:
-        navigate('/friends/requests');
+        navigate(APP_PATHS.friendsRequests);
         break;
       case HOME_SECTION.messages: {
         const id = lastChatIdRef.current;
-        navigate(id ? `/messages/${id}` : '/messages');
+        navigate(id ? `${APP_PATHS.messages}/${id}` : APP_PATHS.messages);
         break;
       }
       case HOME_SECTION.profile:
-        navigate('/profile', { state: {} });
+        navigate(APP_PATHS.profile, { state: {} });
         break;
       case HOME_SECTION.settings:
-        navigate('/settings/notifications');
+        navigate(APP_PATHS.settingsAccount);
         break;
       default:
-        navigate('/home');
+        navigate(APP_PATHS.home);
     }
   }, [navigate]);
 
@@ -157,7 +157,7 @@ export default function MainLayout() {
     if (!chat?.id) {
       setSelectedChatThread(null);
       if (shouldNavigate) {
-        navigate('/messages');
+        navigate(APP_PATHS.messages);
       }
       return;
     }
@@ -193,22 +193,20 @@ export default function MainLayout() {
 
   const handleSubSectionChange = useCallback((subKey) => {
     if (activeSection === HOME_SECTION.home) {
-      navigate('/home');
+      navigate(APP_PATHS.home);
       return;
     }
     if (activeSection === HOME_SECTION.friends) {
       if (subKey === HOME_SUB_SECTION.friends_requests) {
-        navigate('/friends/requests');
+        navigate(APP_PATHS.friendsRequests);
       } else if (subKey === HOME_SUB_SECTION.friends_all) {
-        navigate('/friends/all');
+        navigate(APP_PATHS.friendsAll);
       }
       return;
     }
     if (activeSection === HOME_SECTION.settings) {
-      if (subKey === HOME_SUB_SECTION.settings_notifications) {
-        navigate('/settings/notifications');
-      } else if (subKey === HOME_SUB_SECTION.settings_help) {
-        navigate('/settings/help');
+      if (subKey === HOME_SUB_SECTION.settings_change_password) {
+        navigate(APP_PATHS.settingsAccount);
       }
     }
   }, [activeSection, navigate]);

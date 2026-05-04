@@ -56,10 +56,7 @@ export default function ChatHeader({ chat, onCall, onOpenProfile, canOpenProfile
           ) : (
             <p className="font-semibold text-[#1c1e21]">{chat.name}</p>
           )}
-          <p className="flex items-center gap-1.5 text-xs text-[#65676b]">
-            {chat.type !== "group" && (
-              <span className={`h-2 w-2 rounded-full ${presence.dotClassName}`} />
-            )}
+          <p className="text-xs text-[#65676b]">
             <span>{chat.type === "group" ? "Group chat" : presence.label}</span>
           </p>
         </div>

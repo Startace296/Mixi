@@ -3,7 +3,7 @@ import { useRef, useState } from "react";
 import FeedComposer from "./feed/FeedComposer.jsx";
 import FeedPostCard from "./feed/FeedPostCard.jsx";
 import PostSkeleton from "./feed/PostSkeleton.jsx";
-import { HOME_SECTION } from "../../lib/homeSections";
+import { HOME_SECTION, HOME_SUB_SECTION } from "../../lib/homeSections";
 
 const MOCK_FEED_POST = {
   id: "post_1",
@@ -68,7 +68,7 @@ const MOCK_FEED_POST = {
   ],
 };
 
-export default function HomeSectionView({ displayName, user, onOpenProfile, onSelectSection }) {
+export default function HomeSectionView({ displayName, user, subSection, onOpenProfile, onSelectSection }) {
   const [composerText, setComposerText] = useState("");
   const [composerImageUrl, setComposerImageUrl] = useState("");
   const [isPosting, setIsPosting] = useState(false);
@@ -117,6 +117,9 @@ export default function HomeSectionView({ displayName, user, onOpenProfile, onSe
     setComposerImageUrl(URL.createObjectURL(selectedFile));
     event.target.value = "";
   };
+
+  const activeSubSection = subSection || HOME_SUB_SECTION.home_feed;
+  if (activeSubSection !== HOME_SUB_SECTION.home_feed) return null;
 
   return (
     <div className="mx-auto w-full max-w-[900px] space-y-4 px-4 py-6">

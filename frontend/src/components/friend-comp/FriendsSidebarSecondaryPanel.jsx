@@ -1,5 +1,16 @@
 import { HOME_SUB_SECTION } from "../../lib/homeSections.js";
 
+const FRIENDS_NAV_SECTIONS = [
+  {
+    title: "Requests",
+    items: [{ label: "Friend requests", subKey: HOME_SUB_SECTION.friends_requests }],
+  },
+  {
+    title: "Lists",
+    items: [{ label: "All friends", subKey: HOME_SUB_SECTION.friends_all }],
+  },
+];
+
 function SecondaryHeader({ title, subtitle }) {
   return (
     <div className="border-b border-[#e4e6eb] px-4 py-3">
@@ -41,22 +52,19 @@ export default function FriendsSidebarSecondaryPanel({ activeSubSection, onSelec
     <aside className="flex h-full w-[300px] shrink-0 flex-col border-r border-[#e4e6eb] bg-white overflow-hidden">
       <SecondaryHeader title="Friends" subtitle="Requests and lists" />
       <div className="flex-1 overflow-y-auto p-3 space-y-4">
-        <NavSubsection title="Requests">
-          <NavBtn
-            label="Friend requests"
-            subKey={HOME_SUB_SECTION.friends_requests}
-            activeSubSection={activeSubSection}
-            onSelect={onSelectSubSection}
-          />
-        </NavSubsection>
-        <NavSubsection title="Lists">
-          <NavBtn
-            label="All friends"
-            subKey={HOME_SUB_SECTION.friends_all}
-            activeSubSection={activeSubSection}
-            onSelect={onSelectSubSection}
-          />
-        </NavSubsection>
+        {FRIENDS_NAV_SECTIONS.map((group) => (
+          <NavSubsection key={group.title} title={group.title}>
+            {group.items.map((item) => (
+              <NavBtn
+                key={item.subKey}
+                label={item.label}
+                subKey={item.subKey}
+                activeSubSection={activeSubSection}
+                onSelect={onSelectSubSection}
+              />
+            ))}
+          </NavSubsection>
+        ))}
       </div>
     </aside>
   );

@@ -1,5 +1,12 @@
 import { HOME_SUB_SECTION } from "../../lib/homeSections.js";
 
+const SETTINGS_NAV_SECTIONS = [
+  {
+    title: "Account",
+    items: [{ label: "Change password", subKey: HOME_SUB_SECTION.settings_change_password }],
+  },
+];
+
 function SecondaryHeader({ title, subtitle }) {
   return (
     <div className="border-b border-[#e4e6eb] px-4 py-3">
@@ -39,24 +46,21 @@ function NavBtn({ label, subKey, activeSubSection, onSelect }) {
 export default function SettingsSidebarSecondaryPanel({ activeSubSection, onSelectSubSection }) {
   return (
     <aside className="flex h-full w-[300px] shrink-0 flex-col border-r border-[#e4e6eb] bg-white overflow-hidden">
-      <SecondaryHeader title="Settings" subtitle="App and support" />
+      <SecondaryHeader title="Settings" subtitle="Account preferences" />
       <div className="flex-1 overflow-y-auto p-3 space-y-4">
-        <NavSubsection title="Notifications">
-          <NavBtn
-            label="Notifications"
-            subKey={HOME_SUB_SECTION.settings_notifications}
-            activeSubSection={activeSubSection}
-            onSelect={onSelectSubSection}
-          />
-        </NavSubsection>
-        <NavSubsection title="Account">
-          <NavBtn
-            label="Change password"
-            subKey={HOME_SUB_SECTION.settings_change_password}
-            activeSubSection={activeSubSection}
-            onSelect={onSelectSubSection}
-          />
-        </NavSubsection>
+        {SETTINGS_NAV_SECTIONS.map((group) => (
+          <NavSubsection key={group.title} title={group.title}>
+            {group.items.map((item) => (
+              <NavBtn
+                key={item.subKey}
+                label={item.label}
+                subKey={item.subKey}
+                activeSubSection={activeSubSection}
+                onSelect={onSelectSubSection}
+              />
+            ))}
+          </NavSubsection>
+        ))}
       </div>
     </aside>
   );
