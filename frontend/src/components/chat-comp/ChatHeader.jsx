@@ -12,7 +12,7 @@ export default function ChatHeader({ chat, onCall, onOpenProfile, canOpenProfile
             <img src={chat.profilePic} alt={chat.name} className="h-10 w-10 rounded-full object-cover" />
           </button>
         ) : (
-          <img src={chat.profilePic} alt={chat.name} className="h-10 w-10 rounded-full object-cover" />
+          <img src={chat.profilePic} alt={chat.name} className="h-10 w-10 shrink-0 rounded-full object-cover" />
         )}
         <div>
           {canOpenProfile ? (

@@ -3,7 +3,7 @@ import FeedAvatar from "./FeedAvatar.jsx";
 export default function FeedComposer({
   displayName,
   user,
-  onOpenProfile,
+  onAvatarClick,
   composerText,
   onComposerTextChange,
   onComposerKeyDown,
@@ -19,9 +19,9 @@ export default function FeedComposer({
       <div className="flex items-start gap-3">
         <button
           type="button"
-          onClick={onOpenProfile}
+          onClick={onAvatarClick}
           className="rounded-full focus:outline-none"
-          aria-label="Open profile"
+          aria-label="Go to your profile"
         >
           <FeedAvatar user={user} displayName={displayName} />
         </button>

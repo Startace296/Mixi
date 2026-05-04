@@ -349,13 +349,13 @@ export default function ProfileSectionView({ user, viewedProfile, displayName, o
   const [editOpen, setEditOpen] = useState(false);
   const [avatarOpen, setAvatarOpen] = useState(false);
   const setAuthUser = useAuthStore((state) => state.setAuthUser);
-  const profileUser = viewedProfile || user;
-  const sameId =
-    user?.id != null &&
-    viewedProfile?.id != null &&
-    String(viewedProfile.id) === String(user.id);
-  const isOwnProfile = !viewedProfile || sameId || viewedProfile?.email === user?.email;
-  const currentName = profileUser?.displayName || displayName || 'You';
+
+  const isOwnProfile =
+    !viewedProfile?.id ||
+    (user?.id != null && String(viewedProfile.id) === String(user.id));
+
+  const profileUser = isOwnProfile ? user : { ...viewedProfile };
+  const currentName = profileUser?.displayName || displayName || 'User';
 
   const handleSaved = (nextUser) => {
     onUserChange?.(nextUser);
@@ -381,12 +381,17 @@ export default function ProfileSectionView({ user, viewedProfile, displayName, o
           </div>
           <div className="min-w-0">
             <h1 className="text-2xl font-bold text-[#1c1e21]">{currentName}</h1>
-            <p className="mt-1 text-sm text-[#65676b]">{profileUser?.bio || 'No bio yet'}</p>
-            <p className="mt-1 text-sm text-[#8a8d91]">0 friend(s)</p>
+            <p className="mt-1 text-sm text-[#65676b]">
+              {isOwnProfile ? user?.bio || 'No bio yet' : profileUser?.bio || '—'}
+            </p>
+            {isOwnProfile ? <p className="mt-1 text-sm text-[#8a8d91]">0 friend(s)</p> : null}
+            {!isOwnProfile ? (
+              <p className="mt-1 text-xs text-[#8a8d91]">Full details load from the API when connected.</p>
+            ) : null}
           </div>
         </div>
 
-        {isOwnProfile && (
+        {isOwnProfile ? (
           <button
             type="button"
             onClick={() => setEditOpen(true)}
@@ -394,7 +399,7 @@ export default function ProfileSectionView({ user, viewedProfile, displayName, o
           >
             Edit profile
           </button>
-        )}
+        ) : null}
       </div>
 
       <div className="rounded-xl border border-[#e4e6eb] bg-white p-5 shadow-[0_2px_4px_rgba(0,0,0,0.06)]">
@@ -416,14 +421,16 @@ export default function ProfileSectionView({ user, viewedProfile, displayName, o
             <svg className="h-5 w-5 shrink-0 text-[#65676b]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0zM19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
             </svg>
-            <span className="text-sm text-[#1c1e21]">{profileUser?.location || 'None'}</span>
+            <span className="text-sm text-[#1c1e21]">{profileUser?.location || '—'}</span>
           </div>
         </div>
       </div>
 
       <div className="rounded-xl border border-[#e4e6eb] bg-white p-6 text-center shadow-[0_2px_4px_rgba(0,0,0,0.06)]">
         <p className="text-base font-semibold text-[#1c1e21]">No posts yet</p>
-        <p className="mt-1 text-sm text-[#65676b]">Your future posts will appear here.</p>
+        <p className="mt-1 text-sm text-[#65676b]">
+          {isOwnProfile ? 'Your future posts will appear here.' : 'Posts will show here after the API is connected.'}
+        </p>
       </div>
 
       {isOwnProfile && editOpen && (
@@ -434,9 +441,7 @@ export default function ProfileSectionView({ user, viewedProfile, displayName, o
         />
       )}
 
-      {isOwnProfile && avatarOpen && (
-        <AvatarModal onClose={() => setAvatarOpen(false)} onSaved={handleSaved} />
-      )}
+      {isOwnProfile && avatarOpen && <AvatarModal onClose={() => setAvatarOpen(false)} onSaved={handleSaved} />}
     </div>
   );
 }

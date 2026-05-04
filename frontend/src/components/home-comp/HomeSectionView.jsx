@@ -7,9 +7,10 @@ import { HOME_SECTION } from "../../lib/homeSections";
 
 const MOCK_FEED_POST = {
   id: "post_1",
+  authorId: "demo_minh_anh",
   authorName: "Minh Anh",
   authorAvatar: "https://i.pravatar.cc/100?img=12",
-  createdAt: "2h",
+  createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
   caption:
     "Finished the chat section UI today. Next step is wiring it to API and polishing group chat interactions.",
   imageUrl: "https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=1400&q=80",
@@ -17,15 +18,52 @@ const MOCK_FEED_POST = {
   comments: [
     {
       id: "c_1",
+      authorId: "demo_lan_huong",
       authorName: "Lan Huong",
       authorAvatar: "https://i.pravatar.cc/100?img=16",
       text: "Looks clean! Waiting for API integration.",
+      createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+      likeCount: 4,
+      replies: [
+        {
+          id: "r_1",
+          authorId: "demo_minh_anh",
+          authorName: "Minh Anh",
+          authorAvatar: "https://i.pravatar.cc/100?img=12",
+          text: "Sounds good, ping me when the API is wired.",
+          createdAt: new Date(Date.now() - 90 * 60 * 1000).toISOString(),
+          likeCount: 2,
+        },
+      ],
     },
     {
       id: "c_2",
+      authorId: "demo_tuan_dev",
       authorName: "Tuan Dev",
       authorAvatar: "https://i.pravatar.cc/100?img=28",
       text: "Great progress, nice UI polish.",
+      createdAt: new Date(Date.now() - 26 * 60 * 60 * 1000).toISOString(),
+      likeCount: 0,
+      replies: [
+        {
+          id: "r_2",
+          authorId: "demo_lan_huong",
+          authorName: "Lan Huong",
+          authorAvatar: "https://i.pravatar.cc/100?img=16",
+          text: "Same here, looks solid.",
+          createdAt: new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString(),
+          likeCount: 1,
+        },
+        {
+          id: "r_3",
+          authorId: "demo_minh_anh",
+          authorName: "Minh Anh",
+          authorAvatar: "https://i.pravatar.cc/100?img=12",
+          text: "Thanks, will keep iterating.",
+          createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+          likeCount: 0,
+        },
+      ],
     },
   ],
 };
@@ -49,9 +87,10 @@ export default function HomeSectionView({ displayName, user, onOpenProfile, onSe
 
     const newPost = {
       id: `post_${Date.now()}`,
+      authorId: user?.id,
       authorName: displayName || "You",
       authorAvatar: user?.avatarUrl || "https://i.pravatar.cc/100?img=8",
-      createdAt: "Just now",
+      createdAt: new Date().toISOString(),
       caption: cleanText,
       imageUrl: composerImageUrl || null,
       likeCount: 0,
@@ -84,7 +123,7 @@ export default function HomeSectionView({ displayName, user, onOpenProfile, onSe
       <FeedComposer
         displayName={displayName}
         user={user}
-        onOpenProfile={() => onSelectSection?.(HOME_SECTION.profile)}
+        onAvatarClick={() => onSelectSection?.(HOME_SECTION.profile)}
         composerText={composerText}
         onComposerTextChange={setComposerText}
         onComposerKeyDown={handleComposerKeyDown}
@@ -106,6 +145,7 @@ export default function HomeSectionView({ displayName, user, onOpenProfile, onSe
             post={post}
             viewerName={displayName}
             viewerAvatar={user?.avatarUrl}
+            viewerId={user?.id}
             onOpenProfile={onOpenProfile}
           />
         ))}
