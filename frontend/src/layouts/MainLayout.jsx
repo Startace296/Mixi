@@ -14,7 +14,8 @@ import { createDirectConversation } from '../lib/api.js';
 import { emitPresenceStatus, getAuthenticatedSocket } from '../lib/socket.js';
 import { useAuthUser } from '../hooks/useAuthUser';
 
-const AWAY_AFTER_MS = 60000;
+const AWAY_AFTER_MS = 15 * 60 * 1000;
+const ACTIVITY_EVENTS = ["mousemove", "mousedown", "keydown", "touchstart", "scroll", "focus"];
 
 export default function MainLayout() {
   const { authUser: user, setAuthUser: setUser } = useAuthUser();
@@ -43,49 +44,45 @@ export default function MainLayout() {
     const socket = getAuthenticatedSocket();
     if (!socket) return undefined;
 
-    let awayTimerId = null;
+    let idleTimerId = null;
     let currentStatus = "";
 
-    const setPresenceStatus = (status) => {
+    const reportPresence = (status) => {
       if (currentStatus === status) return;
       currentStatus = status;
       emitPresenceStatus(status);
     };
 
-    const scheduleAway = () => {
-      window.clearTimeout(awayTimerId);
-      awayTimerId = window.setTimeout(() => {
-        setPresenceStatus("away");
+    const startIdleTimer = () => {
+      window.clearTimeout(idleTimerId);
+      idleTimerId = window.setTimeout(() => {
+        reportPresence("away");
       }, AWAY_AFTER_MS);
     };
 
-    const markOnline = () => {
+    const markActive = () => {
       if (document.visibilityState === "hidden") return;
-      setPresenceStatus("online");
-      scheduleAway();
+      reportPresence("online");
+      startIdleTimer();
     };
 
     const handleVisibilityChange = () => {
-      if (document.visibilityState === "hidden") {
-        window.clearTimeout(awayTimerId);
-        setPresenceStatus("away");
-        return;
+      if (document.visibilityState === "visible") {
+        markActive();
       }
-      markOnline();
     };
 
-    const activityEvents = ["mousemove", "mousedown", "keydown", "touchstart", "scroll"];
-    activityEvents.forEach((eventName) => {
-      window.addEventListener(eventName, markOnline, { passive: true });
+    ACTIVITY_EVENTS.forEach((eventName) => {
+      window.addEventListener(eventName, markActive, { passive: true });
     });
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
-    markOnline();
+    markActive();
 
     return () => {
-      window.clearTimeout(awayTimerId);
-      activityEvents.forEach((eventName) => {
-        window.removeEventListener(eventName, markOnline);
+      window.clearTimeout(idleTimerId);
+      ACTIVITY_EVENTS.forEach((eventName) => {
+        window.removeEventListener(eventName, markActive);
       });
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };

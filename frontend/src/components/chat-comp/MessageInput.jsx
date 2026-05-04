@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 
 const MAX_TEXTAREA_ROWS = 5;
 
-export default function MessageInput({ onSend, onAttachImage }) {
+export default function MessageInput({ onSend, onAttachImage, onTypingChange }) {
   const [text, setText] = useState("");
   const [isAttachMenuOpen, setIsAttachMenuOpen] = useState(false);
   const textareaRef = useRef(null);
@@ -40,6 +40,7 @@ export default function MessageInput({ onSend, onAttachImage }) {
     const cleanText = text.trim();
     if (!cleanText) return;
 
+    onTypingChange?.(false);
     onSend(cleanText);
     setText("");
   };
@@ -110,7 +111,11 @@ export default function MessageInput({ onSend, onAttachImage }) {
         <textarea
           ref={textareaRef}
           value={text}
-          onChange={(event) => setText(event.target.value)}
+          onChange={(event) => {
+            const nextText = event.target.value;
+            setText(nextText);
+            onTypingChange?.(nextText.trim().length > 0);
+          }}
           onKeyDown={handleKeyDown}
           placeholder="Type a message..."
           rows={1}

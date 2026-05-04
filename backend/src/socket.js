@@ -1,5 +1,7 @@
 import { Server } from "socket.io";
+import mongoose from "mongoose";
 
+import Conversation from "./models/Conversation.js";
 import { verifyAccessToken } from "./utils/jwt.js";
 
 let ioInstance = null;
@@ -100,6 +102,32 @@ export function initSocket(server) {
 
     socket.on("presence:set", (payload = {}) => {
       setSocketPresence(socket, payload.status);
+    });
+
+    socket.on("chat:typing", async (payload = {}) => {
+      try {
+        const conversationId = String(payload.conversationId || "");
+        if (!mongoose.Types.ObjectId.isValid(conversationId)) return;
+
+        const conversation = await Conversation.findById(conversationId).select("participantIds");
+        if (!conversation || !conversation.participantIds.some((participantId) => String(participantId) === String(socket.user.id))) {
+          return;
+        }
+
+        for (const participantId of conversation.participantIds) {
+          const targetUserId = String(participantId);
+          if (targetUserId === String(socket.user.id)) continue;
+
+          emitToUser(targetUserId, "chat:typing", {
+            conversationId,
+            userId: String(socket.user.id),
+            isTyping: Boolean(payload.isTyping),
+            changedAt: new Date().toISOString(),
+          });
+        }
+      } catch {
+        // Typing indicators are ephemeral; ignore transient socket validation failures.
+      }
     });
 
     socket.on("disconnect", () => {

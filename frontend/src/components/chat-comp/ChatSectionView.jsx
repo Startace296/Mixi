@@ -9,7 +9,10 @@ import {
   sendChatImage,
   sendChatMessage,
 } from "../../lib/api.js";
-import { getAuthenticatedSocket } from "../../lib/socket.js";
+import { emitChatTyping, getAuthenticatedSocket } from "../../lib/socket.js";
+
+const TYPING_IDLE_MS = 2500;
+const REMOTE_TYPING_TTL_MS = 3500;
 
 function appendMessageOnce(messages, nextMessage) {
   if (!nextMessage?._id) return messages;
@@ -27,6 +30,11 @@ export default function ChatSectionView({ selectedChatThread, onOpenProfile, use
   const messageCacheRef = useRef(new Map());
   const pageInfoCacheRef = useRef(new Map());
   const previousThreadIdRef = useRef(null);
+  const typingStopTimerRef = useRef(null);
+  const isTypingRef = useRef(false);
+  const typingConversationIdRef = useRef(null);
+  const remoteTypingTimersRef = useRef(new Map());
+  const [typingUserIds, setTypingUserIds] = useState([]);
 
   const selectedChat = selectedChatThread || null;
   const activeThreadId = selectedChat?.id;
@@ -58,6 +66,44 @@ export default function ChatSectionView({ selectedChatThread, onOpenProfile, use
     });
   };
 
+  const stopLocalTyping = () => {
+    window.clearTimeout(typingStopTimerRef.current);
+    typingStopTimerRef.current = null;
+
+    const typingConversationId = typingConversationIdRef.current;
+    if (!isTypingRef.current || !typingConversationId) return;
+    isTypingRef.current = false;
+    typingConversationIdRef.current = null;
+    emitChatTyping({ conversationId: typingConversationId, isTyping: false });
+  };
+
+  const handleTypingChange = (isTyping) => {
+    if (!activeThreadId) return;
+
+    window.clearTimeout(typingStopTimerRef.current);
+
+    if (!isTyping) {
+      stopLocalTyping();
+      return;
+    }
+
+    if (!isTypingRef.current) {
+      isTypingRef.current = true;
+      typingConversationIdRef.current = activeThreadId;
+      emitChatTyping({ conversationId: activeThreadId, isTyping: true });
+    }
+
+    typingStopTimerRef.current = window.setTimeout(() => {
+      stopLocalTyping();
+    }, TYPING_IDLE_MS);
+  };
+
+  const clearRemoteTypingUser = (userId) => {
+    window.clearTimeout(remoteTypingTimersRef.current.get(userId));
+    remoteTypingTimersRef.current.delete(userId);
+    setTypingUserIds((prevUserIds) => prevUserIds.filter((id) => id !== userId));
+  };
+
   useEffect(() => {
     let isMounted = true;
 
@@ -67,6 +113,8 @@ export default function ChatSectionView({ selectedChatThread, onOpenProfile, use
         setMessages([]);
         setHasOlderMessages(false);
         setOlderCursor(null);
+        setTypingUserIds([]);
+        stopLocalTyping();
         return;
       }
 
@@ -116,6 +164,13 @@ export default function ChatSectionView({ selectedChatThread, onOpenProfile, use
     };
   }, [activeThreadId, activeThreadCacheKey]);
 
+  useEffect(() => {
+    stopLocalTyping();
+    setTypingUserIds([]);
+    remoteTypingTimersRef.current.forEach((timerId) => window.clearTimeout(timerId));
+    remoteTypingTimersRef.current.clear();
+  }, [activeThreadId]);
+
   const handleLoadOlderMessages = async () => {
     if (!activeThreadId || !olderCursor || isLoadingOlder) return;
 
@@ -155,6 +210,7 @@ export default function ChatSectionView({ selectedChatThread, onOpenProfile, use
       if (payload?.conversationId !== activeThreadId || !payload?.message) return;
 
       updateMessagesForActiveThread((prevMessages) => appendMessageOnce(prevMessages, payload.message));
+      clearRemoteTypingUser(String(payload.message.senderId));
 
       if (payload.message.senderId !== user?.id) {
         markChatConversationRead({ conversationId: activeThreadId }).catch(() => {});
@@ -180,9 +236,52 @@ export default function ChatSectionView({ selectedChatThread, onOpenProfile, use
     };
   }, [activeThreadId, activeThreadCacheKey, user?.id]);
 
+  useEffect(() => {
+    if (!activeThreadId) return undefined;
+
+    const socket = getAuthenticatedSocket();
+    if (!socket) return undefined;
+
+    const handleTyping = (payload) => {
+      if (payload?.conversationId !== activeThreadId) return;
+      if (!payload?.userId || String(payload.userId) === String(user?.id)) return;
+
+      const userId = String(payload.userId);
+      if (!payload.isTyping) {
+        clearRemoteTypingUser(userId);
+        return;
+      }
+
+      setTypingUserIds((prevUserIds) => (
+        prevUserIds.includes(userId) ? prevUserIds : [...prevUserIds, userId]
+      ));
+
+      window.clearTimeout(remoteTypingTimersRef.current.get(userId));
+      const timerId = window.setTimeout(() => {
+        clearRemoteTypingUser(userId);
+      }, REMOTE_TYPING_TTL_MS);
+      remoteTypingTimersRef.current.set(userId, timerId);
+    };
+
+    socket.on("chat:typing", handleTyping);
+
+    return () => {
+      socket.off("chat:typing", handleTyping);
+    };
+  }, [activeThreadId, user?.id]);
+
+  useEffect(() => {
+    return () => {
+      stopLocalTyping();
+      remoteTypingTimersRef.current.forEach((timerId) => window.clearTimeout(timerId));
+      remoteTypingTimersRef.current.clear();
+    };
+  }, []);
+
   const handleSendMessage = async (text) => {
     if (!activeThreadId) return;
 
+    stopLocalTyping();
     const data = await sendChatMessage({ conversationId: activeThreadId, text });
     if (data?.message) {
       updateMessagesForActiveThread((prevMessages) => appendMessageOnce(prevMessages, data.message));
@@ -205,6 +304,7 @@ export default function ChatSectionView({ selectedChatThread, onOpenProfile, use
   const handleAttachImage = async (file) => {
     if (!activeThreadId) return;
 
+    stopLocalTyping();
     const data = await sendChatImage({
       conversationId: activeThreadId,
       file,
@@ -228,6 +328,19 @@ export default function ChatSectionView({ selectedChatThread, onOpenProfile, use
       avatarUrl: selectedChat.profilePic,
     });
   };
+
+  const typingNames = typingUserIds
+    .map((typingUserId) => {
+      if (String(selectedChat.friendId) === String(typingUserId)) return selectedChat.name;
+      return selectedChat.participants?.find((participant) => String(participant.id) === String(typingUserId))?.displayName;
+    })
+    .filter(Boolean);
+
+  const typingLabel = typingNames.length === 0
+    ? ""
+    : typingNames.length === 1
+      ? `${typingNames[0]} is typing...`
+      : "Several people are typing...";
 
   if (!selectedChat) {
     return (
@@ -262,7 +375,16 @@ export default function ChatSectionView({ selectedChatThread, onOpenProfile, use
           isLoadingOlder={isLoadingOlder}
           onLoadOlderMessages={handleLoadOlderMessages}
         />
-        <MessageInput onSend={handleSendMessage} onAttachImage={handleAttachImage} />
+        {typingLabel && (
+          <div className="border-t border-[#f0f2f5] px-4 py-1.5 text-xs font-medium text-[#65676b]">
+            {typingLabel}
+          </div>
+        )}
+        <MessageInput
+          onSend={handleSendMessage}
+          onAttachImage={handleAttachImage}
+          onTypingChange={handleTypingChange}
+        />
       </div>
     </section>
   );

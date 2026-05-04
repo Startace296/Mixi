@@ -60,3 +60,12 @@ export function emitPresenceStatus(status) {
   if (!socket) return;
   socket.emit('presence:set', { status });
 }
+
+export function emitChatTyping({ conversationId, isTyping }) {
+  const socket = getAuthenticatedSocket();
+  if (!socket || !conversationId) return;
+  socket.emit('chat:typing', {
+    conversationId,
+    isTyping: Boolean(isTyping),
+  });
+}
