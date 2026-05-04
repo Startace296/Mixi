@@ -37,16 +37,12 @@ export default function ChatHeader({ chat, onCall, onOpenProfile, canOpenProfile
             </span>
           </button>
         ) : (
-<<<<<<< HEAD
           <span className="relative block h-10 w-10">
             <img src={chat.profilePic} alt={chat.name} className="h-10 w-10 rounded-full object-cover" />
             {chat.type !== "group" && (
               <span className={`absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white ${presence.dotClassName}`} />
             )}
           </span>
-=======
-          <img src={chat.profilePic} alt={chat.name} className="h-10 w-10 shrink-0 rounded-full object-cover" />
->>>>>>> 94bd781f3b277e9e556b702a257c65d081fd8764
         )}
         <div>
           {canOpenProfile ? (
