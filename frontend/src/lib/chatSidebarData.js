@@ -2,6 +2,7 @@ export const MOCK_RECENT_CHATS = [
   {
     id: "1",
     type: "direct",
+    friendId: "demo_minh_anh",
     name: "Minh Anh",
     profilePic: "https://i.pravatar.cc/100?img=11",
     preview: "Okay, see you tomorrow!",
@@ -11,6 +12,7 @@ export const MOCK_RECENT_CHATS = [
   {
     id: "3",
     type: "direct",
+    friendId: "demo_lan_huong",
     name: "Lan Huong",
     profilePic: "https://i.pravatar.cc/100?img=16",
     preview: "You sent a photo",
@@ -20,6 +22,7 @@ export const MOCK_RECENT_CHATS = [
   {
     id: "4",
     type: "direct",
+    friendId: "demo_tuan_dev",
     name: "Tuan Dev",
     profilePic: "https://i.pravatar.cc/100?img=28",
     preview: "Merge is done.",

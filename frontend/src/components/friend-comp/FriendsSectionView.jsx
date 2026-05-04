@@ -55,22 +55,21 @@ function Avatar({ displayName, avatarUrl }) {
   );
 }
 
-/** Payload for profile preview — no email (privacy). */
-function toFriendProfilePreview(entry) {
+function profilePayloadFromEntry(entry) {
   const rawId = entry?.id ?? entry?.friendId ?? entry?.userId;
-  const preview = {
-    displayName: entry?.displayName || '',
-    avatarUrl: entry?.avatarUrl || '',
-  };
-  if (rawId != null) {
-    preview.id = String(rawId);
-  }
-  return preview;
+  if (rawId == null || String(rawId).length === 0) return null;
+  const payload = { id: String(rawId) };
+  if (entry?.displayName) payload.displayName = entry.displayName;
+  if (entry?.avatarUrl) payload.avatarUrl = entry.avatarUrl;
+  return payload;
 }
 
-function ProfileHitArea({ source, onOpenProfile, displayName, avatarUrl }) {
-  const open = () => onOpenProfile?.(toFriendProfilePreview(source));
-  const disabled = !onOpenProfile;
+function ProfileHitArea({ entry, onOpenProfile, displayName, avatarUrl }) {
+  const payload = profilePayloadFromEntry(entry);
+  const open = () => {
+    if (payload) onOpenProfile?.(payload);
+  };
+  const disabled = !payload || !onOpenProfile;
 
   return (
     <div className="flex w-full min-w-0 items-center gap-3">
@@ -101,7 +100,7 @@ function FriendRequestCard({ request, onAccept, onDecline, busy, onOpenProfile }
   return (
     <div className="flex min-h-[140px] flex-col gap-4 rounded-lg border border-[#e4e6eb] bg-white p-5 shadow-[0_2px_4px_rgba(0,0,0,0.08),0_8px_16px_rgba(0,0,0,0.06)]">
       <ProfileHitArea
-        source={request}
+        entry={request}
         onOpenProfile={onOpenProfile}
         displayName={request.displayName}
         avatarUrl={request.avatarUrl}
@@ -146,7 +145,7 @@ function UserSearchCard({ user, onAddFriend, onCancelRequest, busy, onOpenProfil
   return (
     <div className="flex min-h-[140px] flex-col gap-4 rounded-lg border border-[#e4e6eb] bg-white p-5 shadow-[0_2px_4px_rgba(0,0,0,0.08),0_8px_16px_rgba(0,0,0,0.06)]">
       <ProfileHitArea
-        source={user}
+        entry={user}
         onOpenProfile={onOpenProfile}
         displayName={user.displayName}
         avatarUrl={user.avatarUrl}
@@ -173,7 +172,7 @@ function FriendCard({ friend, onRemoveFriend, onChat, busy, onOpenProfile }) {
   return (
     <div className="flex min-h-[140px] flex-col gap-4 rounded-lg border border-[#e4e6eb] bg-white p-5 shadow-[0_2px_4px_rgba(0,0,0,0.08),0_8px_16px_rgba(0,0,0,0.06)]">
       <ProfileHitArea
-        source={friend}
+        entry={friend}
         onOpenProfile={onOpenProfile}
         displayName={friend.displayName}
         avatarUrl={friend.avatarUrl}

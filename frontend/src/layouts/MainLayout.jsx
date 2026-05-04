@@ -104,18 +104,33 @@ export default function MainLayout() {
     }
   }, [parsed.section, selectedChatId, selectedChatThread?.id]);
 
-  const viewedProfile = useMemo(() => {
-    if (parsed.section !== HOME_SECTION.profile) {
-      return null;
-    }
-    if (parsed.profileUserId) {
-      return { id: parsed.profileUserId };
-    }
-    return locationState?.viewedProfile ?? null;
-  }, [parsed.section, parsed.profileUserId, locationState?.viewedProfile]);
-
   const activeSection = parsed.section;
   const activeSubSection = parsed.subSection;
+
+  const viewedProfile = useMemo(() => {
+    if (parsed.section !== HOME_SECTION.profile || !parsed.profileUserId) {
+      return null;
+    }
+    const preview = locationState?.profilePreview;
+    return {
+      id: parsed.profileUserId,
+      ...(preview && typeof preview === 'object' ? preview : {}),
+    };
+  }, [parsed.section, parsed.profileUserId, locationState?.profilePreview]);
+
+  const handleOpenProfile = useCallback((profile) => {
+    if (!profile?.id) {
+      navigate('/profile', { state: {} });
+      return;
+    }
+    const id = String(profile.id);
+    const preview = {};
+    if (profile.displayName) preview.displayName = profile.displayName;
+    if (profile.avatarUrl) preview.avatarUrl = profile.avatarUrl;
+    navigate(`/profile/${encodeURIComponent(id)}`, {
+      state: Object.keys(preview).length > 0 ? { profilePreview: preview } : {},
+    });
+  }, [navigate]);
 
   const handleSelectSection = useCallback((section) => {
     switch (section) {
@@ -139,18 +154,6 @@ export default function MainLayout() {
       default:
         navigate('/home');
     }
-  }, [navigate]);
-
-  const handleOpenProfile = useCallback((profile) => {
-    if (!profile) {
-      navigate('/profile', { state: {} });
-      return;
-    }
-    if (profile.id != null && String(profile.id).length > 0) {
-      navigate(`/profile/${encodeURIComponent(String(profile.id))}`, { state: {} });
-      return;
-    }
-    navigate('/profile', { state: { viewedProfile: profile } });
   }, [navigate]);
 
   const handleSelectChat = useCallback((chat, shouldNavigate = true) => {
@@ -255,9 +258,9 @@ export default function MainLayout() {
               activeSection,
               activeSubSection,
               selectedChatThread,
-              viewedProfile,
               user,
               setUser,
+              viewedProfile,
               onOpenProfile: handleOpenProfile,
               onSelectSection: handleSelectSection,
               onOpenChatWithFriend: handleOpenChatWithFriend,

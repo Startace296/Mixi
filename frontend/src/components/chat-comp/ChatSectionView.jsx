@@ -220,12 +220,12 @@ export default function ChatSectionView({ selectedChatThread, onOpenProfile, use
 
   const handleOpenChatProfile = () => {
     if (selectedChat.type === "group") return;
-
+    const friendId = selectedChat.friendId ?? selectedChat.otherUserId;
+    if (!friendId) return;
     onOpenProfile?.({
-      id: selectedChat.friendId,
+      id: friendId,
       displayName: selectedChat.name,
       avatarUrl: selectedChat.profilePic,
-      bio: "No bio yet",
     });
   };
 
