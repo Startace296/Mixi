@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import ChatHeader from "./ChatHeader.jsx";
 import MessageList from "./MessageList.jsx";
 import MessageInput from "./MessageInput.jsx";
+import ChatCallOverlay from "./ChatCallOverlay.jsx";
 import {
   deleteChatMessage,
   getChatMessages,
@@ -314,8 +315,59 @@ export default function ChatSectionView({ selectedChatThread, onOpenProfile, use
     }
   };
 
-  const handleCall = () => {
-    alert(`Calling ${selectedChat.name}...`);
+  const [callState, setCallState] = useState({
+    isOpen: false,
+    phase: "outgoing_ringing", // outgoing_ringing | incoming_ringing | in_call
+    mode: "voice", // voice | video
+    peerName: "",
+    peerAvatarUrl: "",
+    isMicOn: true,
+    isCamOn: true,
+  });
+
+  useEffect(() => {
+    if (!selectedChat) {
+      setCallState((prev) => (prev.isOpen ? { ...prev, isOpen: false } : prev));
+      return;
+    }
+    setCallState((prev) => ({
+      ...prev,
+      peerName: selectedChat.name || "",
+      peerAvatarUrl: selectedChat.profilePic || "",
+    }));
+  }, [selectedChat?.id]);
+
+  const startCall = (mode) => {
+    if (!selectedChat || selectedChat.type === "group") return;
+    setCallState({
+      isOpen: true,
+      phase: "outgoing_ringing",
+      mode,
+      peerName: selectedChat.name || "",
+      peerAvatarUrl: selectedChat.profilePic || "",
+      isMicOn: true,
+      isCamOn: mode === "video",
+    });
+  };
+
+  const cancelOutgoingCall = () => {
+    setCallState((prev) => ({ ...prev, isOpen: false }));
+  };
+
+  const acceptIncomingCall = () => {
+    setCallState((prev) => ({ ...prev, phase: "in_call", isOpen: true }));
+  };
+
+  const debugAcceptOutgoingCall = () => {
+    setCallState((prev) => ({ ...prev, phase: "in_call", isOpen: true }));
+  };
+
+  const declineIncomingCall = () => {
+    setCallState((prev) => ({ ...prev, isOpen: false }));
+  };
+
+  const endCall = () => {
+    setCallState((prev) => ({ ...prev, isOpen: false }));
   };
 
   const handleOpenChatProfile = () => {
@@ -360,9 +412,36 @@ export default function ChatSectionView({ selectedChatThread, onOpenProfile, use
       <div className="flex min-h-0 flex-1 flex-col">
         <ChatHeader
           chat={selectedChat}
-          onCall={handleCall}
+          onCall={{
+            voice: () => startCall("voice"),
+            video: () => startCall("video"),
+          }}
           onOpenProfile={handleOpenChatProfile}
           canOpenProfile={selectedChat.type !== "group"}
+        />
+        <ChatCallOverlay
+          isOpen={callState.isOpen}
+          phase={callState.phase}
+          mode={callState.mode}
+          peerName={callState.peerName}
+          peerAvatarUrl={callState.peerAvatarUrl}
+          isMicOn={callState.isMicOn}
+          isCamOn={callState.isCamOn}
+          onAccept={acceptIncomingCall}
+          onDecline={declineIncomingCall}
+          onCancel={cancelOutgoingCall}
+          onDebugAcceptOutgoing={debugAcceptOutgoingCall}
+          onToggleMic={() => setCallState((prev) => ({ ...prev, isMicOn: !prev.isMicOn }))}
+          onToggleCam={() => setCallState((prev) => {
+            const nextCamOn = !prev.isCamOn;
+            return {
+              ...prev,
+              isCamOn: nextCamOn,
+              // If user starts from voice call and turns camera on, treat it as video-capable UI.
+              mode: nextCamOn ? "video" : prev.mode,
+            };
+          })}
+          onEnd={endCall}
         />
         <MessageList
           messages={messages}
