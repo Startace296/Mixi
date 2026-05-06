@@ -203,3 +203,8 @@ export const resetPasswordWithOtp = async ({ email, otpCode, newPassword }) => {
   const response = await axiosInstance.post('/auth/forgot-password/reset', { email, otpCode, newPassword });
   return response.data;
 };
+
+export const changePassword = async ({ currentPassword, newPassword }) => {
+  const response = await axiosInstance.post('/auth/change-password', { currentPassword, newPassword });
+  return response.data;
+};

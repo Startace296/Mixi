@@ -1,6 +1,7 @@
 import { Router } from "express";
 
 import {
+  changePasswordHandler,
   completeGoogleRegistrationHandler,
   completeRegistrationHandler,
   googleLogin,
@@ -13,9 +14,11 @@ import {
   verifyOtpCode,
 } from "../controllers/auth.controller.js";
 import { asyncHandler } from "../utils/async-handler.js";
+import { requireAuth } from "../middlewares/auth.middleware.js";
 import { validateBody } from "../middlewares/validation.middleware.js";
 import { loginRateLimit, sendOtpRateLimit } from "../middlewares/rate-limit.middleware.js";
 import {
+  changePasswordSchema,
   sendOtpSchema,
   verifyOtpSchema,
   loginSchema,
@@ -33,6 +36,7 @@ router.post("/complete-google-registration", asyncHandler(completeGoogleRegistra
 router.post("/forgot-password/request-otp", sendOtpRateLimit, validateBody(sendOtpSchema), asyncHandler(requestForgotPasswordOtpHandler));
 router.post("/forgot-password/verify-otp", validateBody(verifyOtpSchema), asyncHandler(verifyForgotPasswordOtpHandler));
 router.post("/forgot-password/reset", asyncHandler(resetPasswordWithOtpHandler));
+router.post("/change-password", requireAuth, validateBody(changePasswordSchema), asyncHandler(changePasswordHandler));
 router.post("/logout", logout);
 
 export default router;

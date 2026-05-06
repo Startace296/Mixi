@@ -389,3 +389,32 @@ export async function resetPasswordWithOtp({ email, otpCode, newPassword }) {
 
   return { email: normalizedEmail };
 }
+
+export async function changePassword(userId, { currentPassword, newPassword }) {
+  if (!userId || !currentPassword || !newPassword) {
+    throw new AppError("Current password and new password are required", 400);
+  }
+
+  if (typeof newPassword !== "string" || newPassword.trim().length < 8) {
+    throw new AppError("Password must be at least 8 characters", 400);
+  }
+
+  const user = await User.findById(userId).select("+passwordHash");
+  if (!user) {
+    throw new AppError("User not found", 404);
+  }
+
+  if (user.provider !== "local") {
+    throw new AppError("This account uses Google sign-in", 400);
+  }
+
+  const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.passwordHash || "");
+  if (!isCurrentPasswordValid) {
+    throw new AppError("Current password is incorrect", 400);
+  }
+
+  user.passwordHash = await bcrypt.hash(newPassword, 12);
+  await user.save();
+
+  return sanitizeUser(user);
+}

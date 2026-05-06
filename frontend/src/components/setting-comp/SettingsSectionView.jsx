@@ -1,19 +1,41 @@
 import { useState } from 'react';
+import toast from 'react-hot-toast';
 import PasswordInput from '../auth-comp/PasswordInput';
 import { HOME_SUB_SECTION } from '../../lib/homeSections';
+import { changePassword } from '../../lib/api';
 
 function ChangePasswordCard() {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const isSubmitDisabled =
+    isLoading ||
     !currentPassword.trim() ||
     !newPassword.trim() ||
     !confirmPassword.trim() ||
+    newPassword.trim().length < 8 ||
     newPassword !== confirmPassword;
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
+    if (isSubmitDisabled) return;
+
+    setIsLoading(true);
+    try {
+      const data = await changePassword({
+        currentPassword,
+        newPassword,
+      });
+      toast.success(data.message || 'Password changed successfully.');
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (error) {
+      toast.error(error.message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -60,7 +82,7 @@ function ChangePasswordCard() {
           disabled={isSubmitDisabled}
           className="rounded-full bg-indigo-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-[#cfd4da]"
         >
-          Save password
+          {isLoading ? 'Saving...' : 'Save password'}
         </button>
       </div>
     </form>

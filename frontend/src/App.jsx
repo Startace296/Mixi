@@ -14,6 +14,7 @@ import AuthCallbackPage from './pages/AuthCallbackPage';
 import { AboutUsPage, HelpPage, PoliciesPage } from './pages/InfoPages';
 import HomePage from './pages/HomePage';
 import { APP_PATHS } from './lib/appPaths';
+import { useAuthStore } from './stores/useAuthStore';
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -21,6 +22,17 @@ function ScrollToTop() {
     window.scrollTo(0, 0);
   }, [pathname]);
   return null;
+}
+
+function RequireAuth({ children }) {
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const location = useLocation();
+
+  if (!isAuthenticated) {
+    return <Navigate to={APP_PATHS.login} replace state={{ from: location }} />;
+  }
+
+  return children;
 }
 
 export default function App() {
@@ -42,7 +54,7 @@ export default function App() {
           <Route path="help" element={<HelpPage />} />
           <Route path="policies" element={<PoliciesPage />} />
         </Route>
-        <Route element={<MainLayout />}>
+        <Route element={<RequireAuth><MainLayout /></RequireAuth>}>
           <Route path={APP_PATHS.home} element={<HomePage />} />
           <Route path={APP_PATHS.friends} element={<Navigate to={APP_PATHS.friendsRequests} replace />} />
           <Route path={APP_PATHS.friendsRequests} element={<HomePage />} />

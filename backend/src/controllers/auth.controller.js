@@ -1,4 +1,5 @@
 import {
+  changePassword,
   completeRegistration,
   completeGoogleRegistration,
   loginLocalUser,
@@ -120,6 +121,16 @@ export async function resetPasswordWithOtpHandler(req, res) {
   res.json({
     success: true,
     message: "Password reset successful.",
+  });
+}
+
+/** POST /auth/change-password */
+export async function changePasswordHandler(req, res) {
+  await changePassword(req.user.id, req.body);
+
+  res.json({
+    success: true,
+    message: "Password changed successfully.",
   });
 }
 
