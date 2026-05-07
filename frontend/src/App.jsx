@@ -10,6 +10,7 @@ import {
 } from './pages/ForgotPasswordPages';
 import SignUpPage from './pages/SignUpPage';
 import VerifyPage from './pages/VerifyPage';
+import RegisterPage from './pages/RegisterPage';
 import AuthCallbackPage from './pages/AuthCallbackPage';
 import { AboutUsPage, HelpPage, PoliciesPage } from './pages/InfoPages';
 import HomePage from './pages/HomePage';
@@ -46,7 +47,7 @@ export default function App() {
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path={APP_PATHS.signUp} element={<SignUpPage />} />
         <Route path="/verify" element={<VerifyPage />} />
-        <Route path={APP_PATHS.register} element={<Navigate to={APP_PATHS.signUp} replace />} />
+        <Route path={APP_PATHS.register} element={<RegisterPage />} />
         <Route path={APP_PATHS.authCallback} element={<Navigate to={APP_PATHS.authCallbackGoogle} replace />} />
         <Route path="/auth/callback/:provider" element={<AuthCallbackPage />} />
         <Route element={<InfoLayout />}>
