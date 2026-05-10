@@ -75,11 +75,24 @@ function CommentAvatar({ avatarUrl, authorName, sm }) {
   );
 }
 
-export default function FeedPostCard({ post, viewerName, viewerAvatar, viewerId, onOpenProfile }) {
+export default function FeedPostCard({
+  post,
+  viewerId,
+  onOpenProfile,
+  onTogglePostLike,
+  onDeletePost,
+  onAddComment,
+  onAddReply,
+  onUpdateComment,
+  onDeleteComment,
+  onToggleCommentLike,
+}) {
   const MAX_COMMENT_INPUT_ROWS = 3;
-  const [isLiked, setIsLiked] = useState(false);
+  const [isLiked, setIsLiked] = useState(Boolean(post.likedByViewer));
+  const [likeCount, setLikeCount] = useState(post.likeCount || 0);
   const [isCommentOpen, setIsCommentOpen] = useState(false);
   const [commentInput, setCommentInput] = useState("");
+  const [isPostMenuOpen, setIsPostMenuOpen] = useState(false);
   const [openCommentMenuId, setOpenCommentMenuId] = useState(null);
   const [editingCommentId, setEditingCommentId] = useState(null);
   const [editingCommentText, setEditingCommentText] = useState("");
@@ -89,10 +102,18 @@ export default function FeedPostCard({ post, viewerName, viewerAvatar, viewerId,
       replies: Array.isArray(c.replies) ? [...c.replies] : [],
     }))
   );
-  const [commentLikedByViewer, setCommentLikedByViewer] = useState({});
   const [replyParentId, setReplyParentId] = useState(null);
   const [replyInput, setReplyInput] = useState("");
   const commentInputRef = useRef(null);
+
+  useEffect(() => {
+    setIsLiked(Boolean(post.likedByViewer));
+    setLikeCount(post.likeCount || 0);
+    setComments((post.comments || []).map((c) => ({
+      ...c,
+      replies: Array.isArray(c.replies) ? [...c.replies] : [],
+    })));
+  }, [post.id, post.likedByViewer, post.likeCount, post.comments]);
 
   // parse once; bad values still show the raw string in the line under the name
   const createdAtDate = useMemo(() => {
@@ -107,15 +128,14 @@ export default function FeedPostCard({ post, viewerName, viewerAvatar, viewerId,
     return formatPostCreatedAtDisplay(createdAtDate);
   }, [createdAtDate]);
 
-  const totalLikes = post.likeCount + (isLiked ? 1 : 0);
+  const totalLikes = likeCount;
   const totalComments = useMemo(
     () => comments.reduce((n, c) => n + 1 + (c.replies?.length ?? 0), 0),
     [comments]
   );
 
   const displaySortedComments = useMemo(() => {
-    const bonus = (id) => (commentLikedByViewer[id] ? 1 : 0);
-    const score = (row) => (row.likeCount ?? 0) + bonus(row.id);
+    const score = (row) => row.likeCount ?? 0;
     const byLikesThenNewer = (a, b) => {
       const diff = score(b) - score(a);
       if (diff !== 0) return diff;
@@ -128,7 +148,7 @@ export default function FeedPostCard({ post, viewerName, viewerAvatar, viewerId,
         replies: [...(c.replies ?? [])].sort(byLikesThenNewer),
       }))
       .sort(byLikesThenNewer);
-  }, [comments, commentLikedByViewer]);
+  }, [comments]);
 
   useEffect(() => {
     if (!commentInputRef.current) return;
@@ -155,25 +175,29 @@ export default function FeedPostCard({ post, viewerName, viewerAvatar, viewerId,
     };
   }, [openCommentMenuId]);
 
-  const handleSubmitComment = (event) => {
+  useEffect(() => {
+    if (!isPostMenuOpen) return undefined;
+
+    const handleOutsideClick = () => {
+      setIsPostMenuOpen(false);
+    };
+
+    window.addEventListener("click", handleOutsideClick);
+    return () => {
+      window.removeEventListener("click", handleOutsideClick);
+    };
+  }, [isPostMenuOpen]);
+
+  const handleSubmitComment = async (event) => {
     event.preventDefault();
 
     const cleanComment = commentInput.trim();
     if (!cleanComment) return;
 
-    const nextComment = {
-      id: `c_${Date.now()}`,
-      authorId: viewerId,
-      authorName: viewerName || "You",
-      authorAvatar: viewerAvatar || "https://i.pravatar.cc/100?img=8",
-      text: cleanComment,
-      createdAt: new Date().toISOString(),
-      isOwn: true,
-      likeCount: 0,
-      replies: [],
-    };
-
-    setComments((prevComments) => [...prevComments, nextComment]);
+    const nextComment = await onAddComment?.(post.id, cleanComment);
+    if (nextComment) {
+      setComments((prevComments) => [...prevComments, nextComment]);
+    }
     setCommentInput("");
     setIsCommentOpen(true);
   };
@@ -185,7 +209,8 @@ export default function FeedPostCard({ post, viewerName, viewerAvatar, viewerId,
     }
   };
 
-  const handleDeleteComment = (commentId) => {
+  const handleDeleteComment = async (commentId) => {
+    await onDeleteComment?.(post.id, commentId);
     setReplyParentId((rp) => (rp === commentId ? null : rp));
     setComments((prevComments) => {
       const isTop = prevComments.some((c) => c.id === commentId);
@@ -213,10 +238,11 @@ export default function FeedPostCard({ post, viewerName, viewerAvatar, viewerId,
     setOpenCommentMenuId(null);
   };
 
-  const handleSaveEditComment = () => {
+  const handleSaveEditComment = async () => {
     const cleanText = editingCommentText.trim();
     if (!cleanText || !editingCommentId) return;
 
+    await onUpdateComment?.(post.id, editingCommentId, cleanText);
     setComments((prevComments) =>
       prevComments.map((comment) => {
         if (comment.id === editingCommentId) {
@@ -234,27 +260,33 @@ export default function FeedPostCard({ post, viewerName, viewerAvatar, viewerId,
     setEditingCommentText("");
   };
 
-  const toggleCommentLike = (commentId) => {
-    setCommentLikedByViewer((prev) => ({
-      ...prev,
-      [commentId]: !prev[commentId],
-    }));
+  const toggleCommentLike = async (commentId) => {
+    const data = await onToggleCommentLike?.(post.id, commentId);
+    if (!data) return;
+
+    setComments((prevComments) =>
+      prevComments.map((comment) => {
+        if (comment.id === commentId) {
+          return { ...comment, likedByViewer: data.liked, likeCount: data.likeCount };
+        }
+        return {
+          ...comment,
+          replies: (comment.replies ?? []).map((reply) =>
+            reply.id === commentId
+              ? { ...reply, likedByViewer: data.liked, likeCount: data.likeCount }
+              : reply
+          ),
+        };
+      })
+    );
   };
 
-  const submitReplyUnder = (parentId) => {
+  const submitReplyUnder = async (parentId) => {
     const clean = replyInput.trim();
     if (!clean || !parentId) return;
 
-    const newReply = {
-      id: `r_${Date.now()}`,
-      authorId: viewerId,
-      authorName: viewerName || "You",
-      authorAvatar: viewerAvatar || "https://i.pravatar.cc/100?img=8",
-      text: clean,
-      createdAt: new Date().toISOString(),
-      isOwn: true,
-      likeCount: 0,
-    };
+    const newReply = await onAddReply?.(post.id, parentId, clean);
+    if (!newReply) return;
 
     setComments((prev) =>
       prev.map((c) =>
@@ -285,8 +317,8 @@ export default function FeedPostCard({ post, viewerName, viewerAvatar, viewerId,
   function renderCommentRow(comment, depth) {
     const replies = comment.replies ?? [];
     const baseLikes = comment.likeCount ?? 0;
-    const viewerLiked = Boolean(commentLikedByViewer[comment.id]);
-    const likeShown = baseLikes + (viewerLiked ? 1 : 0);
+    const viewerLiked = Boolean(comment.likedByViewer);
+    const likeShown = baseLikes;
     const answerShown = depth === 0 ? replies.length : 0;
     const isNested = depth > 0;
     const canOpenAuthor = Boolean(comment.authorId && onOpenProfile);
@@ -426,7 +458,7 @@ export default function FeedPostCard({ post, viewerName, viewerAvatar, viewerId,
             <div className="flex min-w-0 items-center gap-2">
               <span>{likeShown} likes</span>
               <span className="text-[#ccd0d5]">·</span>
-              <span>{answerShown} ans</span>
+              <span>{answerShown} answers</span>
             </div>
             <div className="flex shrink-0 items-center gap-1">
               <button
@@ -461,6 +493,7 @@ export default function FeedPostCard({ post, viewerName, viewerAvatar, viewerId,
   }
 
   const canOpenPostAuthor = Boolean(post.authorId && onOpenProfile);
+  const canDeletePost = Boolean(post.isOwn || post.authorId === viewerId);
   const openPostAuthor = () =>
     openAuthorProfile(onOpenProfile, post.authorId, post.authorName, post.authorAvatar);
 
@@ -481,7 +514,7 @@ export default function FeedPostCard({ post, viewerName, viewerAvatar, viewerId,
             <img src={post.authorAvatar} alt={post.authorName} className="h-10 w-10 rounded-full object-cover" />
           )}
         </div>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           {canOpenPostAuthor ? (
             <button
               type="button"
@@ -497,6 +530,40 @@ export default function FeedPostCard({ post, viewerName, viewerAvatar, viewerId,
             {createdAtLabel ?? String(post.createdAt ?? "")}
           </p>
         </div>
+        {canDeletePost ? (
+          <div className="relative shrink-0">
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                setIsPostMenuOpen((prev) => !prev);
+              }}
+              className="flex h-8 w-8 items-center justify-center rounded-full text-[#65676b] transition hover:bg-[#f0f2f5]"
+              aria-label="Open post menu"
+            >
+              <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M3 10a2 2 0 114 0 2 2 0 01-4 0zm5 0a2 2 0 114 0 2 2 0 01-4 0zm5 0a2 2 0 114 0 2 2 0 01-4 0z" />
+              </svg>
+            </button>
+            {isPostMenuOpen ? (
+              <div
+                onClick={(event) => event.stopPropagation()}
+                className="absolute right-0 top-9 z-10 min-w-[130px] rounded-md border border-[#e4e6eb] bg-white py-1 shadow-lg"
+              >
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await onDeletePost?.(post.id);
+                    setIsPostMenuOpen(false);
+                  }}
+                  className="w-full px-3 py-2 text-left text-sm text-red-500 hover:bg-red-50"
+                >
+                  Delete post
+                </button>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
       </div>
 
       <p className="px-4 pb-3 text-sm text-[#1c1e21]">{post.caption}</p>
@@ -511,7 +578,13 @@ export default function FeedPostCard({ post, viewerName, viewerAvatar, viewerId,
       <div className="grid grid-cols-4 border-t border-[#f0f2f5] px-3 py-2">
         <button
           type="button"
-          onClick={() => setIsLiked((prevState) => !prevState)}
+          onClick={async () => {
+            const data = await onTogglePostLike?.(post.id);
+            if (data) {
+              setIsLiked(Boolean(data.liked));
+              setLikeCount(data.likeCount);
+            }
+          }}
           className={`col-start-1 flex items-center justify-center gap-1.5 rounded-md px-3 py-2 text-sm font-semibold transition ${
             isLiked ? "bg-indigo-50 text-indigo-600" : "text-[#65676b] hover:bg-[#f0f2f5]"
           }`}
