@@ -1,28 +1,34 @@
 function getPresenceMeta(status) {
-  if (status === "online") {
-    return {
-      label: "Online",
-      dotClassName: "bg-emerald-500",
-    };
-  }
-  if (status === "away") {
-    return {
-      label: "Away",
-      dotClassName: "bg-amber-400",
-    };
-  }
-
-  return {
-    label: "Offline",
-    dotClassName: "bg-[#bcc0c4]",
-  };
+  if (status === "online") return { label: "Online", dotClassName: "bg-emerald-500" };
+  if (status === "away") return { label: "Away", dotClassName: "bg-amber-400" };
+  return { label: "Offline", dotClassName: "bg-[#bcc0c4]" };
 }
 
 export default function ChatHeader({ chat, onCall, onOpenProfile, canOpenProfile = true }) {
   const presence = getPresenceMeta(chat.presenceStatus);
 
+  const renderCallBtn = (onClick, label, children) => (
+    <div className="group relative">
+      <button
+        type="button"
+        id={`call-btn-${label.toLowerCase().replace(/\s/g, "-")}`}
+        onClick={onClick}
+        aria-label={label}
+        className="flex h-9 w-9 items-center justify-center rounded-full text-[#65676b] transition hover:bg-violet-50 hover:text-violet-600 active:scale-95"
+      >
+        {children}
+      </button>
+      <span
+        className="pointer-events-none absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md px-2 py-1 text-[11px] font-medium text-white opacity-0 transition-opacity group-hover:opacity-100"
+        style={{ background: "rgba(28,30,33,0.85)", zIndex: 10 }}
+      >
+        {label}
+      </span>
+    </div>
+  );
+
   return (
-    <header className="flex items-center justify-between border-b border-[#e4e6eb] px-4 py-3">
+    <header className="flex items-center justify-between border-b border-[#e4e6eb] bg-white px-4 py-3">
       <div className="flex items-center gap-3">
         {canOpenProfile ? (
           <button
@@ -44,6 +50,7 @@ export default function ChatHeader({ chat, onCall, onOpenProfile, canOpenProfile
             )}
           </span>
         )}
+
         <div>
           {canOpenProfile ? (
             <button
@@ -57,54 +64,41 @@ export default function ChatHeader({ chat, onCall, onOpenProfile, canOpenProfile
             <p className="font-semibold text-[#1c1e21]">{chat.name}</p>
           )}
           <p className="text-xs text-[#65676b]">
-            <span>{chat.type === "group" ? "Group chat" : presence.label}</span>
+            {chat.type === "group" ? "Group chat" : presence.label}
           </p>
         </div>
       </div>
 
-      <div className="flex items-center gap-2">
-        {onCall?.voice ? (
-          <button
-            type="button"
-            onClick={onCall.voice}
-            className="flex h-10 w-10 items-center justify-center rounded-full text-[#1c1e21] transition hover:bg-[#f0f2f5]"
-            aria-label="Voice call"
+      <div className="flex items-center gap-1">
+        {onCall?.voice && renderCallBtn(onCall.voice, "Voice call", (
+          <svg
+            className="h-[18px] w-[18px]"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
           >
-            <svg
-              className="h-5 w-5"
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 0 1-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 0 0-1.091-.852H4.5A2.25 2.25 0 0 0 2.25 4.5v2.25Z" />
-            </svg>
-          </button>
-        ) : null}
-        {onCall?.video ? (
-          <button
-            type="button"
-            onClick={onCall.video}
-            className="flex h-10 w-10 items-center justify-center rounded-full text-[#1c1e21] transition hover:bg-[#f0f2f5]"
-            aria-label="Video call"
+            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+          </svg>
+        ))}
+        {onCall?.video && renderCallBtn(onCall.video, "Video call", (
+          <svg
+            className="h-[18px] w-[18px]"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
           >
-            <svg
-              className="h-5 w-5"
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="m15.75 10.5 4.72-4.72a.75.75 0 0 1 1.28.53v11.38a.75.75 0 0 1-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 0 0 2.25-2.25v-9a2.25 2.25 0 0 0-2.25-2.25h-9A2.25 2.25 0 0 0 2.25 7.5v9a2.25 2.25 0 0 0 2.25 2.25Z" />
-            </svg>
-          </button>
-        ) : null}
+            <polygon points="23 7 16 12 23 17 23 7" />
+            <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
+          </svg>
+        ))}
       </div>
     </header>
   );
