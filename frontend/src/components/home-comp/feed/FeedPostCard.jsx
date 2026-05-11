@@ -80,6 +80,7 @@ export default function FeedPostCard({
   viewerId,
   onOpenProfile,
   onTogglePostLike,
+  onUpdatePost,
   onDeletePost,
   onAddComment,
   onAddReply,
@@ -93,6 +94,9 @@ export default function FeedPostCard({
   const [isCommentOpen, setIsCommentOpen] = useState(false);
   const [commentInput, setCommentInput] = useState("");
   const [isPostMenuOpen, setIsPostMenuOpen] = useState(false);
+  const [isEditingPost, setIsEditingPost] = useState(false);
+  const [editingPostCaption, setEditingPostCaption] = useState(post.caption || "");
+  const [isSavingPost, setIsSavingPost] = useState(false);
   const [openCommentMenuId, setOpenCommentMenuId] = useState(null);
   const [editingCommentId, setEditingCommentId] = useState(null);
   const [editingCommentText, setEditingCommentText] = useState("");
@@ -109,11 +113,12 @@ export default function FeedPostCard({
   useEffect(() => {
     setIsLiked(Boolean(post.likedByViewer));
     setLikeCount(post.likeCount || 0);
+    if (!isEditingPost) setEditingPostCaption(post.caption || "");
     setComments((post.comments || []).map((c) => ({
       ...c,
       replies: Array.isArray(c.replies) ? [...c.replies] : [],
     })));
-  }, [post.id, post.likedByViewer, post.likeCount, post.comments]);
+  }, [isEditingPost, post.id, post.likedByViewer, post.likeCount, post.caption, post.comments]);
 
   // parse once; bad values still show the raw string in the line under the name
   const createdAtDate = useMemo(() => {
@@ -314,6 +319,37 @@ export default function FeedPostCard({
     setReplyInput("");
   };
 
+  const handleStartEditPost = () => {
+    setEditingPostCaption(post.caption || "");
+    setIsEditingPost(true);
+    setIsPostMenuOpen(false);
+  };
+
+  const handleCancelEditPost = () => {
+    setEditingPostCaption(post.caption || "");
+    setIsEditingPost(false);
+  };
+
+  const handleSaveEditPost = async () => {
+    const cleanCaption = editingPostCaption.trim();
+    if (isSavingPost || (!cleanCaption && !post.imageUrl)) return;
+    if (cleanCaption === (post.caption || "")) {
+      setIsEditingPost(false);
+      return;
+    }
+
+    setIsSavingPost(true);
+    try {
+      const updatedPost = await onUpdatePost?.(post.id, cleanCaption);
+      if (updatedPost) {
+        setEditingPostCaption(updatedPost.caption || "");
+      }
+      setIsEditingPost(false);
+    } finally {
+      setIsSavingPost(false);
+    }
+  };
+
   function renderCommentRow(comment, depth) {
     const replies = comment.replies ?? [];
     const baseLikes = comment.likeCount ?? 0;
@@ -493,7 +529,8 @@ export default function FeedPostCard({
   }
 
   const canOpenPostAuthor = Boolean(post.authorId && onOpenProfile);
-  const canDeletePost = Boolean(post.isOwn || post.authorId === viewerId);
+  const canManagePost = Boolean(post.isOwn || post.authorId === viewerId);
+  const canSavePostEdit = Boolean(editingPostCaption.trim() || post.imageUrl);
   const openPostAuthor = () =>
     openAuthorProfile(onOpenProfile, post.authorId, post.authorName, post.authorAvatar);
 
@@ -530,7 +567,7 @@ export default function FeedPostCard({
             {createdAtLabel ?? String(post.createdAt ?? "")}
           </p>
         </div>
-        {canDeletePost ? (
+        {canManagePost ? (
           <div className="relative shrink-0">
             <button
               type="button"
@@ -552,6 +589,13 @@ export default function FeedPostCard({
               >
                 <button
                   type="button"
+                  onClick={handleStartEditPost}
+                  className="w-full px-3 py-2 text-left text-sm text-[#1c1e21] hover:bg-[#f0f2f5]"
+                >
+                  Edit post
+                </button>
+                <button
+                  type="button"
                   onClick={async () => {
                     await onDeletePost?.(post.id);
                     setIsPostMenuOpen(false);
@@ -566,7 +610,37 @@ export default function FeedPostCard({
         ) : null}
       </div>
 
-      <p className="px-4 pb-3 text-sm text-[#1c1e21]">{post.caption}</p>
+      {isEditingPost ? (
+        <div className="px-4 pb-3">
+          <textarea
+            value={editingPostCaption}
+            onChange={(event) => setEditingPostCaption(event.target.value)}
+            rows={3}
+            className="w-full resize-none rounded-lg border border-[#dddfe2] bg-white px-3 py-2 text-sm text-[#1c1e21] outline-none focus:border-indigo-500"
+            autoFocus
+          />
+          <div className="mt-2 flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={handleCancelEditPost}
+              disabled={isSavingPost}
+              className="rounded-md px-3 py-1.5 text-sm font-semibold text-[#65676b] hover:bg-[#e4e6eb] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleSaveEditPost}
+              disabled={!canSavePostEdit || isSavingPost}
+              className="rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-indigo-300"
+            >
+              {isSavingPost ? "Saving..." : "Save"}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <p className="px-4 pb-3 whitespace-pre-wrap text-sm text-[#1c1e21]">{post.caption}</p>
+      )}
 
       {post.imageUrl ? <img src={post.imageUrl} alt="Feed post" className="h-auto w-full object-cover" /> : null}
 

@@ -201,6 +201,11 @@ export const togglePostLike = async ({ postId }) => {
   return response.data;
 };
 
+export const updatePost = async ({ postId, caption }) => {
+  const response = await axiosInstance.patch(`/posts/${postId}`, { caption });
+  return response.data;
+};
+
 export const deletePost = async ({ postId }) => {
   const response = await axiosInstance.delete(`/posts/${postId}`);
   return response.data;

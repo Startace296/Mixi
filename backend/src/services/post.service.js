@@ -213,6 +213,31 @@ export async function togglePostLike(currentUserId, postId) {
   };
 }
 
+export async function updatePost(currentUserId, postId, { caption = "" } = {}) {
+  assertObjectId(postId, "Invalid post id");
+  const cleanCaption = typeof caption === "string" ? caption.trim() : "";
+
+  if (cleanCaption.length > 4000) {
+    throw new AppError("Post caption must be at most 4000 characters long", 400);
+  }
+
+  const post = await Post.findById(postId);
+  if (!post) throw new AppError("Post not found", 404);
+  if (toIdString(post.authorId) !== toIdString(currentUserId)) {
+    throw new AppError("You can only edit your own posts", 403);
+  }
+
+  if (!cleanCaption && !post.imageUrl) {
+    throw new AppError("Post text or image is required", 400);
+  }
+
+  post.caption = cleanCaption;
+  await post.save();
+
+  const populatedPost = await populatePostById(post._id);
+  return sanitizePost(populatedPost, currentUserId);
+}
+
 export async function deletePost(currentUserId, postId) {
   assertObjectId(postId, "Invalid post id");
 

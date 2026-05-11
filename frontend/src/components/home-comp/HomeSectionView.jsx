@@ -14,6 +14,7 @@ import {
   togglePostCommentLike,
   togglePostLike,
   updatePostComment,
+  updatePost,
 } from "../../lib/api.js";
 
 export default function HomeSectionView({ displayName, user, subSection, onOpenProfile, onSelectSection }) {
@@ -126,6 +127,14 @@ export default function HomeSectionView({ displayName, user, subSection, onOpenP
   const handleDeletePost = async (postId) => {
     await deletePost({ postId });
     setFeedPosts((prevPosts) => prevPosts.filter((post) => post.id !== postId));
+  };
+
+  const handleUpdatePost = async (postId, caption) => {
+    const data = await updatePost({ postId, caption });
+    if (data?.post) {
+      updatePostById(postId, () => data.post);
+    }
+    return data?.post;
   };
 
   const handleAddComment = async (postId, text) => {
@@ -246,6 +255,7 @@ export default function HomeSectionView({ displayName, user, subSection, onOpenP
             viewerId={user?.id}
             onOpenProfile={onOpenProfile}
             onTogglePostLike={handleTogglePostLike}
+            onUpdatePost={handleUpdatePost}
             onDeletePost={handleDeletePost}
             onAddComment={handleAddComment}
             onAddReply={handleAddReply}

@@ -8,6 +8,7 @@ import {
   toggleCommentLike,
   togglePostLike,
   updateComment,
+  updatePost,
 } from "../services/post.service.js";
 
 export async function getPostsHandler(req, res) {
@@ -34,6 +35,15 @@ export async function togglePostLikeHandler(req, res) {
   res.json({
     success: true,
     ...result,
+  });
+}
+
+export async function updatePostHandler(req, res) {
+  const post = await updatePost(req.user.id, req.params.postId, req.body);
+
+  res.json({
+    success: true,
+    post,
   });
 }
 

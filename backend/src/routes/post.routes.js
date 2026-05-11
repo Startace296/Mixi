@@ -10,6 +10,7 @@ import {
   toggleCommentLikeHandler,
   togglePostLikeHandler,
   updateCommentHandler,
+  updatePostHandler,
 } from "../controllers/post.controller.js";
 import { requireAuth } from "../middlewares/auth.middleware.js";
 import { postImageUpload } from "../middlewares/upload.middleware.js";
@@ -19,6 +20,7 @@ const router = Router();
 
 router.get("/", requireAuth, asyncHandler(getPostsHandler));
 router.post("/", requireAuth, postImageUpload.single("image"), asyncHandler(createPostHandler));
+router.patch("/:postId", requireAuth, asyncHandler(updatePostHandler));
 router.delete("/:postId", requireAuth, asyncHandler(deletePostHandler));
 router.post("/:postId/likes", requireAuth, asyncHandler(togglePostLikeHandler));
 router.post("/:postId/comments", requireAuth, asyncHandler(addCommentHandler));
