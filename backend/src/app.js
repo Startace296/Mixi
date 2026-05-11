@@ -6,6 +6,7 @@ import compression from "compression";
 import authRouter from "./routes/auth.routes.js";
 import chatRouter from "./routes/chat.routes.js";
 import friendRouter from "./routes/friend.routes.js";
+import postRouter from "./routes/post.routes.js";
 import userRouter from "./routes/user.routes.js";
 import { errorHandler, notFoundHandler } from "./middlewares/error.middleware.js";
 
@@ -37,6 +38,7 @@ app.use("/auth", authRouter);
 app.use("/users", userRouter);
 app.use("/friends", friendRouter);
 app.use("/chat", chatRouter);
+app.use("/posts", postRouter);
 app.use(notFoundHandler);
 app.use(errorHandler);
 

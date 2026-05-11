@@ -1,106 +1,91 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import FeedComposer from "./feed/FeedComposer.jsx";
 import FeedPostCard from "./feed/FeedPostCard.jsx";
 import PostSkeleton from "./feed/PostSkeleton.jsx";
 import { HOME_SECTION, HOME_SUB_SECTION } from "../../lib/homeSections";
-
-const MOCK_FEED_POST = {
-  id: "post_1",
-  authorId: "demo_minh_anh",
-  authorName: "Minh Anh",
-  authorAvatar: "https://i.pravatar.cc/100?img=12",
-  createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
-  caption:
-    "Finished the chat section UI today. Next step is wiring it to API and polishing group chat interactions.",
-  imageUrl: "https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=1400&q=80",
-  likeCount: 18,
-  comments: [
-    {
-      id: "c_1",
-      authorId: "demo_lan_huong",
-      authorName: "Lan Huong",
-      authorAvatar: "https://i.pravatar.cc/100?img=16",
-      text: "Looks clean! Waiting for API integration.",
-      createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-      likeCount: 4,
-      replies: [
-        {
-          id: "r_1",
-          authorId: "demo_minh_anh",
-          authorName: "Minh Anh",
-          authorAvatar: "https://i.pravatar.cc/100?img=12",
-          text: "Sounds good, ping me when the API is wired.",
-          createdAt: new Date(Date.now() - 90 * 60 * 1000).toISOString(),
-          likeCount: 2,
-        },
-      ],
-    },
-    {
-      id: "c_2",
-      authorId: "demo_tuan_dev",
-      authorName: "Tuan Dev",
-      authorAvatar: "https://i.pravatar.cc/100?img=28",
-      text: "Great progress, nice UI polish.",
-      createdAt: new Date(Date.now() - 26 * 60 * 60 * 1000).toISOString(),
-      likeCount: 0,
-      replies: [
-        {
-          id: "r_2",
-          authorId: "demo_lan_huong",
-          authorName: "Lan Huong",
-          authorAvatar: "https://i.pravatar.cc/100?img=16",
-          text: "Same here, looks solid.",
-          createdAt: new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString(),
-          likeCount: 1,
-        },
-        {
-          id: "r_3",
-          authorId: "demo_minh_anh",
-          authorName: "Minh Anh",
-          authorAvatar: "https://i.pravatar.cc/100?img=12",
-          text: "Thanks, will keep iterating.",
-          createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-          likeCount: 0,
-        },
-      ],
-    },
-  ],
-};
+import {
+  addPostComment,
+  addPostReply,
+  createPost,
+  deletePost,
+  deletePostComment,
+  getPosts,
+  togglePostCommentLike,
+  togglePostLike,
+  updatePostComment,
+  updatePost,
+} from "../../lib/api.js";
 
 export default function HomeSectionView({ displayName, user, subSection, onOpenProfile, onSelectSection }) {
   const [composerText, setComposerText] = useState("");
   const [composerImageUrl, setComposerImageUrl] = useState("");
+  const [composerImageFile, setComposerImageFile] = useState(null);
   const [isPosting, setIsPosting] = useState(false);
-  const [feedPosts, setFeedPosts] = useState([MOCK_FEED_POST]);
+  const [isLoadingPosts, setIsLoadingPosts] = useState(true);
+  const [feedError, setFeedError] = useState("");
+  const [feedPosts, setFeedPosts] = useState([]);
   const composerFileInputRef = useRef(null);
+  const composerObjectUrlsRef = useRef(new Set());
+
+  useEffect(() => {
+    return () => {
+      composerObjectUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+      composerObjectUrlsRef.current.clear();
+    };
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadPosts() {
+      setIsLoadingPosts(true);
+      setFeedError("");
+      try {
+        const data = await getPosts();
+        if (isMounted) setFeedPosts(data?.posts || []);
+      } catch (err) {
+        if (isMounted) setFeedError(err.message || "Failed to load posts");
+      } finally {
+        if (isMounted) setIsLoadingPosts(false);
+      }
+    }
+
+    loadPosts();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const handleCreatePost = async () => {
     const cleanText = composerText.trim();
     if ((!cleanText && !composerImageUrl) || isPosting) return;
 
     setIsPosting(true);
+    setFeedError("");
 
-    await new Promise((resolve) => {
-      window.setTimeout(resolve, 650);
-    });
+    try {
+      const data = await createPost({
+        caption: cleanText,
+        image: composerImageFile,
+      });
 
-    const newPost = {
-      id: `post_${Date.now()}`,
-      authorId: user?.id,
-      authorName: displayName || "You",
-      authorAvatar: user?.avatarUrl || "https://i.pravatar.cc/100?img=8",
-      createdAt: new Date().toISOString(),
-      caption: cleanText,
-      imageUrl: composerImageUrl || null,
-      likeCount: 0,
-      comments: [],
-    };
-
-    setFeedPosts((prevPosts) => [newPost, ...prevPosts]);
-    setComposerText("");
-    setComposerImageUrl("");
-    setIsPosting(false);
+      if (data?.post) {
+        setFeedPosts((prevPosts) => [data.post, ...prevPosts]);
+      }
+      setComposerText("");
+      if (composerImageUrl) {
+        URL.revokeObjectURL(composerImageUrl);
+        composerObjectUrlsRef.current.delete(composerImageUrl);
+      }
+      setComposerImageUrl("");
+      setComposerImageFile(null);
+    } catch (err) {
+      setFeedError(err.message || "Failed to create post");
+    } finally {
+      setIsPosting(false);
+    }
   };
 
   const handleComposerKeyDown = (event) => {
@@ -114,8 +99,118 @@ export default function HomeSectionView({ displayName, user, subSection, onOpenP
     const selectedFile = event.target.files?.[0];
     if (!selectedFile) return;
 
-    setComposerImageUrl(URL.createObjectURL(selectedFile));
+    if (composerImageUrl) URL.revokeObjectURL(composerImageUrl);
+    composerObjectUrlsRef.current.delete(composerImageUrl);
+    const previewUrl = URL.createObjectURL(selectedFile);
+    composerObjectUrlsRef.current.add(previewUrl);
+    setComposerImageUrl(previewUrl);
+    setComposerImageFile(selectedFile);
     event.target.value = "";
+  };
+
+  const updatePostById = (postId, updater) => {
+    setFeedPosts((prevPosts) => prevPosts.map((post) => (
+      post.id === postId ? updater(post) : post
+    )));
+  };
+
+  const handleTogglePostLike = async (postId) => {
+    const data = await togglePostLike({ postId });
+    updatePostById(postId, (post) => ({
+      ...post,
+      likedByViewer: data.liked,
+      likeCount: data.likeCount,
+    }));
+    return data;
+  };
+
+  const handleDeletePost = async (postId) => {
+    await deletePost({ postId });
+    setFeedPosts((prevPosts) => prevPosts.filter((post) => post.id !== postId));
+  };
+
+  const handleUpdatePost = async (postId, caption) => {
+    const data = await updatePost({ postId, caption });
+    if (data?.post) {
+      updatePostById(postId, () => data.post);
+    }
+    return data?.post;
+  };
+
+  const handleAddComment = async (postId, text) => {
+    const data = await addPostComment({ postId, text });
+    if (data?.comment) {
+      updatePostById(postId, (post) => ({
+        ...post,
+        comments: [...(post.comments || []), data.comment],
+      }));
+    }
+    return data?.comment;
+  };
+
+  const handleAddReply = async (postId, commentId, text) => {
+    const data = await addPostReply({ postId, commentId, text });
+    if (data?.reply) {
+      updatePostById(postId, (post) => ({
+        ...post,
+        comments: (post.comments || []).map((comment) => (
+          comment.id === commentId
+            ? { ...comment, replies: [...(comment.replies || []), data.reply] }
+            : comment
+        )),
+      }));
+    }
+    return data?.reply;
+  };
+
+  const handleUpdateComment = async (postId, commentId, text) => {
+    await updatePostComment({ postId, commentId, text });
+    updatePostById(postId, (post) => ({
+      ...post,
+      comments: (post.comments || []).map((comment) => {
+        if (comment.id === commentId) return { ...comment, text };
+        return {
+          ...comment,
+          replies: (comment.replies || []).map((reply) => (
+            reply.id === commentId ? { ...reply, text } : reply
+          )),
+        };
+      }),
+    }));
+  };
+
+  const handleDeleteComment = async (postId, commentId) => {
+    await deletePostComment({ postId, commentId });
+    updatePostById(postId, (post) => ({
+      ...post,
+      comments: (post.comments || [])
+        .filter((comment) => comment.id !== commentId)
+        .map((comment) => ({
+          ...comment,
+          replies: (comment.replies || []).filter((reply) => reply.id !== commentId),
+        })),
+    }));
+  };
+
+  const handleToggleCommentLike = async (postId, commentId) => {
+    const data = await togglePostCommentLike({ postId, commentId });
+    updatePostById(postId, (post) => ({
+      ...post,
+      comments: (post.comments || []).map((comment) => {
+        if (comment.id === commentId) {
+          return { ...comment, likedByViewer: data.liked, likeCount: data.likeCount };
+        }
+        return {
+          ...comment,
+          replies: (comment.replies || []).map((reply) => (
+            reply.id === commentId
+              ? { ...reply, likedByViewer: data.liked, likeCount: data.likeCount }
+              : reply
+          )),
+        };
+      }),
+    }));
+    return data;
   };
 
   const activeSubSection = subSection || HOME_SUB_SECTION.home_feed;
@@ -142,18 +237,39 @@ export default function HomeSectionView({ displayName, user, subSection, onOpenP
         <h2 className="text-base font-bold text-[#1c1e21]">Feed</h2>
       </div>
       <div className="space-y-4">
+        {feedError ? (
+          <div className="rounded-lg border border-red-100 bg-red-50 px-4 py-3 text-sm font-medium text-red-600">
+            {feedError}
+          </div>
+        ) : null}
+        {isLoadingPosts ? (
+          <>
+            <PostSkeleton />
+            <PostSkeleton />
+          </>
+        ) : null}
         {feedPosts.map((post) => (
           <FeedPostCard
             key={post.id}
             post={post}
-            viewerName={displayName}
-            viewerAvatar={user?.avatarUrl}
             viewerId={user?.id}
             onOpenProfile={onOpenProfile}
+            onTogglePostLike={handleTogglePostLike}
+            onUpdatePost={handleUpdatePost}
+            onDeletePost={handleDeletePost}
+            onAddComment={handleAddComment}
+            onAddReply={handleAddReply}
+            onUpdateComment={handleUpdateComment}
+            onDeleteComment={handleDeleteComment}
+            onToggleCommentLike={handleToggleCommentLike}
           />
         ))}
         {isPosting && <PostSkeleton />}
-        <PostSkeleton />
+        {!isLoadingPosts && !feedPosts.length && !feedError ? (
+          <div className="rounded-lg border border-[#e4e6eb] bg-white px-4 py-8 text-center text-sm font-medium text-[#65676b]">
+            No posts yet.
+          </div>
+        ) : null}
       </div>
     </div>
   );

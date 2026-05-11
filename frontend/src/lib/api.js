@@ -175,6 +175,67 @@ export const deleteChatMessage = async ({ messageId }) => {
   return response.data;
 };
 
+// --- Posts ---
+
+export const getPosts = async ({ limit = 20, before } = {}) => {
+  const response = await axiosInstance.get('/posts', {
+    params: {
+      limit,
+      before,
+    },
+  });
+  return response.data;
+};
+
+export const createPost = async ({ caption, image } = {}) => {
+  const formData = new FormData();
+  if (caption) formData.append('caption', caption);
+  if (image) formData.append('image', image);
+
+  const response = await axiosInstance.post('/posts', formData);
+  return response.data;
+};
+
+export const togglePostLike = async ({ postId }) => {
+  const response = await axiosInstance.post(`/posts/${postId}/likes`);
+  return response.data;
+};
+
+export const updatePost = async ({ postId, caption }) => {
+  const response = await axiosInstance.patch(`/posts/${postId}`, { caption });
+  return response.data;
+};
+
+export const deletePost = async ({ postId }) => {
+  const response = await axiosInstance.delete(`/posts/${postId}`);
+  return response.data;
+};
+
+export const addPostComment = async ({ postId, text }) => {
+  const response = await axiosInstance.post(`/posts/${postId}/comments`, { text });
+  return response.data;
+};
+
+export const addPostReply = async ({ postId, commentId, text }) => {
+  const response = await axiosInstance.post(`/posts/${postId}/comments/${commentId}/replies`, { text });
+  return response.data;
+};
+
+export const updatePostComment = async ({ postId, commentId, text }) => {
+  const response = await axiosInstance.patch(`/posts/${postId}/comments/${commentId}`, { text });
+  return response.data;
+};
+
+export const deletePostComment = async ({ postId, commentId }) => {
+  const response = await axiosInstance.delete(`/posts/${postId}/comments/${commentId}`);
+  return response.data;
+};
+
+export const togglePostCommentLike = async ({ postId, commentId }) => {
+  const response = await axiosInstance.post(`/posts/${postId}/comments/${commentId}/likes`);
+  return response.data;
+};
+
 // --- Google Auth ---
 
 export const googleLogin = async ({ idToken }) => {
