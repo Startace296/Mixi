@@ -64,6 +64,16 @@ function sanitizeMessage(message) {
     text: message.deletedAt ? "" : message.text,
     type: message.type || (message.imageUrl ? "image" : "text"),
     imageUrl: message.deletedAt ? "" : message.imageUrl,
+    call: message.type === "call" && !message.deletedAt
+      ? {
+        callId: message.call?.callId || "",
+        mode: message.call?.mode || "voice",
+        status: message.call?.status || "ended",
+        durationSeconds: message.call?.durationSeconds || 0,
+        startedAt: message.call?.startedAt || null,
+        endedAt: message.call?.endedAt || null,
+      }
+      : null,
     isDeleted: Boolean(message.deletedAt),
     createdAt: message.createdAt,
     updatedAt: message.updatedAt,

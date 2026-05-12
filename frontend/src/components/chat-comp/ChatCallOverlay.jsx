@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 /* ─── Icons ─────────────────────────────────────────────────────── */
 const SVG_PROPS = {
@@ -218,7 +218,7 @@ const BACKDROP_STYLE = {
 
 /* ─── Ringing phase (incoming + outgoing) ───────────────────────── */
 
-function RingingView({ phase, mode, peerName, peerAvatarUrl, onAccept, onDecline, onCancel, onDebugAcceptOutgoing, onTogglePov }) {
+function RingingView({ phase, mode, peerName, peerAvatarUrl, error, onAccept, onDecline, onCancel, onTogglePov = () => {} }) {
   const isIncoming = phase === "incoming_ringing";
 
   const badgeLabel = isIncoming
@@ -271,6 +271,11 @@ function RingingView({ phase, mode, peerName, peerAvatarUrl, onAccept, onDecline
         <p className="mt-1 text-sm" style={{ color: "rgba(255,255,255,0.45)" }}>
           {subtitle}
         </p>
+        {error && (
+          <p className="mt-4 rounded-xl px-3 py-2 text-xs font-semibold text-red-100" style={{ background: "rgba(239,68,68,0.18)" }}>
+            {error}
+          </p>
+        )}
 
         {/* Action buttons */}
         <div className="mt-9 flex items-center justify-center gap-6">
@@ -300,7 +305,7 @@ function RingingView({ phase, mode, peerName, peerAvatarUrl, onAccept, onDecline
         </div>
 
         {/* DEV: toggle caller/receiver POV */}
-        <div className="mt-6 flex items-center gap-1.5 rounded-full px-2.5 py-1" style={{ background: "rgba(251,191,36,0.12)", border: "1px solid rgba(251,191,36,0.25)" }}>
+        <div className="hidden mt-6 items-center gap-1.5 rounded-full px-2.5 py-1" style={{ background: "rgba(251,191,36,0.12)", border: "1px solid rgba(251,191,36,0.25)" }}>
           <span className="text-[10px] font-bold" style={{ color: "#fbbf24" }}>DEV</span>
           <button
             type="button"
@@ -318,15 +323,23 @@ function RingingView({ phase, mode, peerName, peerAvatarUrl, onAccept, onDecline
 
 /* ─── In-call phase ──────────────────────────────────────────────── */
 
-function InCallView({ mode, peerName, peerAvatarUrl, isMicOn, isCamOn, onToggleMic, onToggleCam, onEnd }) {
+function InCallView({ mode, peerName, peerAvatarUrl, isMicOn, isCamOn, error, remoteStream, onToggleMic, onToggleCam, onEnd }) {
   const [peerCamOn, setPeerCamOn] = useState(false);
+  const remoteAudioRef = useRef(null);
   const showVideoLayout = mode === "video" || isCamOn || peerCamOn;
+
+  useEffect(() => {
+    if (!remoteAudioRef.current) return;
+    remoteAudioRef.current.srcObject = remoteStream || null;
+  }, [remoteStream]);
+
   return (
     <div
       id="call-overlay"
       className="call-overlay-backdrop fixed inset-0 z-50 flex flex-col"
       style={BACKDROP_STYLE}
     >
+      <audio ref={remoteAudioRef} autoPlay playsInline />
       {/* Main content area */}
       <div className="relative flex flex-1 items-center justify-center overflow-hidden">
         {/* Background gradient orbs */}
@@ -418,23 +431,29 @@ function InCallView({ mode, peerName, peerAvatarUrl, isMicOn, isCamOn, onToggleM
                 <span className="inline-block h-2 w-2 rounded-full" style={{ background: "#10b981" }} />
                 <CallTimer />
               </div>
+              {error && (
+                <p className="mt-3 max-w-xs rounded-xl px-3 py-2 text-center text-xs font-semibold text-red-100" style={{ background: "rgba(239,68,68,0.18)" }}>
+                  {error}
+                </p>
+              )}
             </div>
           </div>
         )}
       </div>
 
-      {/* DEV: toggle other user cam */}
-      <div className="absolute right-3 top-3 z-10 flex items-center gap-1.5 rounded-full px-2.5 py-1" style={{ background: "rgba(251,191,36,0.15)", border: "1px solid rgba(251,191,36,0.3)" }}>
-        <span className="text-[10px] font-bold" style={{ color: "#fbbf24" }}>DEV</span>
-        <button
-          type="button"
-          onClick={() => setPeerCamOn((v) => !v)}
-          className="rounded-full px-2 py-0.5 text-[10px] font-semibold transition hover:opacity-80"
-          style={{ background: peerCamOn ? "rgba(16,185,129,0.25)" : "rgba(239,68,68,0.2)", color: peerCamOn ? "#34d399" : "#f87171" }}
-        >
-          Other cam: {peerCamOn ? "ON" : "OFF"}
-        </button>
-      </div>
+      {mode === "video" && (
+        <div className="absolute right-3 top-3 z-10 flex items-center gap-1.5 rounded-full px-2.5 py-1" style={{ background: "rgba(251,191,36,0.15)", border: "1px solid rgba(251,191,36,0.3)" }}>
+          <span className="text-[10px] font-bold" style={{ color: "#fbbf24" }}>DEV</span>
+          <button
+            type="button"
+            onClick={() => setPeerCamOn((v) => !v)}
+            className="rounded-full px-2 py-0.5 text-[10px] font-semibold transition hover:opacity-80"
+            style={{ background: peerCamOn ? "rgba(16,185,129,0.25)" : "rgba(239,68,68,0.2)", color: peerCamOn ? "#34d399" : "#f87171" }}
+          >
+            Other cam: {peerCamOn ? "ON" : "OFF"}
+          </button>
+        </div>
+      )}
 
       {/* Control bar */}
       <div
@@ -465,17 +484,19 @@ function InCallView({ mode, peerName, peerAvatarUrl, isMicOn, isCamOn, onToggleM
           {isMicOn ? <IconMic className="h-5 w-5" /> : <IconMicOff className="h-5 w-5" />}
         </CtrlBtn>
 
-        <CtrlBtn
-          onClick={onToggleCam}
-          label={isCamOn ? "Cam off" : "Cam on"}
-          active={isCamOn}
-          aria-label={isCamOn ? "Turn camera off" : "Turn camera on"}
-        >
-          {isCamOn
-            ? <IconVideo className="h-5 w-5" />
-            : <WithSlash size={20}><IconVideo className="h-5 w-5" /></WithSlash>
-          }
-        </CtrlBtn>
+        {mode === "video" && (
+          <CtrlBtn
+            onClick={onToggleCam}
+            label={isCamOn ? "Cam off" : "Cam on"}
+            active={isCamOn}
+            aria-label={isCamOn ? "Turn camera off" : "Turn camera on"}
+          >
+            {isCamOn
+              ? <IconVideo className="h-5 w-5" />
+              : <WithSlash size={20}><IconVideo className="h-5 w-5" /></WithSlash>
+            }
+          </CtrlBtn>
+        )}
 
         <CtrlBtn onClick={onEnd} label="End" danger large aria-label="End call">
           <WithSlash size={24}>
@@ -497,13 +518,14 @@ export default function ChatCallOverlay({
   peerAvatarUrl,
   isMicOn,
   isCamOn,
+  error,
+  remoteStream,
   onAccept,
   onDecline,
   onCancel,
   onToggleMic,
   onToggleCam,
   onEnd,
-  onDebugAcceptOutgoing,
 }) {
   const [debugPhaseOverride, setDebugPhaseOverride] = useState(null);
   const effectivePhase = debugPhaseOverride ?? phase;
@@ -536,6 +558,8 @@ export default function ChatCallOverlay({
         peerAvatarUrl={peerAvatarUrl}
         isMicOn={isMicOn}
         isCamOn={isCamOn}
+        error={error}
+        remoteStream={remoteStream}
         onToggleMic={onToggleMic}
         onToggleCam={onToggleCam}
         onEnd={onEnd}
@@ -549,10 +573,10 @@ export default function ChatCallOverlay({
       mode={mode}
       peerName={peerName}
       peerAvatarUrl={peerAvatarUrl}
+      error={error}
       onAccept={onAccept}
       onDecline={onDecline}
       onCancel={onCancel}
-      onDebugAcceptOutgoing={onDebugAcceptOutgoing}
       onTogglePov={handleTogglePov}
     />
   );

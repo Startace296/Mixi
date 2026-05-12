@@ -6,6 +6,7 @@ import HomeHeader from '../components/home-comp/HomeHeader';
 import HomeSidebarPrimary from '../components/home-comp/HomeSidebarPrimary';
 import HomeSidebarSecondaryPanel from '../components/home-comp/HomeSidebarSecondaryPanel.jsx';
 import ChatSidebarSecondaryPanel from '../components/chat-comp/ChatSidebarSecondaryPanel.jsx';
+import ChatCallOverlay from '../components/chat-comp/ChatCallOverlay.jsx';
 import FriendsSidebarSecondaryPanel from '../components/friend-comp/FriendsSidebarSecondaryPanel.jsx';
 import SettingsSidebarSecondaryPanel from '../components/setting-comp/SettingsSidebarSecondaryPanel.jsx';
 import { HOME_SECTION, HOME_SUB_SECTION } from '../lib/homeSections.js';
@@ -13,6 +14,7 @@ import { APP_PATHS, parseMainPath } from '../lib/appPaths.js';
 import { createDirectConversation } from '../lib/api.js';
 import { emitPresenceStatus, getAuthenticatedSocket } from '../lib/socket.js';
 import { useAuthUser } from '../hooks/useAuthUser';
+import { useVoiceCall } from '../hooks/useVoiceCall.js';
 
 const AWAY_AFTER_MS = 15 * 60 * 1000;
 const ACTIVITY_EVENTS = ["mousemove", "mousedown", "keydown", "touchstart", "scroll", "focus"];
@@ -22,6 +24,16 @@ export default function MainLayout() {
   const navigate = useNavigate();
   const { pathname, state: locationState } = useLocation();
   const [selectedChatThread, setSelectedChatThread] = useState(null);
+  const {
+    callState,
+    remoteStream,
+    startVoiceCall,
+    acceptCall,
+    cancelOutgoingCall,
+    declineCall,
+    endCall,
+    toggleMic,
+  } = useVoiceCall({ currentUser: user });
 
   const parsed = useMemo(() => parseMainPath(pathname), [pathname]);
 
@@ -215,6 +227,23 @@ export default function MainLayout() {
 
   return (
     <div className="h-screen flex flex-col bg-[#f0f2f5] overflow-hidden">
+      <ChatCallOverlay
+        isOpen={callState.isOpen}
+        phase={callState.phase}
+        mode={callState.mode}
+        peerName={callState.peerName}
+        peerAvatarUrl={callState.peerAvatarUrl}
+        isMicOn={callState.isMicOn}
+        isCamOn={callState.isCamOn}
+        error={callState.error}
+        remoteStream={remoteStream}
+        onAccept={acceptCall}
+        onDecline={declineCall}
+        onCancel={cancelOutgoingCall}
+        onToggleMic={toggleMic}
+        onToggleCam={() => {}}
+        onEnd={endCall}
+      />
       <HomeHeader user={user} onSelectSection={handleSelectSection} />
       <div className="flex flex-1 pt-16 min-h-0">
         {!isProfilePage && (
@@ -259,6 +288,7 @@ export default function MainLayout() {
               onOpenProfile: handleOpenProfile,
               onSelectSection: handleSelectSection,
               onOpenChatWithFriend: handleOpenChatWithFriend,
+              onStartVoiceCall: startVoiceCall,
             }}
           />
         </main>

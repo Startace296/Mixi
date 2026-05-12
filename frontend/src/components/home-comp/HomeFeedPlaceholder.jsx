@@ -16,6 +16,7 @@ export default function HomeFeedPlaceholder({
   onOpenProfile,
   onSelectSection,
   onOpenChatWithFriend,
+  onStartVoiceCall,
 }) {
   if (section === HOME_SECTION.home) {
     return (
@@ -29,7 +30,14 @@ export default function HomeFeedPlaceholder({
     );
   }
   if (section === HOME_SECTION.messages) {
-    return <ChatSectionView selectedChatThread={selectedChatThread} onOpenProfile={onOpenProfile} user={user} />;
+    return (
+      <ChatSectionView
+        selectedChatThread={selectedChatThread}
+        onOpenProfile={onOpenProfile}
+        user={user}
+        onStartVoiceCall={onStartVoiceCall}
+      />
+    );
   }
   if (section === HOME_SECTION.friends) {
     return (

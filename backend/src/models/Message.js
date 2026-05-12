@@ -22,9 +22,39 @@ const messageSchema = new Schema(
     },
     type: {
       type: String,
-      enum: ["text", "image"],
+      enum: ["text", "image", "call"],
       default: "text",
       index: true,
+    },
+    call: {
+      callId: {
+        type: String,
+        trim: true,
+        default: "",
+      },
+      mode: {
+        type: String,
+        enum: ["voice", "video"],
+        default: "voice",
+      },
+      status: {
+        type: String,
+        enum: ["cancelled", "declined", "missed", "ended"],
+        default: "ended",
+      },
+      durationSeconds: {
+        type: Number,
+        min: 0,
+        default: 0,
+      },
+      startedAt: {
+        type: Date,
+        default: null,
+      },
+      endedAt: {
+        type: Date,
+        default: null,
+      },
     },
     imageUrl: {
       type: String,

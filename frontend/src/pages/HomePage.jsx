@@ -14,6 +14,7 @@ export default function HomePage() {
     onOpenProfile,
     onSelectSection,
     onOpenChatWithFriend,
+    onStartVoiceCall,
   } = outlet;
   const displayName =
     user?.displayName ||
@@ -33,6 +34,7 @@ export default function HomePage() {
       onOpenProfile={onOpenProfile}
       onSelectSection={onSelectSection}
       onOpenChatWithFriend={onOpenChatWithFriend}
+      onStartVoiceCall={onStartVoiceCall}
     />
   );
 }
