@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { createPortal } from "react-dom";
 
 import { formatPostCreatedAtDisplay } from "../../../lib/postDisplayTime.js";
+import { getAvatarUrl } from "../../../lib/avatarUrl.js";
 
 function IconThumbsUp({ className = "h-3.5 w-3.5" }) {
   return (
@@ -85,24 +86,14 @@ function CommentMenuPortal({ anchorEl, onClose, children }) {
 }
 
 function CommentAvatar({ avatarUrl, authorName, sm }) {
-  const box = sm ? "h-7 w-7 text-[10px]" : "h-8 w-8 text-xs";
-  if (avatarUrl) {
-    return (
-      <img
-        src={avatarUrl}
-        alt={authorName}
-        className={`${box} shrink-0 rounded-full object-cover ring-1 ring-black/5`}
-      />
-    );
-  }
-
-  const initial = authorName?.[0]?.toUpperCase() || "?";
+  const box = sm ? "h-7 w-7" : "h-8 w-8";
   return (
-    <div
-      className={`flex ${box} shrink-0 items-center justify-center rounded-full bg-indigo-100 font-semibold text-indigo-700`}
-    >
-      {initial}
-    </div>
+    <img
+      src={getAvatarUrl(avatarUrl)}
+      alt={authorName}
+      onError={(e) => { e.currentTarget.src = "/basic_avatar.jpg"; }}
+      className={`${box} shrink-0 rounded-full object-cover ring-1 ring-black/5`}
+    />
   );
 }
 
@@ -576,7 +567,7 @@ export default function FeedPostCard({
               className="rounded-full focus:outline-none"
               aria-label={`Open ${post.authorName} profile`}
             >
-              <img src={post.authorAvatar} alt={post.authorName} className="h-10 w-10 rounded-full object-cover" />
+              <img src={getAvatarUrl(post.authorAvatar)} alt={post.authorName} className="h-10 w-10 rounded-full object-cover" />
             </button>
           ) : (
             <img src={post.authorAvatar} alt={post.authorName} className="h-10 w-10 rounded-full object-cover" />

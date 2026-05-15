@@ -12,6 +12,7 @@ import {
   declineFriendRequest,
   removeFriend,
 } from '../../lib/api.js';
+import { getAvatarUrl } from '../../lib/avatarUrl.js';
 
 const GENDERS = ['Male', 'Female', 'Other'];
 const MAX_BIO_CHARACTERS = 280;
@@ -51,28 +52,14 @@ function createFormState(user) {
 }
 
 function UserAvatar({ user, size = 'lg', className = '' }) {
-  const [imgError, setImgError] = useState(false);
-  const sizeClass = size === 'xl' ? 'w-24 h-24 text-4xl' : size === 'lg' ? 'w-20 h-20 text-3xl' : 'w-10 h-10 text-sm';
-  const label = (user?.displayName?.[0] || user?.email?.[0] || '?').toUpperCase();
-
-  if (user?.avatarUrl && !imgError) {
-    return (
-      <img
-        src={user.avatarUrl}
-        alt=""
-        onError={() => setImgError(true)}
-        className={`${sizeClass} rounded-full object-cover ${className}`}
-      />
-    );
-  }
-
+  const sizeClass = size === 'xl' ? 'w-24 h-24' : size === 'lg' ? 'w-20 h-20' : 'w-10 h-10';
   return (
-    <div
-      className={`${sizeClass} rounded-full bg-indigo-100 text-indigo-700 font-bold flex items-center justify-center ${className}`}
-      aria-hidden
-    >
-      {label}
-    </div>
+    <img
+      src={getAvatarUrl(user?.avatarUrl)}
+      alt=""
+      onError={(e) => { e.currentTarget.src = '/basic_avatar.jpg'; }}
+      className={`${sizeClass} rounded-full object-cover ${className}`}
+    />
   );
 }
 

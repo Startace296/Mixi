@@ -38,6 +38,13 @@ export default function ChatSectionView({ selectedChatThread, onOpenProfile, use
   const [typingUserIds, setTypingUserIds] = useState([]);
 
   const selectedChat = selectedChatThread || null;
+  const [localGroupInfo, setLocalGroupInfo] = useState(null);
+
+  // Merge local group edits (name, avatar) over the server data for display
+  const displayChat = selectedChat && localGroupInfo && selectedChat.type === "group"
+    ? { ...selectedChat, ...localGroupInfo }
+    : selectedChat;
+
   const activeThreadId = selectedChat?.id;
   const activeThreadCacheKey = activeThreadId
     ? `${activeThreadId}:${selectedChat?.time || selectedChat?.lastMessageAt || ""}`
@@ -360,12 +367,22 @@ export default function ChatSectionView({ selectedChatThread, onOpenProfile, use
     <section className="flex min-h-0 flex-1 flex-col bg-white">
       <div className="flex min-h-0 flex-1 flex-col">
         <ChatHeader
-          chat={selectedChat}
+          chat={displayChat}
+          currentUser={user}
           onCall={{
-            voice: () => onStartVoiceCall?.(selectedChat),
+            voice: () => onStartVoiceCall?.(displayChat),
           }}
           onOpenProfile={handleOpenChatProfile}
           canOpenProfile={selectedChat.type !== "group"}
+          onUpdateGroup={(updates) => setLocalGroupInfo((prev) => ({ ...prev, ...updates }))}
+          onDeleteGroup={() => {
+            // TODO: call API to delete group, then navigate away
+            alert(`Delete group "${displayChat?.name}" — coming soon`);
+          }}
+          onLeaveGroup={() => {
+            // TODO: call API to leave group, then navigate away
+            alert(`Leave group "${displayChat?.name}" — coming soon`);
+          }}
         />
         <MessageList
           messages={messages}

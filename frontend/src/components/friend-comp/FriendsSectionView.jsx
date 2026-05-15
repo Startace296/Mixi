@@ -13,6 +13,7 @@ import {
 } from '../../lib/api.js';
 import { HOME_SUB_SECTION } from '../../lib/homeSections.js';
 import { FRIEND_SOCKET_EVENTS, getAuthenticatedSocket } from '../../lib/socket.js';
+import { getAvatarUrl } from '../../lib/avatarUrl.js';
 
 function getInitials(displayName) {
   const parts = (displayName || '')
@@ -38,20 +39,13 @@ function SectionDivider({ title, count }) {
 }
 
 function Avatar({ displayName, avatarUrl }) {
-  if (avatarUrl) {
-    return (
-      <img
-        src={avatarUrl}
-        alt={displayName}
-        className="h-12 w-12 shrink-0 rounded-full object-cover ring-1 ring-black/5"
-      />
-    );
-  }
-
   return (
-    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-base font-semibold text-indigo-700">
-      {getInitials(displayName)}
-    </div>
+    <img
+      src={getAvatarUrl(avatarUrl)}
+      alt={displayName}
+      onError={(e) => { e.currentTarget.src = '/basic_avatar.jpg'; }}
+      className="h-12 w-12 shrink-0 rounded-full object-cover ring-1 ring-black/5"
+    />
   );
 }
 

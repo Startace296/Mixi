@@ -203,6 +203,11 @@ export default function MainLayout() {
     }
   }, [navigate]);
 
+  const handleCreateGroup = useCallback(() => {
+    // TODO: open CreateGroupModal
+    alert('Create Group Chat — coming soon!');
+  }, []);
+
   const handleSubSectionChange = useCallback((subKey) => {
     if (activeSection === HOME_SECTION.home) {
       navigate(APP_PATHS.home);
@@ -260,6 +265,7 @@ export default function MainLayout() {
                 selectedChatId={selectedChatId}
                 onSelectChat={handleSelectChat}
                 currentUserId={user?.id}
+                onCreateGroup={handleCreateGroup}
               />
             )}
             {activeSection === HOME_SECTION.friends && (

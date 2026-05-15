@@ -7,33 +7,16 @@ import { logout } from '../../lib/api.js';
 import { HOME_SECTION } from '../../lib/homeSections.js';
 import { disconnectAuthenticatedSocket } from '../../lib/socket.js';
 import { useAuthStore } from '../../stores/useAuthStore.js';
+import { getAvatarUrl } from '../../lib/avatarUrl.js';
 
 function UserAvatar({ user, className = '' }) {
-  const [imgError, setImgError] = useState(false);
-  const label = (
-    user?.displayName?.[0] ||
-    user?.username?.[0] ||
-    user?.email?.[0] ||
-    '?'
-  ).toUpperCase();
-
-  if (user?.avatarUrl && !imgError) {
-    return (
-      <img
-        src={user.avatarUrl}
-        alt=""
-        onError={() => setImgError(true)}
-        className={`rounded-full object-cover ${className}`}
-      />
-    );
-  }
   return (
-    <div
-      className={`rounded-full bg-indigo-100 text-indigo-700 font-semibold flex items-center justify-center ${className}`}
-      aria-hidden
-    >
-      {label}
-    </div>
+    <img
+      src={getAvatarUrl(user?.avatarUrl)}
+      alt=""
+      onError={(e) => { e.currentTarget.src = '/basic_avatar.jpg'; }}
+      className={`rounded-full object-cover ${className}`}
+    />
   );
 }
 
