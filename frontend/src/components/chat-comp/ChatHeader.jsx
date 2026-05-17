@@ -10,7 +10,7 @@ function getPresenceMeta(status) {
 }
 
 /* ─── Member List View ──────────────────────────────────────── */
-function MemberListView({ chat, currentUser, isOwner, onAddMember, onViewProfile }) {
+function MemberListView({ chat, currentUser, isOwner, onAddMember, onRemoveMember, onViewProfile }) {
   const [search, setSearch] = useState("");
   const members = chat.members ?? [];
   const filtered = members.filter((m) =>
@@ -73,7 +73,13 @@ function MemberListView({ chat, currentUser, isOwner, onAddMember, onViewProfile
                   <button
                     type="button"
                     className="shrink-0 rounded-md border border-red-200 px-2.5 py-1 text-xs font-semibold text-red-500 transition hover:bg-red-50 hover:border-red-300"
-                    onClick={() => alert(`Kick ${m.displayName} — coming soon`)}
+                    onClick={async () => {
+                      try {
+                        await onRemoveMember?.(m);
+                      } catch (err) {
+                        window.alert(err.message || "Failed to remove member");
+                      }
+                    }}
                   >
                     Kick
                   </button>
@@ -85,22 +91,24 @@ function MemberListView({ chat, currentUser, isOwner, onAddMember, onViewProfile
       </div>
 
       {/* Add member */}
-      <button
-        type="button"
-        className="flex w-full items-center gap-2.5 rounded-lg border border-dashed border-[#dddfe2] px-3 py-2.5 text-sm font-semibold text-indigo-600 transition hover:bg-indigo-50"
-        onClick={onAddMember}
-      >
-        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-        </svg>
-        Add member
-      </button>
+      {isOwner && (
+        <button
+          type="button"
+          className="flex w-full items-center gap-2.5 rounded-lg border border-dashed border-[#dddfe2] px-3 py-2.5 text-sm font-semibold text-indigo-600 transition hover:bg-indigo-50"
+          onClick={onAddMember}
+        >
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+          </svg>
+          Add member
+        </button>
+      )}
     </div>
   );
 }
 
 /* ─── Add Member View ───────────────────────────────────────── */
-function AddMemberView({ chat, onViewProfile }) {
+function AddMemberView({ chat, onAddMember, onViewProfile }) {
   const [search, setSearch] = useState("");
   const [friends, setFriends] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -109,11 +117,25 @@ function AddMemberView({ chat, onViewProfile }) {
   const memberIds = new Set((chat.members ?? []).map((m) => String(m.id ?? m._id)));
 
   useEffect(() => {
-    getFriends()
-      .then((data) => { setFriends(Array.isArray(data) ? data : []); })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []);
+    let isMounted = true;
+
+    setLoading(true);
+    getFriends({ q: search || undefined, limit: 50 })
+      .then((data) => {
+        if (!isMounted) return;
+        setFriends(Array.isArray(data) ? data : data?.friends || []);
+      })
+      .catch(() => {
+        if (isMounted) setFriends([]);
+      })
+      .finally(() => {
+        if (isMounted) setLoading(false);
+      });
+    
+    return () => {
+      isMounted = false;
+    };
+  }, [search]);
 
   const eligible = friends.filter((f) => {
     const fid = String(f.id ?? f._id);
@@ -124,10 +146,14 @@ function AddMemberView({ chat, onViewProfile }) {
     );
   });
 
-  const handleAdd = (f) => {
+  const handleAdd = async (f) => {
     const fid = String(f.id ?? f._id);
-    setAdded((prev) => new Set([...prev, fid]));
-    // TODO: call API to add member to group
+    try {
+      await onAddMember?.(f);
+      setAdded((prev) => new Set([...prev, fid]));
+    } catch (err) {
+      window.alert(err.message || "Failed to add member");
+    }
   };
 
   return (
@@ -193,12 +219,13 @@ function AddMemberView({ chat, onViewProfile }) {
 }
 
 /* ─── Edit Group Modal ─────────────────────────────────────── */
-function EditGroupModal({ chat, currentUser, onClose, onUpdateGroup, onDelete, onLeave }) {
+function EditGroupModal({ chat, currentUser, onClose, onUpdateGroup, onAddMember, onRemoveMember, onDelete, onLeave }) {
   const navigate = useNavigate();
   const [view, setView] = useState("edit"); // "edit" | "members" | "add-member"
   const [name, setName] = useState(chat.name || "");
   const [nameConfirm, setNameConfirm] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState(null);
+  const [avatarFile, setAvatarFile] = useState(null);
   const [avatarConfirm, setAvatarConfirm] = useState(false);
   const fileInputRef = useRef(null);
 
@@ -225,7 +252,14 @@ function EditGroupModal({ chat, currentUser, onClose, onUpdateGroup, onDelete, o
     if (!trimmed || trimmed === (chat.name || "").trim()) { setName(chat.name || ""); return; }
     setNameConfirm(true);
   };
-  const confirmNameSave = () => { onUpdateGroup?.({ name: name.trim(), profilePic: chat.profilePic }); setNameConfirm(false); };
+  const confirmNameSave = async () => {
+    try {
+      await onUpdateGroup?.({ name: name.trim() });
+      setNameConfirm(false);
+    } catch (err) {
+      window.alert(err.message || "Failed to update group");
+    }
+  };
   const cancelNameEdit = () => { setName(chat.name || ""); setNameConfirm(false); };
 
   // ── Avatar ─────────────────────────────────────────────────
@@ -233,11 +267,19 @@ function EditGroupModal({ chat, currentUser, onClose, onUpdateGroup, onDelete, o
     const file = e.target.files?.[0];
     if (!file) return;
     if (avatarPreview) URL.revokeObjectURL(avatarPreview);
+    setAvatarFile(file);
     setAvatarPreview(URL.createObjectURL(file));
     setAvatarConfirm(true);
   };
-  const confirmAvatarSave = () => { onUpdateGroup?.({ name: chat.name, profilePic: avatarPreview }); setAvatarConfirm(false); };
-  const cancelAvatarEdit = () => { if (avatarPreview) URL.revokeObjectURL(avatarPreview); setAvatarPreview(null); setAvatarConfirm(false); };
+  const confirmAvatarSave = async () => {
+    try {
+      await onUpdateGroup?.({ avatar: avatarFile });
+      setAvatarConfirm(false);
+    } catch (err) {
+      window.alert(err.message || "Failed to update group photo");
+    }
+  };
+  const cancelAvatarEdit = () => { if (avatarPreview) URL.revokeObjectURL(avatarPreview); setAvatarPreview(null); setAvatarFile(null); setAvatarConfirm(false); };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4" onClick={onClose}>
@@ -280,6 +322,7 @@ function EditGroupModal({ chat, currentUser, onClose, onUpdateGroup, onDelete, o
           {view === "add-member" ? (
             <AddMemberView
               chat={chat}
+              onAddMember={onAddMember}
               onViewProfile={(userId) => { navigate(`/profile/${userId}`); onClose(); }}
             />
           ) : view === "members" ? (
@@ -288,6 +331,7 @@ function EditGroupModal({ chat, currentUser, onClose, onUpdateGroup, onDelete, o
               currentUser={currentUser}
               isOwner={isOwner}
               onAddMember={() => setView("add-member")}
+              onRemoveMember={onRemoveMember}
               onViewProfile={(userId) => { navigate(`/profile/${userId}`); onClose(); }}
             />
           ) : (
@@ -305,7 +349,7 @@ function EditGroupModal({ chat, currentUser, onClose, onUpdateGroup, onDelete, o
                       <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0ZM18.75 10.5h.008v.008h-.008V10.5Z" />
                     </svg>
                   </button>
-                  <input ref={fileInputRef} type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={handleFileChange} />
+                  <input ref={fileInputRef} type="file" accept="image/png,image/jpeg" className="hidden" onChange={handleFileChange} />
                 </div>
                 <p className="text-[11px] text-[#8a8d91]">Group photo</p>
                 {avatarConfirm && (
@@ -393,7 +437,7 @@ function EditGroupModal({ chat, currentUser, onClose, onUpdateGroup, onDelete, o
 }
 
 /* ─── Chat Header ──────────────────────────────────────────── */
-export default function ChatHeader({ chat, currentUser, onCall, onOpenProfile, canOpenProfile = true, onUpdateGroup, onDeleteGroup, onLeaveGroup }) {
+export default function ChatHeader({ chat, currentUser, onCall, onOpenProfile, canOpenProfile = true, onUpdateGroup, onAddMember, onRemoveMember, onDeleteGroup, onLeaveGroup }) {
   const presence = getPresenceMeta(chat.presenceStatus);
   const [editGroupOpen, setEditGroupOpen] = useState(false);
   const isGroup = chat.type === "group";
@@ -458,6 +502,8 @@ export default function ChatHeader({ chat, currentUser, onCall, onOpenProfile, c
           currentUser={currentUser}
           onClose={() => setEditGroupOpen(false)}
           onUpdateGroup={onUpdateGroup}
+          onAddMember={onAddMember}
+          onRemoveMember={onRemoveMember}
           onDelete={() => { setEditGroupOpen(false); onDeleteGroup?.(); }}
           onLeave={() => { setEditGroupOpen(false); onLeaveGroup?.(); }}
         />

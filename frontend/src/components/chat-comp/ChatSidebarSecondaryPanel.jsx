@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from "react";
-import { getChatConversations, hideChatConversation } from "../../lib/api.js";
+import { createGroupConversation, getChatConversations, hideChatConversation } from "../../lib/api.js";
 import { CHAT_SOCKET_EVENTS, PRESENCE_SOCKET_EVENTS, getAuthenticatedSocket } from "../../lib/socket.js";
 import { formatMessengerTime } from "../../lib/timeFormat.js";
 import { getAvatarUrl } from "../../lib/avatarUrl.js";
 
 function CreateGroupModal({ onClose, onCreate }) {
   const [groupName, setGroupName] = useState("");
+  const [avatarFile, setAvatarFile] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState(null);
   const fileInputRef = useRef(null);
 
@@ -22,13 +23,14 @@ function CreateGroupModal({ onClose, onCreate }) {
     const file = e.target.files?.[0];
     if (!file) return;
     if (avatarPreview) URL.revokeObjectURL(avatarPreview);
+    setAvatarFile(file);
     setAvatarPreview(URL.createObjectURL(file));
   };
 
   const handleCreate = () => {
     const name = groupName.trim();
     if (!name) return;
-    onCreate({ name, avatarUrl: avatarPreview || "/basic_group_chat_avatar.png" });
+    onCreate({ name, avatar: avatarFile });
   };
 
   return (
@@ -78,7 +80,7 @@ function CreateGroupModal({ onClose, onCreate }) {
               <input
                 ref={fileInputRef}
                 type="file"
-                accept="image/png,image/jpeg,image/webp"
+                accept="image/png,image/jpeg"
                 className="hidden"
                 onChange={handleFileChange}
               />
@@ -224,6 +226,7 @@ export default function ChatSidebarSecondaryPanel({ selectedChatId, onSelectChat
   const [conversations, setConversations] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  const [isCreatingGroup, setIsCreatingGroup] = useState(false);
   const [createGroupOpen, setCreateGroupOpen] = useState(false);
   const hasLoadedOnceRef = useRef(false);
 
@@ -309,14 +312,28 @@ export default function ChatSidebarSecondaryPanel({ selectedChatId, onSelectChat
       }
     };
 
+    const handleConversationRemoved = (payload) => {
+      if (!payload?.conversationId) return;
+
+      setConversations((prevConversations) => {
+        const nextConversations = prevConversations.filter((conversation) => conversation.id !== payload.conversationId);
+        if (selectedChatId === payload.conversationId) {
+          onSelectChat(nextConversations[0] || null, true);
+        }
+        return nextConversations;
+      });
+    };
+
     CHAT_SOCKET_EVENTS.forEach((eventName) => {
       socket.on(eventName, handleChatEvent);
     });
+    socket.on("chat:conversation_removed", handleConversationRemoved);
 
     return () => {
       CHAT_SOCKET_EVENTS.forEach((eventName) => {
         socket.off(eventName, handleChatEvent);
       });
+      socket.off("chat:conversation_removed", handleConversationRemoved);
     };
   }, [onSelectChat, selectedChatId]);
 
@@ -430,20 +447,23 @@ export default function ChatSidebarSecondaryPanel({ selectedChatId, onSelectChat
       {createGroupOpen && (
         <CreateGroupModal
           onClose={() => setCreateGroupOpen(false)}
-          onCreate={({ name, avatarUrl }) => {
-            const mockGroup = {
-              id: `mock-group-${Date.now()}`,
-              name,
-              type: "group",
-              profilePic: avatarUrl,
-              preview: "Group created",
-              time: new Date().toISOString(),
-              unread: 0,
-              presenceStatus: null,
-            };
-            setConversations((prev) => [mockGroup, ...prev]);
-            setCreateGroupOpen(false);
-            onCreateGroup?.(mockGroup);
+          onCreate={async ({ name, avatar }) => {
+            if (isCreatingGroup) return;
+            setIsCreatingGroup(true);
+            try {
+              const data = await createGroupConversation({ name, avatar });
+              const conversation = data?.conversation;
+              if (!conversation?.id) throw new Error("Group conversation not available");
+
+              setConversations((prev) => [conversation, ...prev.filter((item) => item.id !== conversation.id)]);
+              setCreateGroupOpen(false);
+              onSelectChat(conversation);
+              onCreateGroup?.(conversation);
+            } catch (err) {
+              window.alert(err.message || "Failed to create group chat");
+            } finally {
+              setIsCreatingGroup(false);
+            }
           }}
         />
       )}

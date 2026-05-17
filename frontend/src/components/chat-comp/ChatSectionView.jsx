@@ -3,11 +3,16 @@ import ChatHeader from "./ChatHeader.jsx";
 import MessageList from "./MessageList.jsx";
 import MessageInput from "./MessageInput.jsx";
 import {
+  addGroupMember,
   deleteChatMessage,
+  deleteGroupConversation,
   getChatMessages,
+  leaveGroupConversation,
   markChatConversationRead,
+  removeGroupMember,
   sendChatImage,
   sendChatMessage,
+  updateGroupConversation,
 } from "../../lib/api.js";
 import { emitChatTyping, getAuthenticatedSocket } from "../../lib/socket.js";
 
@@ -326,6 +331,77 @@ export default function ChatSectionView({ selectedChatThread, onOpenProfile, use
     }
   };
 
+  const applyConversationUpdate = (conversation) => {
+    if (!conversation?.id) return;
+    setLocalGroupInfo((prev) => ({ ...prev, ...conversation }));
+  };
+
+  const handleUpdateGroup = async ({ name, avatar }) => {
+    if (!activeThreadId || selectedChat.type !== "group") return;
+
+    const data = await updateGroupConversation({
+      conversationId: activeThreadId,
+      name,
+      avatar,
+    });
+    applyConversationUpdate(data?.conversation);
+  };
+
+  const handleAddGroupMember = async (member) => {
+    if (!activeThreadId || selectedChat.type !== "group") return;
+
+    const memberId = member?.id ?? member?._id;
+    if (!memberId) return;
+
+    const data = await addGroupMember({
+      conversationId: activeThreadId,
+      memberId,
+    });
+    applyConversationUpdate(data?.conversation);
+  };
+
+  const handleRemoveGroupMember = async (member) => {
+    if (!activeThreadId || selectedChat.type !== "group") return;
+
+    const memberId = member?.id ?? member?._id;
+    if (!memberId) return;
+
+    const confirmed = window.confirm(`Remove ${member.displayName || "this member"} from the group?`);
+    if (!confirmed) return;
+
+    const data = await removeGroupMember({
+      conversationId: activeThreadId,
+      memberId,
+    });
+    applyConversationUpdate(data?.conversation);
+  };
+
+  const handleDeleteGroup = async () => {
+    if (!activeThreadId || selectedChat.type !== "group") return;
+
+    const confirmed = window.confirm(`Delete group "${displayChat?.name}"?`);
+    if (!confirmed) return;
+
+    try {
+      await deleteGroupConversation({ conversationId: activeThreadId });
+    } catch (err) {
+      window.alert(err.message || "Failed to delete group");
+    }
+  };
+
+  const handleLeaveGroup = async () => {
+    if (!activeThreadId || selectedChat.type !== "group") return;
+
+    const confirmed = window.confirm(`Leave group "${displayChat?.name}"?`);
+    if (!confirmed) return;
+
+    try {
+      await leaveGroupConversation({ conversationId: activeThreadId });
+    } catch (err) {
+      window.alert(err.message || "Failed to leave group");
+    }
+  };
+
   const handleOpenChatProfile = () => {
     if (selectedChat.type === "group") return;
     const friendId = selectedChat.friendId ?? selectedChat.otherUserId;
@@ -374,15 +450,11 @@ export default function ChatSectionView({ selectedChatThread, onOpenProfile, use
           }}
           onOpenProfile={handleOpenChatProfile}
           canOpenProfile={selectedChat.type !== "group"}
-          onUpdateGroup={(updates) => setLocalGroupInfo((prev) => ({ ...prev, ...updates }))}
-          onDeleteGroup={() => {
-            // TODO: call API to delete group, then navigate away
-            alert(`Delete group "${displayChat?.name}" — coming soon`);
-          }}
-          onLeaveGroup={() => {
-            // TODO: call API to leave group, then navigate away
-            alert(`Leave group "${displayChat?.name}" — coming soon`);
-          }}
+          onUpdateGroup={handleUpdateGroup}
+          onAddMember={handleAddGroupMember}
+          onRemoveMember={handleRemoveGroupMember}
+          onDeleteGroup={handleDeleteGroup}
+          onLeaveGroup={handleLeaveGroup}
         />
         <MessageList
           messages={messages}
