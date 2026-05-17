@@ -55,6 +55,7 @@ export default function HomeFeedPlaceholder({
         user={user}
         viewedProfile={viewedProfile}
         onUserChange={onUserChange}
+        onOpenProfile={onOpenProfile}
       />
     );
   }

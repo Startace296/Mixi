@@ -1,22 +1,34 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 
+import FeedPostCard from '../home-comp/feed/FeedPostCard.jsx';
+import PostSkeleton from '../home-comp/feed/PostSkeleton.jsx';
 import { useUpdateProfile } from '../../hooks/useUpdateProfile.js';
 import { useUploadAvatar } from '../../hooks/useUploadAvatar.js';
 import { useAuthStore } from '../../stores/useAuthStore.js';
 import {
+  addPostComment,
+  addPostReply,
+  deletePost,
+  deletePostComment,
   getUserProfile,
+  getPosts,
   createFriendRequest,
   cancelFriendRequest,
   acceptFriendRequest,
   declineFriendRequest,
   removeFriend,
+  togglePostCommentLike,
+  togglePostLike,
+  updatePost,
+  updatePostComment,
 } from '../../lib/api.js';
 import { getAvatarUrl } from '../../lib/avatarUrl.js';
 
 const GENDERS = ['Male', 'Female', 'Other'];
 const MAX_BIO_CHARACTERS = 280;
 const MAX_BIO_LINES = 4;
+const POST_PAGE_LIMIT = 20;
 function toDateInputValue(value) {
   if (!value) return '';
   const date = new Date(value);
@@ -340,7 +352,7 @@ function AvatarModal({ onClose, onSaved }) {
   );
 }
 
-export default function ProfileSectionView({ user, viewedProfile, displayName, onUserChange }) {
+export default function ProfileSectionView({ user, viewedProfile, displayName, onUserChange, onOpenProfile }) {
   const [editOpen, setEditOpen] = useState(false);
   const [avatarOpen, setAvatarOpen] = useState(false);
   const setAuthUser = useAuthStore((state) => state.setAuthUser);
@@ -352,12 +364,19 @@ export default function ProfileSectionView({ user, viewedProfile, displayName, o
   const [relationshipId, setRelationshipId] = useState(null);
   const [profileLoading, setProfileLoading] = useState(false);
   const [actionBusy, setActionBusy] = useState(false);
+  const [profilePosts, setProfilePosts] = useState([]);
+  const [postsLoading, setPostsLoading] = useState(true);
+  const [postsLoadingMore, setPostsLoadingMore] = useState(false);
+  const [postsError, setPostsError] = useState('');
+  const [hasMorePosts, setHasMorePosts] = useState(false);
+  const [nextPostsCursor, setNextPostsCursor] = useState(null);
 
   const isOwnProfile =
     !viewedProfile?.id ||
     (user?.id != null && String(viewedProfile.id) === String(user.id));
 
   const targetUserId = !isOwnProfile ? String(viewedProfile.id) : null;
+  const profilePostAuthorId = isOwnProfile ? user?.id : targetUserId;
 
   // Fetch other user's full profile + relationship on mount / when target changes
   useEffect(() => {
@@ -392,6 +411,73 @@ export default function ProfileSectionView({ user, viewedProfile, displayName, o
     return () => { cancelled = true; };
   }, [targetUserId]);
 
+  useEffect(() => {
+    if (!profilePostAuthorId) {
+      setProfilePosts([]);
+      setPostsLoading(false);
+      setPostsError('');
+      setHasMorePosts(false);
+      setNextPostsCursor(null);
+      return undefined;
+    }
+
+    let cancelled = false;
+    async function loadPosts() {
+      setPostsLoading(true);
+      setPostsError('');
+      try {
+        const data = await getPosts({
+          authorId: profilePostAuthorId,
+          limit: POST_PAGE_LIMIT,
+        });
+        if (cancelled) return;
+        setProfilePosts(data?.posts || []);
+        setHasMorePosts(Boolean(data?.pageInfo?.hasMore));
+        setNextPostsCursor(data?.pageInfo?.nextBefore || null);
+      } catch (err) {
+        if (!cancelled) {
+          setProfilePosts([]);
+          setHasMorePosts(false);
+          setNextPostsCursor(null);
+          setPostsError(err.message || 'Failed to load posts');
+        }
+      } finally {
+        if (!cancelled) setPostsLoading(false);
+      }
+    }
+
+    loadPosts();
+    return () => { cancelled = true; };
+  }, [profilePostAuthorId, isOwnProfile, relationStatus]);
+
+  const handleLoadMorePosts = useCallback(async () => {
+    if (!profilePostAuthorId || !hasMorePosts || !nextPostsCursor || postsLoadingMore || postsLoading) return;
+
+    setPostsLoadingMore(true);
+    setPostsError('');
+    try {
+      const data = await getPosts({
+        authorId: profilePostAuthorId,
+        limit: POST_PAGE_LIMIT,
+        before: nextPostsCursor,
+      });
+      const nextPosts = data?.posts || [];
+      setProfilePosts((prevPosts) => {
+        const existingIds = new Set(prevPosts.map((post) => post.id));
+        return [
+          ...prevPosts,
+          ...nextPosts.filter((post) => !existingIds.has(post.id)),
+        ];
+      });
+      setHasMorePosts(Boolean(data?.pageInfo?.hasMore));
+      setNextPostsCursor(data?.pageInfo?.nextBefore || null);
+    } catch (err) {
+      setPostsError(err.message || 'Failed to load more posts');
+    } finally {
+      setPostsLoadingMore(false);
+    }
+  }, [hasMorePosts, nextPostsCursor, postsLoading, postsLoadingMore, profilePostAuthorId]);
+
   const profileUser = isOwnProfile
     ? user
     : fetchedProfile || { ...viewedProfile };
@@ -400,6 +486,111 @@ export default function ProfileSectionView({ user, viewedProfile, displayName, o
   const handleSaved = (nextUser) => {
     onUserChange?.(nextUser);
     setAuthUser(nextUser);
+  };
+
+  const updateProfilePostById = (postId, updater) => {
+    setProfilePosts((prevPosts) => prevPosts.map((post) => (
+      post.id === postId ? updater(post) : post
+    )));
+  };
+
+  const handleToggleProfilePostLike = async (postId) => {
+    const data = await togglePostLike({ postId });
+    updateProfilePostById(postId, (post) => ({
+      ...post,
+      likedByViewer: data.liked,
+      likeCount: data.likeCount,
+    }));
+    return data;
+  };
+
+  const handleDeleteProfilePost = async (postId) => {
+    await deletePost({ postId });
+    setProfilePosts((prevPosts) => prevPosts.filter((post) => post.id !== postId));
+  };
+
+  const handleUpdateProfilePost = async (postId, caption) => {
+    const data = await updatePost({ postId, caption });
+    if (data?.post) {
+      updateProfilePostById(postId, () => data.post);
+    }
+    return data?.post;
+  };
+
+  const handleAddProfilePostComment = async (postId, text) => {
+    const data = await addPostComment({ postId, text });
+    if (data?.comment) {
+      updateProfilePostById(postId, (post) => ({
+        ...post,
+        comments: [...(post.comments || []), data.comment],
+      }));
+    }
+    return data?.comment;
+  };
+
+  const handleAddProfilePostReply = async (postId, commentId, text) => {
+    const data = await addPostReply({ postId, commentId, text });
+    if (data?.reply) {
+      updateProfilePostById(postId, (post) => ({
+        ...post,
+        comments: (post.comments || []).map((comment) => (
+          comment.id === commentId
+            ? { ...comment, replies: [...(comment.replies || []), data.reply] }
+            : comment
+        )),
+      }));
+    }
+    return data?.reply;
+  };
+
+  const handleUpdateProfilePostComment = async (postId, commentId, text) => {
+    await updatePostComment({ postId, commentId, text });
+    updateProfilePostById(postId, (post) => ({
+      ...post,
+      comments: (post.comments || []).map((comment) => {
+        if (comment.id === commentId) return { ...comment, text };
+        return {
+          ...comment,
+          replies: (comment.replies || []).map((reply) => (
+            reply.id === commentId ? { ...reply, text } : reply
+          )),
+        };
+      }),
+    }));
+  };
+
+  const handleDeleteProfilePostComment = async (postId, commentId) => {
+    await deletePostComment({ postId, commentId });
+    updateProfilePostById(postId, (post) => ({
+      ...post,
+      comments: (post.comments || [])
+        .filter((comment) => comment.id !== commentId)
+        .map((comment) => ({
+          ...comment,
+          replies: (comment.replies || []).filter((reply) => reply.id !== commentId),
+        })),
+    }));
+  };
+
+  const handleToggleProfilePostCommentLike = async (postId, commentId) => {
+    const data = await togglePostCommentLike({ postId, commentId });
+    updateProfilePostById(postId, (post) => ({
+      ...post,
+      comments: (post.comments || []).map((comment) => {
+        if (comment.id === commentId) {
+          return { ...comment, likedByViewer: data.liked, likeCount: data.likeCount };
+        }
+        return {
+          ...comment,
+          replies: (comment.replies || []).map((reply) => (
+            reply.id === commentId
+              ? { ...reply, likedByViewer: data.liked, likeCount: data.likeCount }
+              : reply
+          )),
+        };
+      }),
+    }));
+    return data;
   };
 
   // --- Friend action handlers ---
@@ -605,11 +796,64 @@ export default function ProfileSectionView({ user, viewedProfile, displayName, o
         </div>
       </div>
 
-      <div className="rounded-xl border border-[#e4e6eb] bg-white p-6 text-center shadow-[0_2px_4px_rgba(0,0,0,0.06)]">
-        <p className="text-base font-semibold text-[#1c1e21]">No posts yet</p>
-        <p className="mt-1 text-sm text-[#65676b]">
-          {isOwnProfile ? 'Your future posts will appear here.' : 'Posts will show here after the API is connected.'}
-        </p>
+      <div className="space-y-4">
+        <div className="flex items-center justify-between px-1">
+          <h2 className="text-base font-bold text-[#1c1e21]">Posts</h2>
+        </div>
+
+        {postsError ? (
+          <div className="rounded-lg border border-red-100 bg-red-50 px-4 py-3 text-sm font-medium text-red-600">
+            {postsError}
+          </div>
+        ) : null}
+
+        {postsLoading ? (
+          <>
+            <PostSkeleton />
+            <PostSkeleton />
+          </>
+        ) : null}
+
+        {profilePosts.map((post) => (
+          <FeedPostCard
+            key={post.id}
+            post={post}
+            viewerId={user?.id}
+            onOpenProfile={onOpenProfile}
+            onTogglePostLike={handleToggleProfilePostLike}
+            onUpdatePost={handleUpdateProfilePost}
+            onDeletePost={handleDeleteProfilePost}
+            onAddComment={handleAddProfilePostComment}
+            onAddReply={handleAddProfilePostReply}
+            onUpdateComment={handleUpdateProfilePostComment}
+            onDeleteComment={handleDeleteProfilePostComment}
+            onToggleCommentLike={handleToggleProfilePostCommentLike}
+          />
+        ))}
+
+        {postsLoadingMore ? <PostSkeleton /> : null}
+
+        {!postsLoading && !profilePosts.length && !postsError ? (
+          <div className="rounded-xl border border-[#e4e6eb] bg-white p-6 text-center shadow-[0_2px_4px_rgba(0,0,0,0.06)]">
+            <p className="text-base font-semibold text-[#1c1e21]">No posts yet</p>
+            <p className="mt-1 text-sm text-[#65676b]">
+              {isOwnProfile ? 'Your future posts will appear here.' : `${currentName} has no visible posts yet.`}
+            </p>
+          </div>
+        ) : null}
+
+        {hasMorePosts && !postsLoading ? (
+          <div className="flex justify-center">
+            <button
+              type="button"
+              onClick={handleLoadMorePosts}
+              disabled={postsLoadingMore}
+              className="rounded-lg border border-[#e4e6eb] bg-white px-4 py-2 text-sm font-semibold text-[#65676b] transition-colors hover:bg-[#f0f2f5] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {postsLoadingMore ? 'Loading...' : 'Load more'}
+            </button>
+          </div>
+        ) : null}
       </div>
 
       {isOwnProfile && editOpen && (

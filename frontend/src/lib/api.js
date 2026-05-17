@@ -221,11 +221,12 @@ export const deleteChatMessage = async ({ messageId }) => {
 
 // --- Posts ---
 
-export const getPosts = async ({ limit = 20, before } = {}) => {
+export const getPosts = async ({ limit = 20, before, authorId } = {}) => {
   const response = await axiosInstance.get('/posts', {
     params: {
       limit,
       before,
+      authorId,
     },
   });
   return response.data;
