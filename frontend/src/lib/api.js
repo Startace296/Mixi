@@ -274,3 +274,19 @@ export const changePassword = async ({ currentPassword, newPassword }) => {
   const response = await axiosInstance.post('/auth/change-password', { currentPassword, newPassword });
   return response.data;
 };
+
+export const summarizeUnreadChat = async ({ conversationId, endMessageId, maxMessages = 30 }) => {
+  const response = await axiosInstance.post(
+    `/chat/conversations/${conversationId}/ai/summarize-unread`,
+    { endMessageId, maxMessages },
+  );
+  return response.data;
+};
+
+export const suggestChatReplies = async ({ conversationId, endMessageId, maxMessages = 30 }) => {
+  const response = await axiosInstance.post(
+    `/chat/conversations/${conversationId}/ai/suggest-replies`,
+    { endMessageId, maxMessages },
+  );
+  return response.data;
+};

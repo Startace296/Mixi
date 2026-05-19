@@ -38,7 +38,7 @@ export default function MessageList({
     hasOlderMessages,
   });
 
-  const summarize = useUnreadSummarize({ messages, threadId, onApplySuggestedReply });
+  const summarize = useUnreadSummarize({ conversationId: threadId, onApplySuggestedReply });
   const { markers, showUnreadUi } = useFrozenUnreadMarkers({
     messages,
     initialUnreadCount,

@@ -1,4 +1,8 @@
 import {
+  summarizeUnreadBatch,
+  suggestRepliesForUnreadBatch,
+} from "../services/chatAi.service.js";
+import {
   deleteMessage,
   getOrCreateDirectConversation,
   hideConversation,
@@ -133,4 +137,34 @@ export async function deleteMessageHandler(req, res) {
     success: true,
     message: result.message,
   });
+}
+
+/** POST /chat/conversations/:conversationId/ai/summarize-unread */
+export async function summarizeUnreadHandler(req, res) {
+  const { endMessageId, maxMessages } = req.body;
+  if (!endMessageId) {
+    return res.status(400).json({ message: "endMessageId is required" });
+  }
+
+  const result = await summarizeUnreadBatch(req.user.id, req.params.conversationId, {
+    endMessageId,
+    maxMessages,
+  });
+
+  res.json({ success: true, summaryBullets: result.bullets, meta: result.meta });
+}
+
+/** POST /chat/conversations/:conversationId/ai/suggest-replies */
+export async function suggestRepliesHandler(req, res) {
+  const { endMessageId, maxMessages } = req.body;
+  if (!endMessageId) {
+    return res.status(400).json({ message: "endMessageId is required" });
+  }
+
+  const result = await suggestRepliesForUnreadBatch(req.user.id, req.params.conversationId, {
+    endMessageId,
+    maxMessages,
+  });
+
+  res.json({ success: true, replies: result.replies, meta: result.meta });
 }

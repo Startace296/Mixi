@@ -23,6 +23,7 @@ export default function ChatModal({
   children,
   footer,
   maxWidthClassName = "max-w-sm",
+  maxHeightClassName = "max-h-[min(85vh,640px)]",
   panelClassName = "",
   bodyClassName = "px-6 py-5",
 }) {
@@ -45,7 +46,7 @@ export default function ChatModal({
       role="presentation"
     >
       <div
-        className={`flex max-h-[min(85vh,640px)] w-full flex-col rounded-2xl bg-white shadow-xl ${maxWidthClassName} ${panelClassName}`}
+        className={`flex w-full ${maxHeightClassName} flex-col rounded-2xl bg-white shadow-xl ${maxWidthClassName} ${panelClassName}`}
         onClick={(event) => event.stopPropagation()}
         role="dialog"
         aria-modal="true"

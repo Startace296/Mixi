@@ -2,6 +2,16 @@ import ChatModal from "./ChatModal.jsx";
 
 const OPTION_LABELS = ["A", "B", "C"];
 
+function SummarySkeleton({ lines = 4 }) {
+  return (
+    <ul className="space-y-2.5" aria-hidden>
+      {Array.from({ length: lines }, (_, index) => (
+        <li key={index} className="h-14 animate-pulse rounded-lg bg-blue-50" />
+      ))}
+    </ul>
+  );
+}
+
 export default function UnreadSummarizePanel({
   isOpen = false,
   unreadCount = 0,
@@ -14,59 +24,84 @@ export default function UnreadSummarizePanel({
   onSuggestResponses,
   onSelectSuggestion,
 }) {
-  const title =
+  const subtitle =
     unreadCount > 0
-      ? `Summarize ${unreadCount} unread messages`
-      : "Summarize unread messages";
+      ? `${unreadCount} unread messages`
+      : "Unread thread recap";
 
   return (
     <ChatModal
       isOpen={isOpen}
-      title={title}
+      title="Unread summary"
       titleId="unread-summarize-title"
       onClose={onClose}
+      maxWidthClassName="max-w-2xl"
+      maxHeightClassName="max-h-[min(90vh,780px)]"
+      panelClassName="shadow-xl ring-1 ring-black/5"
+      bodyClassName="px-6 py-5"
       footer={(
         <button
           type="button"
           onClick={onClose}
-          className="w-full rounded-lg border border-[#e4e6eb] py-2 text-sm font-semibold text-[#65676b] transition hover:bg-[#f0f2f5]"
+          className="w-full rounded-lg border border-[#e4e6eb] py-2.5 text-sm font-semibold text-[#65676b] transition hover:bg-[#f0f2f5]"
         >
           Close
         </button>
       )}
     >
-      <p className="text-[11px] font-semibold uppercase tracking-wide text-indigo-600">AI summary</p>
+      <p className="mb-5 text-sm text-blue-600">{subtitle}</p>
 
-      <div className="mt-3 min-h-[72px] text-sm text-[#1c1e21]">
-        {isLoadingSummary ? (
-          <p className="text-[#65676b]">Summarizing unread messages…</p>
-        ) : (
-          <ul className="list-disc space-y-2 pl-4 text-[13px] leading-relaxed text-[#3b3f44]">
-            {summaryBullets.map((bullet) => (
-              <li key={bullet}>{bullet}</li>
-            ))}
-          </ul>
-        )}
-      </div>
+      <section>
+        <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-[#65676b]">
+          Summary
+        </h3>
+
+        <div className="min-h-[140px] rounded-xl border border-blue-100 bg-blue-50/40 p-4">
+          {isLoadingSummary ? (
+            <div className="space-y-3">
+              <p className="text-sm text-blue-600">Summarizing unread messages…</p>
+              <SummarySkeleton />
+            </div>
+          ) : (
+            <ul className="space-y-2">
+              {summaryBullets.map((bullet, index) => (
+                <li
+                  key={`${index}-${bullet.slice(0, 24)}`}
+                  className="flex gap-3 rounded-lg border border-[#e4e6eb] bg-white px-3.5 py-3"
+                >
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-500 text-[11px] font-bold text-white">
+                    {index + 1}
+                  </span>
+                  <p className="min-w-0 flex-1 text-[15px] leading-relaxed text-[#1c1e21]">{bullet}</p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </section>
 
       {!isLoadingSummary && (
-        <div className="mt-5 border-t border-[#f0f2f5] pt-5">
+        <section className="mt-6 border-t border-[#f0f2f5] pt-6">
           {!showSuggestions ? (
             <button
               type="button"
               onClick={onSuggestResponses}
               disabled={isLoadingSuggestions}
-              className="w-full rounded-lg bg-indigo-600 px-3 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-indigo-300"
+              className="w-full rounded-lg bg-blue-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-600 disabled:cursor-not-allowed disabled:bg-blue-300"
             >
               Suggest response
             </button>
           ) : (
             <div className="space-y-3">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-[#65676b]">
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-[#65676b]">
                 Pick a reply
-              </p>
+              </h3>
+
               {isLoadingSuggestions ? (
-                <p className="text-sm text-[#65676b]">Generating suggestions…</p>
+                <div className="space-y-3">
+                  <p className="text-sm text-blue-600">Generating suggestions…</p>
+                  <SummarySkeleton lines={3} />
+                </div>
               ) : (
                 <div className="flex flex-col gap-2">
                   {suggestions.map((reply, index) => (
@@ -74,19 +109,21 @@ export default function UnreadSummarizePanel({
                       key={OPTION_LABELS[index]}
                       type="button"
                       onClick={() => onSelectSuggestion?.(reply)}
-                      className="flex w-full items-start gap-2.5 rounded-lg border border-[#e4e6eb] bg-[#f7f8fa] px-3 py-2.5 text-left text-sm text-[#1c1e21] transition hover:border-indigo-300 hover:bg-indigo-50"
+                      className="flex w-full items-start gap-3 rounded-lg border border-[#e4e6eb] bg-white px-3.5 py-3 text-left transition hover:border-blue-300 hover:bg-blue-50/50"
                     >
-                      <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-[10px] font-bold text-white">
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-500 text-xs font-bold text-white">
                         {OPTION_LABELS[index]}
                       </span>
-                      <span className="min-w-0 flex-1 break-words">{reply}</span>
+                      <span className="min-w-0 flex-1 pt-0.5 text-[15px] leading-relaxed text-[#1c1e21]">
+                        {reply}
+                      </span>
                     </button>
                   ))}
                 </div>
               )}
             </div>
           )}
-        </div>
+        </section>
       )}
     </ChatModal>
   );

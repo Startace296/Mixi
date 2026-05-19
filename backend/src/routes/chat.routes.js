@@ -9,6 +9,8 @@ import {
   markConversationReadHandler,
   sendImageMessageHandler,
   sendMessageHandler,
+  summarizeUnreadHandler,
+  suggestRepliesHandler,
 } from "../controllers/chat.controller.js";
 import { requireAuth } from "../middlewares/auth.middleware.js";
 import { chatImageUpload } from "../middlewares/upload.middleware.js";
@@ -20,14 +22,11 @@ router.get("/conversations", requireAuth, asyncHandler(getConversationsHandler))
 router.post("/conversations/direct/:friendId", requireAuth, asyncHandler(createDirectConversationHandler));
 router.get("/conversations/:conversationId/messages", requireAuth, asyncHandler(getMessagesHandler));
 router.post("/conversations/:conversationId/messages", requireAuth, asyncHandler(sendMessageHandler));
-router.post(
-  "/conversations/:conversationId/images",
-  requireAuth,
-  chatImageUpload.single("image"),
-  asyncHandler(sendImageMessageHandler),
-);
+router.post("/conversations/:conversationId/images", requireAuth, chatImageUpload.single("image"), asyncHandler(sendImageMessageHandler));
 router.patch("/conversations/:conversationId/read", requireAuth, asyncHandler(markConversationReadHandler));
 router.patch("/conversations/:conversationId/hide", requireAuth, asyncHandler(hideConversationHandler));
 router.delete("/messages/:messageId", requireAuth, asyncHandler(deleteMessageHandler));
+router.post("/conversations/:conversationId/ai/summarize-unread", requireAuth, asyncHandler(summarizeUnreadHandler));
+router.post("/conversations/:conversationId/ai/suggest-replies", requireAuth, asyncHandler(suggestRepliesHandler));
 
 export default router;
