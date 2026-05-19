@@ -49,6 +49,7 @@ export const CHAT_SOCKET_EVENTS = [
   'chat:message_created',
   'chat:message_deleted',
   'chat:conversation_read',
+  'chat:conversation_updated',
 ];
 
 export const PRESENCE_SOCKET_EVENTS = [

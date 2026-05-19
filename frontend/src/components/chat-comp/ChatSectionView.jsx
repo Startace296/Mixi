@@ -2,6 +2,13 @@ import { useState } from "react";
 import ChatHeader from "./ChatHeader.jsx";
 import MessageList from "./MessageList.jsx";
 import MessageInput from "./MessageInput.jsx";
+import {
+  addGroupMember,
+  deleteGroupConversation,
+  leaveGroupConversation,
+  removeGroupMember,
+  updateGroupConversation,
+} from "../../lib/api.js";
 import { getThreadCacheKey } from "../../lib/chatMessageUtils.js";
 import { useChatMessages } from "../../hooks/useChatMessages.js";
 import { useChatTyping } from "../../hooks/useChatTyping.js";
@@ -46,6 +53,77 @@ export default function ChatSectionView({ selectedChatThread, onOpenProfile, use
     onClearRemoteTypingUser: typing.clearRemoteTypingUser,
   });
 
+  const applyConversationUpdate = (conversation) => {
+    if (!conversation?.id) return;
+    setLocalGroupInfo((prev) => ({ ...prev, ...conversation }));
+  };
+
+  const handleUpdateGroup = async ({ name, avatar }) => {
+    if (!activeThreadId || selectedChat.type !== "group") return;
+
+    const data = await updateGroupConversation({
+      conversationId: activeThreadId,
+      name,
+      avatar,
+    });
+    applyConversationUpdate(data?.conversation);
+  };
+
+  const handleAddGroupMember = async (member) => {
+    if (!activeThreadId || selectedChat.type !== "group") return;
+
+    const memberId = member?.id ?? member?._id;
+    if (!memberId) return;
+
+    const data = await addGroupMember({
+      conversationId: activeThreadId,
+      memberId,
+    });
+    applyConversationUpdate(data?.conversation);
+  };
+
+  const handleRemoveGroupMember = async (member) => {
+    if (!activeThreadId || selectedChat.type !== "group") return;
+
+    const memberId = member?.id ?? member?._id;
+    if (!memberId) return;
+
+    const confirmed = window.confirm(`Remove ${member.displayName || "this member"} from the group?`);
+    if (!confirmed) return;
+
+    const data = await removeGroupMember({
+      conversationId: activeThreadId,
+      memberId,
+    });
+    applyConversationUpdate(data?.conversation);
+  };
+
+  const handleDeleteGroup = async () => {
+    if (!activeThreadId || selectedChat.type !== "group") return;
+
+    const confirmed = window.confirm(`Delete group "${displayChat?.name}"?`);
+    if (!confirmed) return;
+
+    try {
+      await deleteGroupConversation({ conversationId: activeThreadId });
+    } catch (err) {
+      window.alert(err.message || "Failed to delete group");
+    }
+  };
+
+  const handleLeaveGroup = async () => {
+    if (!activeThreadId || selectedChat.type !== "group") return;
+
+    const confirmed = window.confirm(`Leave group "${displayChat?.name}"?`);
+    if (!confirmed) return;
+
+    try {
+      await leaveGroupConversation({ conversationId: activeThreadId });
+    } catch (err) {
+      window.alert(err.message || "Failed to leave group");
+    }
+  };
+
   const handleOpenChatProfile = () => {
     if (!selectedChat || selectedChat.type === "group") return;
     const friendId = selectedChat.friendId ?? selectedChat.otherUserId;
@@ -78,13 +156,11 @@ export default function ChatSectionView({ selectedChatThread, onOpenProfile, use
           onCall={{ voice: () => onStartVoiceCall?.(displayChat) }}
           onOpenProfile={handleOpenChatProfile}
           canOpenProfile={selectedChat.type !== "group"}
-          onUpdateGroup={(updates) => setLocalGroupInfo((prev) => ({ ...prev, ...updates }))}
-          onDeleteGroup={() => {
-            alert(`Delete group "${displayChat?.name}" — coming soon`);
-          }}
-          onLeaveGroup={() => {
-            alert(`Leave group "${displayChat?.name}" — coming soon`);
-          }}
+          onUpdateGroup={handleUpdateGroup}
+          onAddMember={handleAddGroupMember}
+          onRemoveMember={handleRemoveGroupMember}
+          onDeleteGroup={handleDeleteGroup}
+          onLeaveGroup={handleLeaveGroup}
         />
 
         <MessageList

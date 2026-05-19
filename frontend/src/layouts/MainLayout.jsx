@@ -203,10 +203,7 @@ export default function MainLayout() {
     }
   }, [navigate]);
 
-  const handleCreateGroup = useCallback(() => {
-    // TODO: open CreateGroupModal
-    alert('Create Group Chat — coming soon!');
-  }, []);
+  const handleCreateGroup = useCallback(() => {}, []);
 
   const handleSubSectionChange = useCallback((subKey) => {
     if (activeSection === HOME_SECTION.home) {

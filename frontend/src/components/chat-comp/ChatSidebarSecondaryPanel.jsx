@@ -15,7 +15,7 @@ export default function ChatSidebarSecondaryPanel({
     isLoading,
     error,
     hideConversation,
-    addMockGroup,
+    createGroup,
   } = useChatConversations({ selectedChatId, onSelectChat });
 
   const handleDeleteChat = async (chat) => {
@@ -72,20 +72,14 @@ export default function ChatSidebarSecondaryPanel({
       {createGroupOpen && (
         <CreateGroupModal
           onClose={() => setCreateGroupOpen(false)}
-          onCreate={({ name, avatarUrl }) => {
-            const mockGroup = {
-              id: `mock-group-${Date.now()}`,
-              name,
-              type: "group",
-              profilePic: avatarUrl,
-              preview: "Group created",
-              time: new Date().toISOString(),
-              unread: 0,
-              presenceStatus: null,
-            };
-            addMockGroup(mockGroup);
-            setCreateGroupOpen(false);
-            onCreateGroup?.(mockGroup);
+          onCreate={async ({ name, avatar }) => {
+            try {
+              const conversation = await createGroup({ name, avatar });
+              setCreateGroupOpen(false);
+              onCreateGroup?.(conversation);
+            } catch (err) {
+              window.alert(err.message || "Failed to create group chat");
+            }
           }}
         />
       )}

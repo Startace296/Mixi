@@ -139,6 +139,45 @@ export const createDirectConversation = async ({ friendId }) => {
   return response.data;
 };
 
+export const createGroupConversation = async ({ name, avatar, memberIds = [] }) => {
+  const formData = new FormData();
+  formData.append('name', name);
+  if (avatar) formData.append('avatar', avatar);
+  if (memberIds.length > 0) formData.append('memberIds', JSON.stringify(memberIds));
+
+  const response = await axiosInstance.post('/chat/conversations/group', formData);
+  return response.data;
+};
+
+export const updateGroupConversation = async ({ conversationId, name, avatar }) => {
+  const formData = new FormData();
+  if (typeof name === 'string') formData.append('name', name);
+  if (avatar) formData.append('avatar', avatar);
+
+  const response = await axiosInstance.patch(`/chat/conversations/${conversationId}/group`, formData);
+  return response.data;
+};
+
+export const addGroupMember = async ({ conversationId, memberId }) => {
+  const response = await axiosInstance.post(`/chat/conversations/${conversationId}/members`, { memberId });
+  return response.data;
+};
+
+export const removeGroupMember = async ({ conversationId, memberId }) => {
+  const response = await axiosInstance.delete(`/chat/conversations/${conversationId}/members/${memberId}`);
+  return response.data;
+};
+
+export const leaveGroupConversation = async ({ conversationId }) => {
+  const response = await axiosInstance.post(`/chat/conversations/${conversationId}/leave`);
+  return response.data;
+};
+
+export const deleteGroupConversation = async ({ conversationId }) => {
+  const response = await axiosInstance.delete(`/chat/conversations/${conversationId}`);
+  return response.data;
+};
+
 export const getChatMessages = async ({ conversationId, limit = 50, before } = {}) => {
   const response = await axiosInstance.get(`/chat/conversations/${conversationId}/messages`, {
     params: {
@@ -182,11 +221,12 @@ export const deleteChatMessage = async ({ messageId }) => {
 
 // --- Posts ---
 
-export const getPosts = async ({ limit = 20, before } = {}) => {
+export const getPosts = async ({ limit = 20, before, authorId } = {}) => {
   const response = await axiosInstance.get('/posts', {
     params: {
       limit,
       before,
+      authorId,
     },
   });
   return response.data;

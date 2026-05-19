@@ -1,5 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { getChatConversations, hideChatConversation } from "../lib/api.js";
+import {
+  createGroupConversation,
+  getChatConversations,
+  hideChatConversation,
+} from "../lib/api.js";
 import { getConversationSortTime } from "../lib/chatConversationUtils.js";
 import { CHAT_SOCKET_EVENTS, PRESENCE_SOCKET_EVENTS, getAuthenticatedSocket } from "../lib/socket.js";
 
@@ -71,9 +75,21 @@ export function useChatConversations({ selectedChatId, onSelectChat }) {
       }
     };
 
+    const handleConversationRemoved = (payload) => {
+      if (!payload?.conversationId) return;
+
+      setConversations((prev) => {
+        const next = prev.filter((conversation) => conversation.id !== payload.conversationId);
+        if (selectedChatId === payload.conversationId) onSelectChat(next[0] || null, true);
+        return next;
+      });
+    };
+
     CHAT_SOCKET_EVENTS.forEach((eventName) => socket.on(eventName, handleChatEvent));
+    socket.on("chat:conversation_removed", handleConversationRemoved);
     return () => {
       CHAT_SOCKET_EVENTS.forEach((eventName) => socket.off(eventName, handleChatEvent));
+      socket.off("chat:conversation_removed", handleConversationRemoved);
     };
   }, [onSelectChat, selectedChatId]);
 
@@ -120,8 +136,14 @@ export function useChatConversations({ selectedChatId, onSelectChat }) {
     });
   };
 
-  const addMockGroup = (mockGroup) => {
-    setConversations((prev) => [mockGroup, ...prev]);
+  const createGroup = async ({ name, avatar }) => {
+    const data = await createGroupConversation({ name, avatar });
+    const conversation = data?.conversation;
+    if (!conversation?.id) throw new Error("Group conversation not available");
+
+    setConversations((prev) => [conversation, ...prev.filter((item) => item.id !== conversation.id)]);
+    onSelectChat(conversation);
+    return conversation;
   };
 
   return {
@@ -129,6 +151,6 @@ export function useChatConversations({ selectedChatId, onSelectChat }) {
     isLoading,
     error,
     hideConversation,
-    addMockGroup,
+    createGroup,
   };
 }

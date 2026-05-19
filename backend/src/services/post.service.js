@@ -177,12 +177,24 @@ async function assertCanViewPost(currentUserId, post) {
   }
 }
 
-export async function listPosts(currentUserId, { limit: rawLimit, before } = {}) {
+export async function listPosts(currentUserId, { limit: rawLimit, before, authorId } = {}) {
   const limit = parseLimit(rawLimit);
   const visibleAuthorIds = await getVisiblePostAuthorIds(currentUserId);
+  const requestedAuthorId = authorId ? toIdString(authorId) : null;
+
+  if (requestedAuthorId) {
+    assertObjectId(requestedAuthorId, "Invalid author id");
+  }
+
   const query = {
-    authorId: { $in: visibleAuthorIds },
+    authorId: requestedAuthorId && visibleAuthorIds.includes(requestedAuthorId)
+      ? requestedAuthorId
+      : { $in: visibleAuthorIds },
   };
+
+  if (requestedAuthorId && !visibleAuthorIds.includes(requestedAuthorId)) {
+    query.authorId = { $in: [] };
+  }
 
   if (before) {
     const beforeDate = new Date(before);

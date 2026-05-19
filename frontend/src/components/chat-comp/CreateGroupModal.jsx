@@ -3,6 +3,7 @@ import ChatModal from "./ChatModal.jsx";
 
 export default function CreateGroupModal({ onClose, onCreate }) {
   const [groupName, setGroupName] = useState("");
+  const [avatarFile, setAvatarFile] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState(null);
   const fileInputRef = useRef(null);
 
@@ -14,13 +15,14 @@ export default function CreateGroupModal({ onClose, onCreate }) {
     const file = event.target.files?.[0];
     if (!file) return;
     if (avatarPreview) URL.revokeObjectURL(avatarPreview);
+    setAvatarFile(file);
     setAvatarPreview(URL.createObjectURL(file));
   };
 
   const handleCreate = () => {
     const name = groupName.trim();
     if (!name) return;
-    onCreate({ name, avatarUrl: avatarPreview || "/basic_group_chat_avatar.png" });
+    onCreate({ name, avatar: avatarFile });
   };
 
   return (

@@ -3,14 +3,20 @@ import {
   suggestRepliesForUnreadBatch,
 } from "../services/chatAi.service.js";
 import {
+  addGroupMember,
+  createGroupConversation,
   deleteMessage,
+  deleteGroupConversation,
   getOrCreateDirectConversation,
   hideConversation,
+  leaveGroupConversation,
   listConversations,
   listMessages,
   markConversationRead,
+  removeGroupMember,
   sendChatImage,
   sendMessage,
+  updateGroupConversation,
 } from "../services/chat.service.js";
 import { emitToUser } from "../socket.js";
 
@@ -41,6 +47,106 @@ export async function createDirectConversationHandler(req, res) {
   res.status(201).json({
     success: true,
     conversation,
+  });
+}
+
+/** POST /chat/conversations/group */
+export async function createGroupConversationHandler(req, res) {
+  const result = await createGroupConversation(req.user.id, req.body, req.file);
+
+  emitChatEventWithUserConversation(result.participantIds, "chat:conversation_updated", {
+    conversationId: result.conversation.id,
+    conversation: result.conversation,
+  }, result.conversationsByUserId);
+
+  res.status(201).json({
+    success: true,
+    conversation: result.conversation,
+  });
+}
+
+/** PATCH /chat/conversations/:conversationId/group */
+export async function updateGroupConversationHandler(req, res) {
+  const result = await updateGroupConversation(req.user.id, req.params.conversationId, req.body, req.file);
+
+  emitChatEventWithUserConversation(result.participantIds, "chat:conversation_updated", {
+    conversationId: result.conversation.id,
+    conversation: result.conversation,
+  }, result.conversationsByUserId);
+
+  res.json({
+    success: true,
+    conversation: result.conversation,
+  });
+}
+
+/** POST /chat/conversations/:conversationId/members */
+export async function addGroupMemberHandler(req, res) {
+  const result = await addGroupMember(req.user.id, req.params.conversationId, req.body.memberId);
+
+  emitChatEventWithUserConversation(result.participantIds, "chat:conversation_updated", {
+    conversationId: result.conversation.id,
+    conversation: result.conversation,
+  }, result.conversationsByUserId);
+
+  res.status(201).json({
+    success: true,
+    conversation: result.conversation,
+  });
+}
+
+/** DELETE /chat/conversations/:conversationId/members/:memberId */
+export async function removeGroupMemberHandler(req, res) {
+  const result = await removeGroupMember(req.user.id, req.params.conversationId, req.params.memberId);
+
+  emitChatEventWithUserConversation(result.participantIds, "chat:conversation_updated", {
+    conversationId: result.conversation.id,
+    conversation: result.conversation,
+  }, result.conversationsByUserId);
+  emitToUser(result.removedUserId, "chat:conversation_removed", {
+    conversationId: result.conversation.id,
+    changedAt: new Date().toISOString(),
+  });
+
+  res.json({
+    success: true,
+    conversation: result.conversation,
+  });
+}
+
+/** POST /chat/conversations/:conversationId/leave */
+export async function leaveGroupConversationHandler(req, res) {
+  const result = await leaveGroupConversation(req.user.id, req.params.conversationId);
+
+  emitChatEventWithUserConversation(result.participantIds, "chat:conversation_updated", {
+    conversationId: result.conversationId,
+    conversation: result.conversation,
+  }, result.conversationsByUserId);
+  emitToUser(result.removedUserId, "chat:conversation_removed", {
+    conversationId: result.conversationId,
+    changedAt: new Date().toISOString(),
+  });
+
+  res.json({
+    success: true,
+    conversationId: result.conversationId,
+  });
+}
+
+/** DELETE /chat/conversations/:conversationId */
+export async function deleteGroupConversationHandler(req, res) {
+  const result = await deleteGroupConversation(req.user.id, req.params.conversationId);
+
+  for (const participantId of result.participantIds) {
+    emitToUser(participantId, "chat:conversation_removed", {
+      conversationId: result.conversationId,
+      changedAt: new Date().toISOString(),
+    });
+  }
+
+  res.json({
+    success: true,
+    conversationId: result.conversationId,
   });
 }
 
