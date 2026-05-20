@@ -90,7 +90,7 @@ function ProfileHitArea({ entry, onOpenProfile, displayName, avatarUrl }) {
   );
 }
 
-function FriendRequestCard({ request, onAccept, onDecline, busy, onOpenProfile }) {
+function FriendRequestCard({ request, onAccept, onDecline, onChat, busy, onOpenProfile }) {
   return (
     <div className="flex min-h-[140px] flex-col gap-4 rounded-lg border border-[#e4e6eb] bg-white p-5 shadow-[0_2px_4px_rgba(0,0,0,0.08),0_8px_16px_rgba(0,0,0,0.06)]">
       <ProfileHitArea
@@ -99,65 +99,85 @@ function FriendRequestCard({ request, onAccept, onDecline, busy, onOpenProfile }
         displayName={request.displayName}
         avatarUrl={request.avatarUrl}
       />
-      <div className="mt-auto flex w-full gap-2">
-        <button
-          type="button"
-          onClick={() => onAccept(request)}
-          disabled={busy}
-          className="flex-1 rounded-full bg-indigo-600 py-2 text-sm font-semibold text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          Accept
-        </button>
-        <button
-          type="button"
-          onClick={() => onDecline(request)}
-          disabled={busy}
-          className="flex-1 rounded-full border border-[#e4e6eb] py-2 text-sm font-semibold text-[#65676b] transition-colors hover:bg-[#f0f2f5] disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          Decline
-        </button>
+      <div className="mt-auto flex flex-col gap-2">
+        <div className="flex w-full gap-2">
+          <button
+            type="button"
+            onClick={() => onAccept(request)}
+            disabled={busy}
+            className="flex-1 rounded-full bg-indigo-600 py-2 text-sm font-semibold text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            Accept
+          </button>
+          <button
+            type="button"
+            onClick={() => onDecline(request)}
+            disabled={busy}
+            className="flex-1 rounded-full border border-[#e4e6eb] py-2 text-sm font-semibold text-[#65676b] transition-colors hover:bg-[#f0f2f5] disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            Decline
+          </button>
+        </div>
+        {onChat && (
+          <button
+            type="button"
+            onClick={() => onChat(request)}
+            className="w-full rounded-full border border-indigo-200 py-1.5 text-sm font-semibold text-indigo-600 transition-colors hover:bg-indigo-50"
+          >
+            Chat
+          </button>
+        )}
       </div>
     </div>
   );
 }
 
-function UserSearchCard({ user, onAddFriend, onCancelRequest, busy, onOpenProfile }) {
+function UserSearchCard({ user, onAddFriend, onCancelRequest, onChat, onUnfriend, busy, onOpenProfile }) {
   const relationshipStatus = user.relationshipStatus || 'none';
-  const isActionDisabled = relationshipStatus === 'friends' || relationshipStatus === 'incoming';
-  const buttonLabel =
-    relationshipStatus === 'friends'
-      ? 'Friends'
-      : relationshipStatus === 'requested'
-        ? 'Cancel request'
-        : relationshipStatus === 'incoming'
-          ? 'Requested you'
-        : 'Add friend';
-  const buttonClassName = relationshipStatus === 'requested'
-    ? 'w-full rounded-full border border-[#e4e6eb] py-2 text-sm font-semibold text-[#1c1e21] transition-colors hover:bg-[#f0f2f5] disabled:cursor-not-allowed disabled:opacity-60'
-    : 'w-full rounded-full bg-indigo-600 py-2 text-sm font-semibold text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-[#ccd0d5] disabled:text-[#65676b]';
+  const isFriends = relationshipStatus === 'friends';
+
+  const actionLabel =
+    isFriends ? 'Unfriend'
+    : relationshipStatus === 'requested' ? 'Cancel request'
+    : relationshipStatus === 'incoming' ? 'Requested you'
+    : 'Add friend';
+
+  const actionDisabled =
+    busy ||
+    (isFriends && (!onUnfriend || !user.relationshipId)) ||
+    (relationshipStatus === 'incoming');
+
+  const actionClassName = (isFriends || relationshipStatus === 'requested')
+    ? 'flex-1 rounded-full border border-[#e4e6eb] py-2 text-sm font-semibold text-[#1c1e21] transition-colors hover:bg-[#f0f2f5] disabled:cursor-not-allowed disabled:opacity-60'
+    : 'flex-1 rounded-full bg-indigo-600 py-2 text-sm font-semibold text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-[#ccd0d5] disabled:text-[#65676b]';
+
+  const handleAction = () => {
+    if (isFriends) { onUnfriend?.(user); return; }
+    if (relationshipStatus === 'requested') { onCancelRequest(user); return; }
+    onAddFriend(user);
+  };
 
   return (
     <div className="flex min-h-[140px] flex-col gap-4 rounded-lg border border-[#e4e6eb] bg-white p-5 shadow-[0_2px_4px_rgba(0,0,0,0.08),0_8px_16px_rgba(0,0,0,0.06)]">
-      <ProfileHitArea
-        entry={user}
-        onOpenProfile={onOpenProfile}
-        displayName={user.displayName}
-        avatarUrl={user.avatarUrl}
-      />
-      <button
-        type="button"
-        onClick={() => {
-          if (relationshipStatus === 'requested') {
-            onCancelRequest(user);
-            return;
-          }
-          onAddFriend(user);
-        }}
-        disabled={busy || isActionDisabled}
-        className={`mt-auto ${buttonClassName}`}
-      >
-        {buttonLabel}
-      </button>
+      <ProfileHitArea entry={user} onOpenProfile={onOpenProfile} displayName={user.displayName} avatarUrl={user.avatarUrl} />
+      <div className="mt-auto flex w-full gap-2">
+        <button
+          type="button"
+          onClick={() => onChat?.(user)}
+          disabled={busy || !onChat}
+          className="flex-1 rounded-full bg-indigo-600 py-2 text-sm font-semibold text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          Chat
+        </button>
+        <button
+          type="button"
+          onClick={handleAction}
+          disabled={actionDisabled}
+          className={actionClassName}
+        >
+          {actionLabel}
+        </button>
+      </div>
     </div>
   );
 }
@@ -540,6 +560,7 @@ export default function FriendsSectionView({ subSection, onOpenChatWithFriend, o
             busy={busyActionId === request.requestId}
             onAccept={handleAcceptRequest}
             onDecline={handleDeclineRequest}
+            onChat={onOpenChatWithFriend}
             onOpenProfile={onOpenProfile}
           />
         ))}
@@ -559,6 +580,7 @@ export default function FriendsSectionView({ subSection, onOpenChatWithFriend, o
                 busy={busyActionId === user.id || (user.friendRequestId && busyActionId === user.friendRequestId)}
                 onAddFriend={handleAddFriend}
                 onCancelRequest={handleCancelRequest}
+                onChat={onOpenChatWithFriend}
                 onOpenProfile={onOpenProfile}
               />
             ))}

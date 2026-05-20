@@ -352,7 +352,7 @@ function AvatarModal({ onClose, onSaved }) {
   );
 }
 
-export default function ProfileSectionView({ user, viewedProfile, displayName, onUserChange, onOpenProfile }) {
+export default function ProfileSectionView({ user, viewedProfile, displayName, onUserChange, onOpenProfile, onOpenChat }) {
   const [editOpen, setEditOpen] = useState(false);
   const [avatarOpen, setAvatarOpen] = useState(false);
   const setAuthUser = useAuthStore((state) => state.setAuthUser);
@@ -673,35 +673,53 @@ export default function ProfileSectionView({ user, viewedProfile, displayName, o
   function renderFriendActionButtons() {
     if (isOwnProfile || profileLoading) return null;
 
+    const chatBtn = (
+      <button
+        type="button"
+        onClick={() => onOpenChat?.({ id: targetUserId, displayName: currentName, avatarUrl: profileUser?.avatarUrl })}
+        disabled={actionBusy || !onOpenChat}
+        className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        Chat
+      </button>
+    );
+
     if (relationStatus === 'friends') {
       return (
-        <button
-          type="button"
-          onClick={handleUnfriend}
-          disabled={actionBusy}
-          className="shrink-0 rounded-lg border border-[#e4e6eb] px-4 py-2 text-sm font-semibold text-[#1c1e21] transition-colors hover:bg-[#f0f2f5] disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          Unfriend
-        </button>
+        <div className="flex shrink-0 gap-2">
+          {chatBtn}
+          <button
+            type="button"
+            onClick={handleUnfriend}
+            disabled={actionBusy}
+            className="rounded-lg border border-[#e4e6eb] px-4 py-2 text-sm font-semibold text-[#1c1e21] transition-colors hover:bg-[#f0f2f5] disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            Unfriend
+          </button>
+        </div>
       );
     }
 
     if (relationStatus === 'requested') {
       return (
-        <button
-          type="button"
-          onClick={handleCancelRequest}
-          disabled={actionBusy}
-          className="shrink-0 rounded-lg border border-[#e4e6eb] px-4 py-2 text-sm font-semibold text-[#1c1e21] transition-colors hover:bg-[#f0f2f5] disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          Cancel request
-        </button>
+        <div className="flex shrink-0 gap-2">
+          {chatBtn}
+          <button
+            type="button"
+            onClick={handleCancelRequest}
+            disabled={actionBusy}
+            className="rounded-lg border border-[#e4e6eb] px-4 py-2 text-sm font-semibold text-[#1c1e21] transition-colors hover:bg-[#f0f2f5] disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            Cancel request
+          </button>
+        </div>
       );
     }
 
     if (relationStatus === 'incoming') {
       return (
         <div className="flex shrink-0 gap-2">
+          {chatBtn}
           <button
             type="button"
             onClick={handleDeclineRequest}
@@ -722,16 +740,19 @@ export default function ProfileSectionView({ user, viewedProfile, displayName, o
       );
     }
 
-    // relationStatus === 'none'
+    // none
     return (
-      <button
-        type="button"
-        onClick={handleAddFriend}
-        disabled={actionBusy}
-        className="shrink-0 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
-      >
-        Add friend
-      </button>
+      <div className="flex shrink-0 gap-2">
+        {chatBtn}
+        <button
+          type="button"
+          onClick={handleAddFriend}
+          disabled={actionBusy}
+          className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          Add friend
+        </button>
+      </div>
     );
   }
 
