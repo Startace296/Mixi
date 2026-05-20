@@ -123,13 +123,15 @@ function sanitizeConversation(conversation, currentUserId) {
   const avatarUrl = conversation.type === "direct"
     ? otherUser?.avatarUrl || ""
     : conversation.avatarUrl || "";
+  const profilePic = avatarUrl
+    || (conversation.type === "group" ? "" : "https://i.pravatar.cc/100?img=1");
 
   return {
     id: String(conversation._id),
     conversationId: String(conversation._id),
     type: conversation.type,
     name: displayName,
-    profilePic: avatarUrl || "https://i.pravatar.cc/100?img=1",
+    profilePic,
     avatarUrl,
     friendId: otherUser?.id ? String(otherUser.id) : null,
     ownerId: conversation.createdById ? String(conversation.createdById) : null,

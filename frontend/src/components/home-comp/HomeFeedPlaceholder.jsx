@@ -56,6 +56,7 @@ export default function HomeFeedPlaceholder({
         viewedProfile={viewedProfile}
         onUserChange={onUserChange}
         onOpenProfile={onOpenProfile}
+        onOpenChat={onOpenChatWithFriend}
       />
     );
   }
