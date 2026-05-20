@@ -226,6 +226,7 @@ export default function MainLayout() {
   }, [activeSection, navigate]);
 
   const isProfilePage = activeSection === HOME_SECTION.profile;
+  const isInCall = callState.isOpen;
 
   return (
     <div className="h-screen flex flex-col bg-[#f0f2f5] overflow-hidden">
@@ -246,8 +247,8 @@ export default function MainLayout() {
         onToggleCam={() => {}}
         onEnd={endCall}
       />
-      <HomeHeader user={user} onSelectSection={handleSelectSection} />
-      <div className="flex flex-1 pt-16 min-h-0">
+      {!isInCall && <HomeHeader user={user} onSelectSection={handleSelectSection} />}
+      <div className={`flex flex-1 min-h-0 ${isInCall ? '' : 'pt-16'}`}>
         {!isProfilePage && (
           <div className="flex shrink-0 h-full overflow-visible">
             <HomeSidebarPrimary activeSection={activeSection} onSelectSection={handleSelectSection} />

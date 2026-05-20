@@ -402,6 +402,44 @@ export function useVoiceCall({ currentUser } = {}) {
     };
   }, [applyPendingIceCandidates, emitCallEvent, getPeerConnection, resetCall, sendOffer]);
 
+  // ── Emit call:end before browser tab/window closes ──────────────────
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      const currentCall = callStateRef.current;
+      if (!currentCall.isOpen || !currentCall.callId) return;
+      const socket = getAuthenticatedSocket();
+      if (!socket?.connected) return;
+      socket.emit("call:end", {
+        callId: currentCall.callId,
+        conversationId: currentCall.conversationId,
+        targetUserId: currentCall.peerUserId,
+        mode: currentCall.mode || "voice",
+      });
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, []); // callStateRef is a stable ref — no deps needed
+
+  // ── Reset call state on socket disconnect (network loss / server restart) ──
+  useEffect(() => {
+    const socket = getAuthenticatedSocket();
+    if (!socket) return undefined;
+
+    const handleSocketDisconnect = () => {
+      // Backend will notify the peer via its disconnect handler.
+      // We just clean up local state so the overlay closes on our side.
+      if (callStateRef.current.isOpen) {
+        closePeerConnection();
+        stopLocalStream();
+        setCallState(INITIAL_CALL_STATE);
+      }
+    };
+
+    socket.on("disconnect", handleSocketDisconnect);
+    return () => socket.off("disconnect", handleSocketDisconnect);
+  }, [closePeerConnection, stopLocalStream]);
+
+  // ── Cleanup on unmount ────────────────────────────────────────
   useEffect(() => {
     return () => {
       closePeerConnection();

@@ -393,8 +393,43 @@ export function initSocket(server) {
       relayCallEvent(socket, "call:ice_candidate", payload);
     });
 
-    socket.on("disconnect", () => {
+    socket.on("disconnect", async () => {
       removeSocketPresence(socket);
+
+      // ── Auto-end any active call this user was part of ──────────────
+      const userId = String(socket.user.id);
+      for (const [callId, activeCall] of activeCalls.entries()) {
+        const isCaller = String(activeCall.callerUserId) === userId;
+        const isCallee = String(activeCall.calleeUserId) === userId;
+        if (!isCaller && !isCallee) continue;
+
+        // Clear the ring / missed timeout
+        if (activeCall.timeoutId) clearTimeout(activeCall.timeoutId);
+        activeCalls.delete(callId);
+
+        const peerId = isCaller ? String(activeCall.calleeUserId) : String(activeCall.callerUserId);
+        // Choose status: if call was answered → "ended"; if caller drops before answer → "cancelled"; callee drops → "missed"
+        const status = activeCall.acceptedAt
+          ? "ended"
+          : isCaller ? "cancelled" : "missed";
+
+        const callPayload = {
+          callId,
+          conversationId: String(activeCall.conversationId),
+          targetUserId: peerId,
+          mode: activeCall.mode || "voice",
+        };
+
+        // Record call message in DB and push to all participants
+        await createAndEmitCallMessage(socket, callPayload, status);
+
+        // Notify the peer that the call ended so their overlay closes
+        emitToUser(peerId, "call:ended", {
+          callId,
+          conversationId: String(activeCall.conversationId),
+          fromUserId: userId,
+        });
+      }
     });
   });
 
