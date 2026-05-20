@@ -86,18 +86,16 @@ function MemberListView({ chat, currentUser, isOwner, onAddMember, onRemoveMembe
       </div>
 
       {/* Add member */}
-      {isOwner && (
-        <button
-          type="button"
-          className="flex w-full items-center gap-2.5 rounded-lg border border-dashed border-[#dddfe2] px-3 py-2.5 text-sm font-semibold text-indigo-600 transition hover:bg-indigo-50"
-          onClick={onAddMember}
-        >
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-          </svg>
-          Add member
-        </button>
-      )}
+      <button
+        type="button"
+        className="flex w-full items-center gap-2.5 rounded-lg border border-dashed border-[#dddfe2] px-3 py-2.5 text-sm font-semibold text-indigo-600 transition hover:bg-indigo-50"
+        onClick={onAddMember}
+      >
+        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+        </svg>
+        Add member
+      </button>
     </div>
   );
 }

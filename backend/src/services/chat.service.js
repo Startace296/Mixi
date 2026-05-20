@@ -344,7 +344,6 @@ export async function addGroupMember(currentUserId, conversationId, memberId) {
 
   const conversation = await Conversation.findById(conversationId);
   assertGroupConversation(conversation, currentUserId);
-  assertGroupOwner(conversation, currentUserId);
   await ensureAcceptedFriendship(currentUserId, memberId);
 
   if (conversation.participantIds.some((participantId) => toIdString(participantId) === toIdString(memberId))) {
