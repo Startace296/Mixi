@@ -261,10 +261,8 @@ function EditGroupModal({ chat, currentUser, onClose, onUpdateGroup, onAddMember
   const navigate = useNavigate();
   const [view, setView] = useState("edit");
   const [name, setName] = useState(chat.name || "");
-  const [nameConfirm, setNameConfirm] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState(null);
   const [avatarFile, setAvatarFile] = useState(null);
-  const [avatarConfirm, setAvatarConfirm] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const fileInputRef = useRef(null);
 
@@ -285,40 +283,40 @@ function EditGroupModal({ chat, currentUser, onClose, onUpdateGroup, onAddMember
     return () => window.removeEventListener("keydown", h);
   }, [view, onClose]);
 
-  // ── Name ───────────────────────────────────────────────────
-  const triggerNameConfirm = () => {
-    const trimmed = name.trim();
-      if (!trimmed || trimmed === (chat.name || "").trim()) {setName(chat.name || ""); return; }
-      setNameConfirm(true);
-  };
-  const confirmNameSave = async () => {
+  // ── Dirty tracking ─────────────────────────────────────────
+  const nameChanged = name.trim() !== (chat.name || "").trim() && name.trim() !== "";
+  const avatarChanged = avatarFile !== null;
+  const isDirty = nameChanged || avatarChanged;
+
+  const handleSave = async () => {
+    const updates = {};
+    if (nameChanged) updates.name = name.trim();
+    if (avatarChanged) updates.avatar = avatarFile;
     try {
-        await onUpdateGroup?.({ name: name.trim() });
-      setNameConfirm(false);
+      await onUpdateGroup?.(updates);
+      if (avatarPreview) URL.revokeObjectURL(avatarPreview);
+      setAvatarPreview(null);
+      setAvatarFile(null);
     } catch (err) {
-        window.alert(err.message || "Failed to update group");
+      window.alert(err.message || "Failed to update group");
     }
   };
-  const cancelNameEdit = () => {setName(chat.name || ""); setNameConfirm(false); };
+
+  const handleCancel = () => {
+    setName(chat.name || "");
+    if (avatarPreview) URL.revokeObjectURL(avatarPreview);
+    setAvatarPreview(null);
+    setAvatarFile(null);
+  };
 
   // ── Avatar ─────────────────────────────────────────────────
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
-      if (!file) return;
-      if (avatarPreview) URL.revokeObjectURL(avatarPreview);
-      setAvatarFile(file);
-      setAvatarPreview(URL.createObjectURL(file));
-      setAvatarConfirm(true);
+    if (!file) return;
+    if (avatarPreview) URL.revokeObjectURL(avatarPreview);
+    setAvatarFile(file);
+    setAvatarPreview(URL.createObjectURL(file));
   };
-  const confirmAvatarSave = async () => {
-    try {
-        await onUpdateGroup?.({ avatar: avatarFile });
-      setAvatarConfirm(false);
-    } catch (err) {
-        window.alert(err.message || "Failed to update group photo");
-    }
-  };
-  const cancelAvatarEdit = () => { if (avatarPreview) URL.revokeObjectURL(avatarPreview); setAvatarPreview(null); setAvatarFile(null); setAvatarConfirm(false); };
 
   return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4" onClick={onClose}>
@@ -402,15 +400,6 @@ function EditGroupModal({ chat, currentUser, onClose, onUpdateGroup, onAddMember
                     <input ref={fileInputRef} type="file" accept="image/png,image/jpeg" className="hidden" onChange={handleFileChange} />
                   </div>
                   <p className="text-[11px] text-[#8a8d91]">Group photo</p>
-                  {avatarConfirm && (
-                    <div className="flex w-full items-center justify-between rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2">
-                      <p className="text-xs text-indigo-700">Use this photo?</p>
-                      <div className="flex gap-2">
-                        <button type="button" onClick={cancelAvatarEdit} className="rounded-md px-2.5 py-1 text-xs font-semibold text-[#65676b] hover:bg-[#e4e6eb]">Cancel</button>
-                        <button type="button" onClick={confirmAvatarSave} className="rounded-md bg-indigo-600 px-2.5 py-1 text-xs font-semibold text-white hover:bg-indigo-700">Confirm</button>
-                      </div>
-                    </div>
-                  )}
                 </div>
 
                 {/* Group name */}
@@ -419,22 +408,11 @@ function EditGroupModal({ chat, currentUser, onClose, onUpdateGroup, onAddMember
                   <input
                     type="text"
                     value={name}
-                    onChange={(e) => { setName(e.target.value); setNameConfirm(false); }}
-                    onBlur={triggerNameConfirm}
-                    onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); e.currentTarget.blur(); } }}
+                    onChange={(e) => setName(e.target.value)}
                     placeholder="Group name"
                     maxLength={80}
                     className="rounded-lg border border-[#dddfe2] px-4 py-2.5 text-sm text-[#1c1e21] outline-none transition-colors focus:border-indigo-500"
                   />
-                  {nameConfirm && (
-                    <div className="flex items-center justify-between rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2">
-                      <p className="text-xs text-indigo-700">Rename to <span className="font-semibold">"{name.trim()}"</span>?</p>
-                      <div className="flex gap-2">
-                        <button type="button" onClick={cancelNameEdit} className="rounded-md px-2.5 py-1 text-xs font-semibold text-[#65676b] hover:bg-[#e4e6eb]">Cancel</button>
-                        <button type="button" onClick={confirmNameSave} className="rounded-md bg-indigo-600 px-2.5 py-1 text-xs font-semibold text-white hover:bg-indigo-700">Save</button>
-                      </div>
-                    </div>
-                  )}
                 </div>
 
                 {/* Members row — click ⋯ → navigate to member list */}
@@ -478,6 +456,26 @@ function EditGroupModal({ chat, currentUser, onClose, onUpdateGroup, onAddMember
                     </button>
                   )}
                 </div>
+
+                {/* Save / Cancel — only when name or avatar changed */}
+                {isDirty && (
+                  <div className="flex gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={handleCancel}
+                      className="flex-1 rounded-full border border-[#e4e6eb] py-2 text-sm font-semibold text-[#65676b] transition hover:bg-[#f0f2f5]"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleSave}
+                      className="flex-1 rounded-full bg-indigo-600 py-2 text-sm font-semibold text-white transition hover:bg-indigo-700"
+                    >
+                      Save
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>
