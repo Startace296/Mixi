@@ -1,6 +1,9 @@
 {
   "name": "chatapp-backend",
   "version": "1.0.0",
+  "engines": {
+    "node": "26.x"
+  },
   "private": true,
   "type": "module",
   "description": "Express backend for ChatApp",
