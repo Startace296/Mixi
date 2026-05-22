@@ -183,31 +183,7 @@ async function uploadGroupAvatarBuffer(buffer) {
   });
 }
 
-function parseMemberIds(rawMemberIds) {
-  if (!rawMemberIds) return [];
 
-  if (Array.isArray(rawMemberIds)) {
-    return rawMemberIds.map((memberId) => String(memberId).trim()).filter(Boolean);
-  }
-
-  if (typeof rawMemberIds === "string") {
-    const trimmed = rawMemberIds.trim();
-    if (!trimmed) return [];
-
-    try {
-      const parsed = JSON.parse(trimmed);
-      if (Array.isArray(parsed)) {
-        return parsed.map((memberId) => String(memberId).trim()).filter(Boolean);
-      }
-    } catch {
-      // Fall back to comma-separated values for simple form clients.
-    }
-
-    return trimmed.split(",").map((memberId) => memberId.trim()).filter(Boolean);
-  }
-
-  return [];
-}
 
 function assertGroupConversation(conversation, currentUserId) {
   if (!conversation || conversation.type !== "group" || !isParticipant(conversation, currentUserId)) {
@@ -268,21 +244,13 @@ export async function getOrCreateDirectConversation(currentUserId, friendId) {
   return sanitizeConversation(conversation, currentUserId);
 }
 
-export async function createGroupConversation(currentUserId, { name = "", memberIds } = {}, file) {
+export async function createGroupConversation(currentUserId, { name = "" } = {}, file) {
   const cleanName = typeof name === "string" ? name.trim() : "";
   if (!cleanName) {
     throw new AppError("Group name is required", 400);
   }
   if (cleanName.length > 80) {
     throw new AppError("Group name must be at most 80 characters long", 400);
-  }
-
-  const uniqueMemberIds = [...new Set(parseMemberIds(memberIds))]
-    .filter((memberId) => toIdString(memberId) !== toIdString(currentUserId));
-
-  for (const memberId of uniqueMemberIds) {
-    assertObjectId(memberId, "Invalid member id");
-    await ensureAcceptedFriendship(currentUserId, memberId);
   }
 
   let avatarUrl = "";
@@ -295,7 +263,7 @@ export async function createGroupConversation(currentUserId, { name = "", member
     type: "group",
     name: cleanName,
     avatarUrl,
-    participantIds: [currentUserId, ...uniqueMemberIds],
+    participantIds: [currentUserId],
     createdById: currentUserId,
   });
 
@@ -314,7 +282,6 @@ export async function updateGroupConversation(currentUserId, conversationId, { n
 
   const conversation = await Conversation.findById(conversationId);
   assertGroupConversation(conversation, currentUserId);
-  assertGroupOwner(conversation, currentUserId);
 
   if (typeof name === "string") {
     const cleanName = name.trim();

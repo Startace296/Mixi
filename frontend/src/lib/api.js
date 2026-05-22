@@ -139,11 +139,10 @@ export const createDirectConversation = async ({ friendId }) => {
   return response.data;
 };
 
-export const createGroupConversation = async ({ name, avatar, memberIds = [] }) => {
+export const createGroupConversation = async ({ name, avatar }) => {
   const formData = new FormData();
   formData.append('name', name);
   if (avatar) formData.append('avatar', avatar);
-  if (memberIds.length > 0) formData.append('memberIds', JSON.stringify(memberIds));
 
   const response = await axiosInstance.post('/chat/conversations/group', formData);
   return response.data;

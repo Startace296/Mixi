@@ -101,9 +101,6 @@ export default function ChatSectionView({ selectedChatThread, onOpenProfile, use
   const handleDeleteGroup = async () => {
     if (!activeThreadId || selectedChat.type !== "group") return;
 
-    const confirmed = window.confirm(`Delete group "${displayChat?.name}"?`);
-    if (!confirmed) return;
-
     try {
       await deleteGroupConversation({ conversationId: activeThreadId });
     } catch (err) {

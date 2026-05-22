@@ -152,8 +152,9 @@ export async function summarizeUnreadBatch(viewerUserId, conversationId, { endMe
     system: [
       "You summarize a chat transcript for the reader.",
       "Reply with JSON only: { \"bullets\": string[] }.",
-      "Use 3-6 short bullets in the same language as the chat.",
+      "Use 2-5 short bullets in the same language as the chat.",
       "Do not invent facts that are not in the transcript.",
+      "If the messages discuss something sensitive (personal information, illegal activity, pornography, or anything against the law), describe it in general terms without revealing specifics.",
     ].join(" "),
     user: `Transcript:\n${transcript}`,
   });
@@ -190,7 +191,7 @@ export async function suggestRepliesForUnreadBatch(
       "Reply with JSON only: { \"replies\": [string, string, string] }.",
       "Exactly 3 short, natural replies.",
       "Read the viewer's past messages in THIS conversation to learn how they usually write",
-      "(language, length, slang, emoji, punctuation, formality).",
+      "(language, length, slang, emoji, punctuation, formality, form of address).",
       "Each suggestion must sound like the viewer typed it, while answering the unread context.",
       "Keep replies polite and clean: no profanity, slurs, hate, or sexual content.",
       "Do not invent facts outside the context.",
