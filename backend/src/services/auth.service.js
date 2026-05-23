@@ -108,7 +108,12 @@ export async function requestSignupOtp({ email }) {
       passwordHash: tempHash,
       displayName: normalizedEmail.split("@")[0],
       isEmailVerified: false,
+      expireAt: new Date(Date.now() + 10 * 60 * 1000), // auto-delete after 10 min
     });
+  } else {
+    // Renew expiry window if user requests OTP again
+    user.expireAt = new Date(Date.now() + 10 * 60 * 1000);
+    await user.save();
   }
 
   const { otpExpiresAt, mailResult } = await issueOtpForUser(user, "signup");
@@ -146,6 +151,7 @@ export async function verifyOtp({ email, otpCode }) {
   }
 
   user.isEmailVerified = true;
+  user.expireAt = null; // keep the document forever
   user.otpCode = undefined;
   user.otpExpiresAt = undefined;
   await user.save();

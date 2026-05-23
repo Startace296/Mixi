@@ -1,15 +1,8 @@
-import nodemailer from "nodemailer";
+import * as SibApiV3Sdk from "@getbrevo/brevo";
 import { env } from "../config/env.js";
 
-const transporter = nodemailer.createTransport({
-  host: env.smtpHost,
-  port: env.smtpPort,
-  secure: env.smtpSecure,
-  auth: {
-    user: env.smtpUser,
-    pass: env.smtpPass,
-  },
-});
+const apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
+apiInstance.authentications["apiKey"].apiKey = process.env.BREVO_API_KEY;
 
 function buildOtpEmailContent(otpCode, purpose = "signup") {
   const expiresText = "1 minute";
@@ -40,18 +33,24 @@ This message was sent by ChatApp Security.`;
 }
 
 export async function sendOtpEmail(email, otpCode, purpose = "signup") {
+  if (!process.env.BREVO_API_KEY) {
+    console.log(`[OTP] ${email}: ${otpCode}`);
+    return { delivered: false, preview: otpCode };
+  }
+
   try {
     const { subject, text } = buildOtpEmailContent(otpCode, purpose);
-    await transporter.sendMail({
-      from: env.smtpFrom,
-      to: email,
-      subject,
-      text,
-    });
+    const sendSmtpEmail = new SibApiV3Sdk.SendSmtpEmail();
+    sendSmtpEmail.subject = subject;
+    sendSmtpEmail.textContent = text;
+    sendSmtpEmail.sender = { email: env.smtpFrom || "no-reply@mixichat.com", name: "Mixi" };
+    sendSmtpEmail.to = [{ email }];
+
+    await apiInstance.sendTransacEmail(sendSmtpEmail);
     console.log(`[OTP] Email sent to ${email}`);
     return { delivered: true };
   } catch (err) {
-    console.error("[OTP] SMTP failed:", err.message);
+    console.error("[OTP] Brevo failed:", err.message);
     return { delivered: false };
   }
 }
