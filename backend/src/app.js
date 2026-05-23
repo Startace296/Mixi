@@ -42,4 +42,6 @@ app.use("/posts", postRouter);
 app.use(notFoundHandler);
 app.use(errorHandler);
 
+app.set('trust proxy', 1);
+
 export default app;
