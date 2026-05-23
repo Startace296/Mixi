@@ -1,7 +1,7 @@
-import * as SibApiV3Sdk from "@getbrevo/brevo";
+import { TransactionalEmailsApi, SendSmtpEmail, ApiClient } from "@getbrevo/brevo";
 import { env } from "../config/env.js";
 
-const apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
+const apiInstance = new TransactionalEmailsApi();
 apiInstance.authentications["apiKey"].apiKey = process.env.BREVO_API_KEY;
 
 function buildOtpEmailContent(otpCode, purpose = "signup") {
@@ -40,7 +40,7 @@ export async function sendOtpEmail(email, otpCode, purpose = "signup") {
 
   try {
     const { subject, text } = buildOtpEmailContent(otpCode, purpose);
-    const sendSmtpEmail = new SibApiV3Sdk.SendSmtpEmail();
+    const sendSmtpEmail = new SendSmtpEmail();
     sendSmtpEmail.subject = subject;
     sendSmtpEmail.textContent = text;
     sendSmtpEmail.sender = { email: env.smtpFrom || "no-reply@mixichat.com", name: "Mixi" };
