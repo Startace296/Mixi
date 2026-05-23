@@ -1,33 +1,6 @@
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
 
-import { env } from "../config/env.js";
-
-let transporterPromise;
-
-async function getTransporter() {
-  if (!env.smtpHost || !env.smtpUser || !env.smtpPass) {
-    return null;
-  }
-
-  if (!transporterPromise) {
-    transporterPromise = Promise.resolve(
-      nodemailer.createTransport({
-        host: env.smtpHost,
-        port: env.smtpPort,
-        secure: env.smtpSecure,
-        auth: {
-          user: env.smtpUser,
-          pass: env.smtpPass,
-        },
-        // Force IPv4 to avoid ENETUNREACH on networks with poor IPv6
-        connectionTimeout: 10000,
-        greetingTimeout: 10000,
-      }),
-    );
-  }
-
-  return transporterPromise;
-}
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 function buildOtpEmailContent(otpCode, purpose = "signup") {
   const expiresText = "1 minute";
@@ -40,8 +13,7 @@ function buildOtpEmailContent(otpCode, purpose = "signup") {
       ? "ChatApp password reset verification code"
       : "ChatApp account verification code";
 
-  const text =
-`Hello,
+  const text = `Hello,
 
 We received a request to ${actionText}.
 
@@ -53,33 +25,28 @@ For your security:
 - ChatApp support will never ask for your OTP.
 - If you did not request this code, you can safely ignore this email.
 
-This message was sent by ChatApp Security.
-`;
+This message was sent by ChatApp Security.`;
 
   return { subject, text };
 }
 
 export async function sendOtpEmail(email, otpCode, purpose = "signup") {
-  const transporter = await getTransporter();
-
-  if (!transporter) {
+  if (!process.env.RESEND_API_KEY) {
     console.log(`[OTP] ${email}: ${otpCode}`);
     return { delivered: false, preview: otpCode };
   }
 
   try {
     const { subject, text } = buildOtpEmailContent(otpCode, purpose);
-    await transporter.sendMail({
-      from: env.smtpFrom,
+    await resend.emails.send({
+      from: "onboarding@resend.dev",
       to: email,
       subject,
       text,
     });
     return { delivered: true };
   } catch (err) {
-    // Network/SMTP failure - log OTP so dev can continue testing
-    console.error("[OTP] SMTP failed, code for", email, ":", otpCode);
-    console.error("[OTP] Error:", err.message);
+    console.error("[OTP] Resend failed:", err.message);
     return { delivered: false, preview: otpCode };
   }
 }
