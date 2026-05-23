@@ -1,3 +1,5 @@
+import Brevo from "@getbrevo/brevo";
+const { TransactionalEmailsApi, SendSmtpEmail } = Brevo;
 import { env } from "../config/env.js";
 
 const apiInstance = new TransactionalEmailsApi();
