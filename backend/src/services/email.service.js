@@ -1,6 +1,15 @@
-import { Resend } from "resend";
+import nodemailer from "nodemailer";
+import { env } from "../config/env.js";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const transporter = nodemailer.createTransport({
+  host: env.smtpHost,
+  port: env.smtpPort,
+  secure: env.smtpSecure,
+  auth: {
+    user: env.smtpUser,
+    pass: env.smtpPass,
+  },
+});
 
 function buildOtpEmailContent(otpCode, purpose = "signup") {
   const expiresText = "1 minute";
@@ -31,22 +40,18 @@ This message was sent by ChatApp Security.`;
 }
 
 export async function sendOtpEmail(email, otpCode, purpose = "signup") {
-  if (!process.env.RESEND_API_KEY) {
-    console.log(`[OTP] ${email}: ${otpCode}`);
-    return { delivered: false, preview: otpCode };
-  }
-
   try {
     const { subject, text } = buildOtpEmailContent(otpCode, purpose);
-    await resend.emails.send({
-      from: "onboarding@resend.dev",
+    await transporter.sendMail({
+      from: env.smtpFrom,
       to: email,
       subject,
       text,
     });
+    console.log(`[OTP] Email sent to ${email}`);
     return { delivered: true };
   } catch (err) {
-    console.error("[OTP] Resend failed:", err.message);
-    return { delivered: false, preview: otpCode };
+    console.error("[OTP] SMTP failed:", err.message);
+    return { delivered: false };
   }
 }
