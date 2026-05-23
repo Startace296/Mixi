@@ -9,6 +9,7 @@ const transporter = nodemailer.createTransport({
     user: env.smtpUser,
     pass: env.smtpPass,
   },
+  requireTLS: true,
 });
 
 function buildOtpEmailContent(otpCode, purpose = "signup") {
