@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
 import { completeRegistration, completeGoogleRegistration } from '../lib/api.js';
+import { useAuthStore } from '../stores/useAuthStore.js';
 
 function validateAge(day, month, year) {
   const birthDate = new Date(Number(year), Number(month) - 1, Number(day));
@@ -13,6 +14,7 @@ function validateAge(day, month, year) {
 
 export function useRegisterForm({ email, fromGoogle, googleSignupToken, googleDisplayName }) {
   const navigate = useNavigate();
+  const applyAuthSuccess = useAuthStore((state) => state.applyAuthSuccess);
 
   const [displayName, setDisplayName] = useState('');
   const [gender, setGender] = useState('');
@@ -83,8 +85,9 @@ export function useRegisterForm({ email, fromGoogle, googleSignupToken, googleDi
 
     setIsLoading(true);
     try {
+      let data;
       if (fromGoogle && googleSignupToken) {
-        const data = await completeGoogleRegistration({
+        data = await completeGoogleRegistration({
           googleSignupToken,
           displayName,
           gender,
@@ -92,9 +95,8 @@ export function useRegisterForm({ email, fromGoogle, googleSignupToken, googleDi
           month: month || undefined,
           year: year || undefined,
         });
-        toast.success(data.message || 'Account created successfully.');
       } else {
-        const data = await completeRegistration({
+        data = await completeRegistration({
           email,
           password,
           displayName,
@@ -103,9 +105,10 @@ export function useRegisterForm({ email, fromGoogle, googleSignupToken, googleDi
           month: month || undefined,
           year: year || undefined,
         });
-        toast.success(data.message || 'Account created successfully.');
       }
-      navigate('/login', { replace: true });
+      applyAuthSuccess(data);
+      toast.success(data.message || 'Account created successfully.');
+      navigate('/home', { replace: true });
     } catch (error) {
       toast.error(error.message);
     } finally {

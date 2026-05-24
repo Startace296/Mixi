@@ -66,7 +66,7 @@ export default function MessageList({
     <div
       ref={listRef}
       onScroll={handleScroll}
-      className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-4"
+      className="min-h-0 flex-1 space-y-1 overflow-y-auto px-4 py-4"
     >
       {hasOlderMessages && (
         <div className="flex h-8 items-center justify-center text-xs font-semibold text-[#65676b]">
@@ -81,7 +81,7 @@ export default function MessageList({
         const shouldShowTimeDivider = messageDayKey && messageDayKey !== previousMessageDayKey;
 
         return (
-          <div key={message._id} className="space-y-3">
+          <div key={message._id} className="space-y-2">
             {showUnreadUi && message._id === markers.firstId && (
               <UnreadCountBanner count={markers.count} />
             )}

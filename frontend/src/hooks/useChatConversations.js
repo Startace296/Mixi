@@ -31,8 +31,6 @@ export function useChatConversations({ selectedChatId, onSelectChat }) {
         if (selectedChatId) {
           const matched = nextConversations.find((item) => item.id === selectedChatId);
           if (matched) onSelectChat(matched, false);
-        } else if (nextConversations.length > 0) {
-          onSelectChat(nextConversations[0], false);
         }
       } catch (err) {
         if (isMounted && !silent) setError(err.message || "Failed to load conversations");

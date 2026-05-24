@@ -189,9 +189,33 @@ export function useChatMessages({
   const handleSendMessage = async (text) => {
     if (!activeThreadId) return;
 
-    const data = await sendChatMessage({ conversationId: activeThreadId, text });
-    if (data?.message) {
-      updateMessagesForActiveThread((prevMessages) => appendMessageOnce(prevMessages, data.message));
+    // Optimistic update: hiển thị ngay, không chờ server
+    const tempId = `temp_${Date.now()}_${Math.random()}`;
+    const optimisticMessage = {
+      _id: tempId,
+      conversationId: activeThreadId,
+      senderId: currentUserId,
+      text,
+      imageUrl: null,
+      createdAt: new Date().toISOString(),
+      isDeleted: false,
+      _optimistic: true,
+    };
+    updateMessagesForActiveThread((prev) => appendMessageOnce(prev, optimisticMessage));
+
+    try {
+      const data = await sendChatMessage({ conversationId: activeThreadId, text });
+      if (data?.message) {
+        updateMessagesForActiveThread((prev) => {
+          // Nếu socket đã append real message rồi thì chỉ xóa tempId, tránh duplicate
+          const alreadyAdded = prev.some((m) => m._id === data.message._id);
+          if (alreadyAdded) return prev.filter((m) => m._id !== tempId);
+          return prev.map((m) => (m._id === tempId ? data.message : m));
+        });
+      }
+    } catch (err) {
+      updateMessagesForActiveThread((prev) => prev.filter((m) => m._id !== tempId));
+      throw err;
     }
   };
 
@@ -207,9 +231,34 @@ export function useChatMessages({
   const handleAttachImage = async (file) => {
     if (!activeThreadId) return;
 
-    const data = await sendChatImage({ conversationId: activeThreadId, file });
-    if (data?.message) {
-      updateMessagesForActiveThread((prevMessages) => appendMessageOnce(prevMessages, data.message));
+    const tempId = `temp_img_${Date.now()}_${Math.random()}`;
+    const objectUrl = URL.createObjectURL(file);
+    const optimisticMessage = {
+      _id: tempId,
+      conversationId: activeThreadId,
+      senderId: currentUserId,
+      text: null,
+      imageUrl: objectUrl,
+      createdAt: new Date().toISOString(),
+      isDeleted: false,
+      _optimistic: true,
+    };
+    updateMessagesForActiveThread((prev) => appendMessageOnce(prev, optimisticMessage));
+
+    try {
+      const data = await sendChatImage({ conversationId: activeThreadId, file });
+      URL.revokeObjectURL(objectUrl);
+      if (data?.message) {
+        updateMessagesForActiveThread((prev) => {
+          const alreadyAdded = prev.some((m) => m._id === data.message._id);
+          if (alreadyAdded) return prev.filter((m) => m._id !== tempId);
+          return prev.map((m) => (m._id === tempId ? data.message : m));
+        });
+      }
+    } catch (err) {
+      URL.revokeObjectURL(objectUrl);
+      updateMessagesForActiveThread((prev) => prev.filter((m) => m._id !== tempId));
+      throw err;
     }
   };
 

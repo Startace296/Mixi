@@ -17,7 +17,7 @@ export default function MessageBubble({
       ? "bg-blue-500 text-white"
       : "bg-[#f0f2f5] text-[#1c1e21]";
 
-  const rowClass = `group flex w-full ${isMine ? "justify-end" : "justify-start"}`;
+  const rowClass = `group flex w-full ${isMine ? "justify-end" : "justify-start"} ${message._optimistic ? "opacity-60" : ""}`;
   const columnClass = `relative flex max-w-[75%] flex-col ${isMine ? "items-end" : "items-start"}`;
   const hoverTimeClass = `pointer-events-none absolute top-1/2 z-10 hidden -translate-y-1/2 whitespace-nowrap rounded-md bg-[#242526] px-2 py-1 text-[11px] font-semibold text-white shadow-lg peer-hover:block ${
     isMine ? "right-full mr-2" : "left-full ml-2"
