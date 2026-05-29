@@ -17,8 +17,9 @@ export default function AuthCard({ title, subtitle, children }) {
             {children}
           </div>
         </div>
-        <Footer />
       </div>
+      <Footer />
     </div>
   );
 }
+
