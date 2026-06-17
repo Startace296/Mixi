@@ -52,16 +52,30 @@ function clipText(text, max = MAX_LINE_LENGTH) {
 // Formats a single message into a readable "Name: text" line.
 // Returns null for call messages and deleted messages so they can be filtered out.
 function formatMessageLine(message, viewerUserId) {
-  // Bỏ qua tin nhắn bị xóa
   if (message.isDeleted || message.deletedAt) return null;
-  // Bỏ qua tin nhắn cuộc gọi
   if (message.type === "call") return null;
 
   const senderId = String(message.senderId?._id || message.senderId);
   const isViewer = senderId === String(viewerUserId);
-  const senderName = isViewer
-    ? "Bạn"
-    : (message.senderId?.displayName || "Họ");
+  
+  let senderName = "Bạn";
+  if (!isViewer) {
+    const displayName = message.senderId?.displayName || "";
+    const username = message.senderId?.username || "";
+    const userId = String(message.senderId?._id || "").slice(-6);
+    
+    if (displayName && username) {
+      senderName = `${displayName} (${username})`;
+    } else if (displayName && userId) {
+      senderName = `${displayName} (#${userId})`;
+    } else if (username) {
+      senderName = username;
+    } else if (userId) {
+      senderName = `User #${userId}`;
+    } else {
+      senderName = "Họ";
+    }
+  }
 
   if (message.type === "image") return `${senderName}: [hình ảnh]`;
 
@@ -72,12 +86,33 @@ function formatMessageLine(message, viewerUserId) {
 
 // Converts an array of messages into a plain-text transcript string,
 // skipping calls, deleted messages, and empty lines.
+// Also anonymizes sender names to protect privacy.
 function formatTranscript(messages, viewerUserId) {
   const ordered = [...messages].reverse();
   if (!ordered.length) return "(không có tin nhắn)";
 
+  // Map unique senders to anonymized names (User A, User B, User C, etc.)
+  const senderMap = new Map();
+  let userCounter = 0;
+  const anonymizeMessage = (line) => {
+    if (!line) return null;
+    const match = line.match(/^(.+?):\s(.*)$/);
+    if (!match) return line;
+    
+    const [, senderName, content] = match;
+    if (senderName === "Bạn") return line; // Keep "Bạn" as is
+    
+    if (!senderMap.has(senderName)) {
+      senderMap.set(senderName, `User ${String.fromCharCode(65 + userCounter++)}`);
+    }
+    
+    const anonymizedName = senderMap.get(senderName);
+    return `${anonymizedName}: ${content}`;
+  };
+
   const lines = ordered
     .map((message) => formatMessageLine(message, viewerUserId))
+    .map(anonymizeMessage)
     .filter(Boolean);
 
   return lines.length ? lines.join("\n") : "(không có tin nhắn hợp lệ)";
@@ -121,7 +156,7 @@ async function getMessagesBatch(conversationId, endMessageId, maxMessages, start
     })
       .sort({ createdAt: 1 })
       .limit(MAX_BATCH_MESSAGES)
-      .populate("senderId", "displayName");
+      .populate("senderId", "displayName username");
   }
 
   // Mode cũ: lấy N tin gần nhất tính từ endMessage
@@ -133,7 +168,7 @@ async function getMessagesBatch(conversationId, endMessageId, maxMessages, start
   })
     .sort({ createdAt: -1 })
     .limit(limit)
-    .populate("senderId", "displayName");
+    .populate("senderId", "displayName username");
 }
 
 // Fetches recent text messages sent by the viewer to use as writing style reference
@@ -207,6 +242,8 @@ export async function summarizeMessageBatch(viewerUserId, conversationId, { endM
       "You summarize a chat transcript for the reader.",
       "Reply with JSON only: { \"bullets\": string[] }.",
       "Use 2-5 short bullets.",
+      "If many different people speak in the transcript, prefer a high-level group summary such as 'Everyone is discussing...' or 'The group is deciding...' instead of listing every participant individually.",
+      "If the transcript shows more than 5 participants, focus on the overall topic and the most important points, not on each person separately.",
       "CRITICAL: Detect the language used in the chat transcript and write ALL bullets in that exact same language. If the chat is in Vietnamese, write in Vietnamese. If in English, write in English. Never switch to another language.",
       "Do not invent facts that are not in the transcript.",
       "If the messages discuss something sensitive (personal information, illegal activity, pornography, or anything against the law), describe it in general terms without revealing specifics.",
@@ -216,7 +253,7 @@ export async function summarizeMessageBatch(viewerUserId, conversationId, { endM
   });
 
   const bullets = Array.isArray(data.bullets)
-    ? data.bullets.filter((item) => typeof item === "string" && item.trim())
+    ? data.bullets.filter((item) => typeof item === "string" && item.trim()).slice(0, 5)
     : [];
 
   if (!bullets.length) {
