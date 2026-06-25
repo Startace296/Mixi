@@ -95,7 +95,7 @@ export default function MessageBubble({
                 onClick={(event) => event.stopPropagation()}
                 className={dropdownClass}
               >
-                {/* Summarize from here — hiện với mọi tin nhắn */}
+                {/* Summarize from here*/}
                 <button
                   type="button"
                   onClick={() => {
@@ -107,7 +107,7 @@ export default function MessageBubble({
                   Summarize from here
                 </button>
 
-                {/* Delete — chỉ hiện với tin của mình */}
+                {/* Delete — only shown for own messages */}
                 {isMine && (
                   <button
                     type="button"
