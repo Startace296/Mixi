@@ -58,7 +58,7 @@ function formatMessageLine(message, viewerUserId) {
   const senderId = String(message.senderId?._id || message.senderId);
   const isViewer = senderId === String(viewerUserId);
   
-  let senderName = "Bạn";
+  let senderName = "bạn";
   if (!isViewer) {
     const displayName = message.senderId?.displayName || "";
     const username = message.senderId?.username || "";
@@ -100,7 +100,7 @@ function formatTranscript(messages, viewerUserId) {
     if (!match) return line;
     
     const [, senderName, content] = match;
-    if (senderName === "Bạn") return line; // Keep "Bạn" as is
+    if (senderName === "bạn") return line; // Keep "bạn" as is
     
     if (!senderMap.has(senderName)) {
       senderMap.set(senderName, `User ${String.fromCharCode(65 + userCounter++)}`);
@@ -247,7 +247,7 @@ export async function summarizeMessageBatch(viewerUserId, conversationId, { endM
       "CRITICAL: Detect the language used in the chat transcript and write ALL bullets in that exact same language. If the chat is in Vietnamese, write in Vietnamese. If in English, write in English. Never switch to another language.",
       "Do not invent facts that are not in the transcript.",
       "If the messages discuss something sensitive (personal information, illegal activity, pornography, or anything against the law), describe it in general terms without revealing specifics.",
-      "IMPORTANT: The transcript uses 'Bạn' as the fixed label for the viewer (the person reading this summary). Always refer to the viewer as 'Bạn' in your bullets. Do NOT rephrase 'Bạn' as 'người nói', 'người dùng', 'bạn bè', or any other term. Keep 'Bạn' exactly as written.",
+      "IMPORTANT: The transcript uses 'bạn' as the fixed label for the viewer (the person reading this summary). If the chat language is Vietnamese, always refer to the viewer as 'bạn' (lowercase). If the chat language is English, always refer to the viewer as 'you' (lowercase). Only capitalize at the very start of a sentence. Do NOT use 'Bạn' mid-sentence, and do not rephrase the viewer as 'người nói', 'người dùng', 'bạn bè', or any other term.",
     ].join(" "),
     user: `Transcript:\n${transcript}`,
   });
