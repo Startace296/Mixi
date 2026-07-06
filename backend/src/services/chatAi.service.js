@@ -86,33 +86,12 @@ function formatMessageLine(message, viewerUserId) {
 
 // Converts an array of messages into a plain-text transcript string,
 // skipping calls, deleted messages, and empty lines.
-// Also anonymizes sender names to protect privacy.
 function formatTranscript(messages, viewerUserId) {
   const ordered = [...messages].reverse();
   if (!ordered.length) return "(không có tin nhắn)";
 
-  // Map unique senders to anonymized names (User A, User B, User C, etc.)
-  const senderMap = new Map();
-  let userCounter = 0;
-  const anonymizeMessage = (line) => {
-    if (!line) return null;
-    const match = line.match(/^(.+?):\s(.*)$/);
-    if (!match) return line;
-    
-    const [, senderName, content] = match;
-    if (senderName === "bạn") return line; // Keep "bạn" as is
-    
-    if (!senderMap.has(senderName)) {
-      senderMap.set(senderName, `User ${String.fromCharCode(65 + userCounter++)}`);
-    }
-    
-    const anonymizedName = senderMap.get(senderName);
-    return `${anonymizedName}: ${content}`;
-  };
-
   const lines = ordered
     .map((message) => formatMessageLine(message, viewerUserId))
-    .map(anonymizeMessage)
     .filter(Boolean);
 
   return lines.length ? lines.join("\n") : "(không có tin nhắn hợp lệ)";
