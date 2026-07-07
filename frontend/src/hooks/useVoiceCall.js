@@ -36,6 +36,7 @@ const INITIAL_CALL_STATE = {
   isMicOn: true,
   isCamOn: false,
   error: "",
+  iceState: "",  // debug: ICE connection state
 };
 
 function createCallId() {
@@ -125,9 +126,11 @@ export function useVoiceCall({ currentUser } = {}) {
     const peerConnection = new RTCPeerConnection({ iceServers: ICE_SERVERS });
     peerConnectionRef.current = peerConnection;
 
-    // ── Debug: track ICE & connection state ──────────────────────────
+    // ── Debug: track ICE & connection state (shown in call UI) ──────
     peerConnection.oniceconnectionstatechange = () => {
-      console.log("[WebRTC] ICE connection state:", peerConnection.iceConnectionState);
+      const s = peerConnection.iceConnectionState;
+      console.log("[WebRTC] ICE connection state:", s);
+      setCallState((prev) => ({ ...prev, iceState: s }));
     };
     peerConnection.onicegatheringstatechange = () => {
       console.log("[WebRTC] ICE gathering state:", peerConnection.iceGatheringState);
@@ -135,6 +138,8 @@ export function useVoiceCall({ currentUser } = {}) {
     peerConnection.onconnectionstatechange = () => {
       console.log("[WebRTC] Connection state:", peerConnection.connectionState);
     };
+    // Expose for manual console debugging: window.__debugPC?.iceConnectionState
+    window.__debugPC = peerConnection;
     // ─────────────────────────────────────────────────────────────────
 
     peerConnection.onicecandidate = (event) => {

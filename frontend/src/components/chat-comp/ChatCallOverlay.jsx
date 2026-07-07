@@ -323,7 +323,7 @@ function RingingView({ phase, mode, peerName, peerAvatarUrl, error, onAccept, on
 
 /* ─── In-call phase ──────────────────────────────────────────────── */
 
-function InCallView({ mode, peerName, peerAvatarUrl, isMicOn, isCamOn, error, remoteStream, onToggleMic, onToggleCam, onEnd }) {
+function InCallView({ mode, peerName, peerAvatarUrl, isMicOn, isCamOn, error, iceState, remoteStream, onToggleMic, onToggleCam, onEnd }) {
   const [peerCamOn, setPeerCamOn] = useState(false);
   const remoteAudioRef = useRef(null);
   const showVideoLayout = mode === "video" || isCamOn || peerCamOn;
@@ -442,6 +442,16 @@ function InCallView({ mode, peerName, peerAvatarUrl, isMicOn, isCamOn, error, re
                   {error}
                 </p>
               )}
+              {/* ICE state debug badge */}
+              {iceState && (
+                <p className="mt-2 text-[10px] font-mono" style={{
+                  color: iceState === "connected" || iceState === "completed" ? "#34d399"
+                    : iceState === "failed" || iceState === "disconnected" ? "#f87171"
+                    : "rgba(255,255,255,0.4)"
+                }}>
+                  ICE: {iceState}
+                </p>
+              )}
             </div>
           </div>
         )}
@@ -525,6 +535,7 @@ export default function ChatCallOverlay({
   isMicOn,
   isCamOn,
   error,
+  iceState,
   remoteStream,
   onAccept,
   onDecline,
@@ -565,6 +576,7 @@ export default function ChatCallOverlay({
         isMicOn={isMicOn}
         isCamOn={isCamOn}
         error={error}
+        iceState={iceState}
         remoteStream={remoteStream}
         onToggleMic={onToggleMic}
         onToggleCam={onToggleCam}
