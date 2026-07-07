@@ -26,18 +26,8 @@ const router = Router();
 
 router.get("/conversations", requireAuth, asyncHandler(getConversationsHandler));
 router.post("/conversations/direct/:friendId", requireAuth, asyncHandler(createDirectConversationHandler));
-router.post(
-  "/conversations/group",
-  requireAuth,
-  groupAvatarUpload.single("avatar"),
-  asyncHandler(createGroupConversationHandler),
-);
-router.patch(
-  "/conversations/:conversationId/group",
-  requireAuth,
-  groupAvatarUpload.single("avatar"),
-  asyncHandler(updateGroupConversationHandler),
-);
+router.post("/conversations/group", requireAuth, groupAvatarUpload.single("avatar"), asyncHandler(createGroupConversationHandler));
+router.patch("/conversations/:conversationId/group", requireAuth, groupAvatarUpload.single("avatar"), asyncHandler(updateGroupConversationHandler));
 router.post("/conversations/:conversationId/members", requireAuth, asyncHandler(addGroupMemberHandler));
 router.delete("/conversations/:conversationId/members/:memberId", requireAuth, asyncHandler(removeGroupMemberHandler));
 router.post("/conversations/:conversationId/leave", requireAuth, asyncHandler(leaveGroupConversationHandler));

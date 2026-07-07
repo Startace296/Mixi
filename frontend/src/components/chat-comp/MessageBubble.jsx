@@ -26,7 +26,7 @@ export default function MessageBubble({
 
   const isMenuOpen = openMenuId === message._id;
 
-  // Nút ... nằm kế bên bubble, căn giữa theo chiều dọc
+  // ... button
   const menuButtonClass = isMine
     ? "absolute top-1/2 -translate-y-1/2 -left-8 flex h-6 w-6 items-center justify-center rounded-full bg-white text-[#65676b] opacity-0 shadow transition hover:bg-[#f0f2f5] group-hover:opacity-100"
     : "absolute top-1/2 -translate-y-1/2 -right-8 flex h-6 w-6 items-center justify-center rounded-full bg-white text-[#65676b] opacity-0 shadow transition hover:bg-[#f0f2f5] group-hover:opacity-100";
@@ -95,7 +95,7 @@ export default function MessageBubble({
                 onClick={(event) => event.stopPropagation()}
                 className={dropdownClass}
               >
-                {/* Summarize from here — hiện với mọi tin nhắn */}
+                {/* Summarize from here*/}
                 <button
                   type="button"
                   onClick={() => {
@@ -107,7 +107,7 @@ export default function MessageBubble({
                   Summarize from here
                 </button>
 
-                {/* Delete — chỉ hiện với tin của mình */}
+                {/* Delete — only shown for own messages */}
                 {isMine && (
                   <button
                     type="button"

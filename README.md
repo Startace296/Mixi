@@ -1,17 +1,40 @@
-# ChatApp
+# Mixi
 
-A social networking platform with real-time chat and AI-based user support.
+Mixi is a social networking platform that allows users to connect, chat in real time, and interact with each other. The project was developed as a practice project to explore modern web development technologies and real-time communication.
 
-## Tech stack
-- MongoDB
-- Express.js
-- React
+## Features
+
+- User Authentication (JWT, Google OAuth)
+- Email OTP Verification
+- User Profile Management
+- Friend Request System
+- Real-time Chat with Socket.IO
+- Group Chat
+- Voice & Video Calling
+- Social Posts
+- AI-powered Chat Support
+
+## Tech Stack
+
+### Frontend
+- ReactJS
+- Vite
+- Tailwind CSS
+
+### Backend
 - Node.js
-- Docker
-- AI API (for chat summarization)
+- Express.js
+- Socket.IO
 
-## Features (planned)
-- User authentication
-- Real-time chat
-- Social posts
-- AI-based chat summarization
+### Database
+- MongoDB
+
+### Others
+- Docker
+- GitHub Actions
+- Google Gemini API
+
+## Installation
+
+```bash
+git clone https://github.com/Startace296/Mixi.git
