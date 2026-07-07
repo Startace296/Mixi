@@ -138,7 +138,7 @@ async function getMessagesBatch(conversationId, endMessageId, maxMessages, start
       .populate("senderId", "displayName username");
   }
 
-  // Mode cũ: lấy N tin gần nhất tính từ endMessage
+  // Old mode: fetch up to N messages before endMessage
   const limit = Math.min(Math.max(Number(maxMessages) || 30, 1), MAX_BATCH_MESSAGES);
   return Message.find({
     conversationId,
