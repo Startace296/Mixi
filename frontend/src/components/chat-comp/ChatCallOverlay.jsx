@@ -331,6 +331,12 @@ function InCallView({ mode, peerName, peerAvatarUrl, isMicOn, isCamOn, error, re
   useEffect(() => {
     if (!remoteAudioRef.current) return;
     remoteAudioRef.current.srcObject = remoteStream || null;
+    if (remoteStream) {
+      console.log("[WebRTC] Setting remoteStream on audio element, playing...");
+      remoteAudioRef.current.play().catch((err) => {
+        console.warn("[WebRTC] Audio autoplay blocked:", err);
+      });
+    }
   }, [remoteStream]);
 
   return (

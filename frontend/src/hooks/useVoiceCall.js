@@ -125,6 +125,18 @@ export function useVoiceCall({ currentUser } = {}) {
     const peerConnection = new RTCPeerConnection({ iceServers: ICE_SERVERS });
     peerConnectionRef.current = peerConnection;
 
+    // ── Debug: track ICE & connection state ──────────────────────────
+    peerConnection.oniceconnectionstatechange = () => {
+      console.log("[WebRTC] ICE connection state:", peerConnection.iceConnectionState);
+    };
+    peerConnection.onicegatheringstatechange = () => {
+      console.log("[WebRTC] ICE gathering state:", peerConnection.iceGatheringState);
+    };
+    peerConnection.onconnectionstatechange = () => {
+      console.log("[WebRTC] Connection state:", peerConnection.connectionState);
+    };
+    // ─────────────────────────────────────────────────────────────────
+
     peerConnection.onicecandidate = (event) => {
       if (!event.candidate) return;
       const currentCall = callStateRef.current;
@@ -140,12 +152,14 @@ export function useVoiceCall({ currentUser } = {}) {
     };
 
     peerConnection.ontrack = (event) => {
+      console.log("[WebRTC] ontrack fired — kind:", event.track.kind, "streams:", event.streams.length);
       const [stream] = event.streams;
       if (stream) setRemoteStream(stream);
     };
 
     const localStream = await ensureLocalAudioStream();
     localStream.getTracks().forEach((track) => {
+      console.log("[WebRTC] Adding local track:", track.kind);
       peerConnection.addTrack(track, localStream);
     });
 
