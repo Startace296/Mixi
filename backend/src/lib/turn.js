@@ -1,5 +1,25 @@
 import { AppError } from "../utils/app-error.js";
 
+const FREE_TURN_SERVERS = [
+  { urls: "stun:stun.l.google.com:19302" },
+  { urls: "stun:stun1.l.google.com:19302" },
+  {
+    urls: "turn:openrelay.metered.ca:80",
+    username: "openrelayproject",
+    credential: "openrelayproject",
+  },
+  {
+    urls: "turn:openrelay.metered.ca:443",
+    username: "openrelayproject",
+    credential: "openrelayproject",
+  },
+  {
+    urls: "turn:openrelay.metered.ca:443?transport=tcp",
+    username: "openrelayproject",
+    credential: "openrelayproject",
+  },
+];
+
 let iceServersPromise = null;
 
 async function createCredential(domain, secretKey) {
@@ -52,14 +72,16 @@ export function getTurnCredentials() {
   const secretKey = process.env.METERED_SECRET_KEY;
 
   if (!domain || !secretKey) {
-    throw new AppError("TURN server is not configured on the server", 500);
+    console.warn("[TURN] METERED_DOMAIN or METERED_SECRET_KEY not configured — using free TURN servers");
+    return Promise.resolve(FREE_TURN_SERVERS);
   }
 
   iceServersPromise = createCredential(domain, secretKey)
     .then((apiKey) => fetchIceServers(domain, apiKey))
     .catch((error) => {
+      console.warn("[TURN] Metered API failed:", error.message, "— falling back to free TURN servers");
       iceServersPromise = null;
-      throw error;
+      return FREE_TURN_SERVERS;
     });
 
   return iceServersPromise;
