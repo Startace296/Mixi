@@ -1,10 +1,25 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { axiosInstance } from "../lib/axios.js";
 import { getAuthenticatedSocket } from "../lib/socket.js";
 
-const ICE_SERVERS = [
-  { urls: "stun:stun.l.google.com:19302" },
-];
+const FALLBACK_ICE_SERVERS = [{ urls: "stun:stun.l.google.com:19302" }];
+
+let iceServersPromise = null;
+
+function fetchIceServers() {
+  if (!iceServersPromise) {
+    iceServersPromise = axiosInstance
+      .get("/calls/turn-credentials")
+      .then((res) => res.data.iceServers)
+      .catch((error) => {
+        console.error("Falling back to STUN-only (no TURN server):", error.message);
+        iceServersPromise = null;
+        return FALLBACK_ICE_SERVERS;
+      });
+  }
+  return iceServersPromise;
+}
 
 const INITIAL_CALL_STATE = {
   isOpen: false,
@@ -104,7 +119,8 @@ export function useVoiceCall({ currentUser } = {}) {
   const getPeerConnection = useCallback(async () => {
     if (peerConnectionRef.current) return peerConnectionRef.current;
 
-    const peerConnection = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+    const iceServers = await fetchIceServers();
+    const peerConnection = new RTCPeerConnection({ iceServers });
     peerConnectionRef.current = peerConnection;
 
     peerConnection.onicecandidate = (event) => {

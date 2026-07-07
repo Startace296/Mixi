@@ -4,6 +4,7 @@ import helmet from "helmet";
 import compression from "compression";
 
 import authRouter from "./routes/auth.routes.js";
+import callRouter from "./routes/call.routes.js";
 import chatRouter from "./routes/chat.routes.js";
 import friendRouter from "./routes/friend.routes.js";
 import postRouter from "./routes/post.routes.js";
@@ -39,6 +40,7 @@ app.use("/users", userRouter);
 app.use("/friends", friendRouter);
 app.use("/chat", chatRouter);
 app.use("/posts", postRouter);
+app.use("/calls", callRouter);
 app.use(notFoundHandler);
 app.use(errorHandler);
 
