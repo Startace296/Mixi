@@ -56,3 +56,5 @@ jobs:
           context: ./frontend
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/mixi-frontend:latest
+          build-args: |
+            VITE_API_URL=http://${{ secrets.EC2_HOST }}:5000
