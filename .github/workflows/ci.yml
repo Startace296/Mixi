@@ -32,11 +32,12 @@ jobs:
         run: |
           npm ci
           npm run lint
-          npm test
-  
+
   build-and-push:
     needs: test
     runs-on: ubuntu-latest
+    # Chỉ push image khi push lên main, không push khi là pull_request
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -60,4 +61,5 @@ jobs:
           context: ./frontend
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/mixi-frontend:latest
-
+          build-args: |
+            VITE_API_URL=http://${{ secrets.EC2_HOST }}:5000

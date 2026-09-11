@@ -1,20 +1,26 @@
 services:
   backend:
-    build:
-      context: ./backend
+    image: ${DOCKER_USERNAME}/mixi-backend:latest
     container_name: mixi-backend
     restart: unless-stopped
     ports:
       - "5000:5000"
     env_file:
       - ./backend/.env
+    networks:
+      - mixi-network
 
   frontend:
-    build:
-      context: ./frontend
+    image: ${DOCKER_USERNAME}/mixi-frontend:latest
     container_name: mixi-frontend
     restart: unless-stopped
     ports:
       - "80:80"
     depends_on:
       - backend
+    networks:
+      - mixi-network
+
+networks:
+  mixi-network:
+    driver: bridge
