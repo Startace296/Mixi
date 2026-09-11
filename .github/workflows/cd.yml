@@ -2,40 +2,24 @@ name: CD Pipeline
 
 on:
   workflow_run:
-    workflows:
-      - CI Pipeline
+    workflows: ["CI Pipeline"]
     types:
       - completed
-    branches:
-      - main
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
-
+    runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
 
-      - name: Copy docker-compose.yml to server
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USERNAME }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          source: "docker-compose.yml"
-          target: "~/app"
-
-      - name: Deploy to server via SSH
-        uses: appleboy/ssh-action@v1
+      - name: Deploy to AWS EC2
+        uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             cd ~/app
-            echo "DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}" > .env
             docker compose pull
             docker compose up -d --remove-orphans
             docker image prune -f
