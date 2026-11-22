@@ -4,7 +4,7 @@ import { Logo, Footer } from '../components/auth-comp/AuthSiteChrome';
 import FloatingInput from '../components/auth-comp/FloatingInput';
 import PasswordInput from '../components/auth-comp/PasswordInput';
 import GoogleLoginButton from '../components/auth-comp/GoogleLoginButton';
-import { useSignIn } from '../hooks/useSignIn.js';
+import { useSignIn } from '../hooks/auth';
 
 export default function LoginPage() {
   const { email, setEmail, password, setPassword, isLoading, handleSubmit } = useSignIn();

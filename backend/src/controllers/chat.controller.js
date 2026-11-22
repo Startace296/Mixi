@@ -1,8 +1,4 @@
 import {
-  summarizeMessageBatch,
-  suggestRepliesForMessageBatch,
-} from "../services/chatAi.service.js";
-import {
   addGroupMember,
   createGroupConversation,
   deleteMessage,
@@ -16,9 +12,11 @@ import {
   removeGroupMember,
   sendChatImage,
   sendMessage,
+  summarizeMessageBatch,
+  suggestRepliesForMessageBatch,
   updateGroupConversation,
-} from "../services/chat.service.js";
-import { emitToUser } from "../socket.js";
+} from "../services/chat/index.js";
+import { emitReceiptUpdate, emitToUser } from "../socket.js";
 
 function emitChatEventWithUserConversation(participantIds, eventName, payload, conversationsByUserId = {}) {
   for (const participantId of participantIds) {
@@ -32,7 +30,11 @@ function emitChatEventWithUserConversation(participantIds, eventName, payload, c
 
 /** GET /chat/conversations */
 export async function getConversationsHandler(req, res) {
-  const conversations = await listConversations(req.user.id, req.query.limit);
+  const { conversations, deliveredReceipts } = await listConversations(req.user.id, req.query.limit);
+
+  for (const { conversationId, receipt, participantIds } of deliveredReceipts) {
+    emitReceiptUpdate(participantIds, conversationId, receipt);
+  }
 
   res.json({
     success: true,
@@ -161,11 +163,17 @@ export async function getMessagesHandler(req, res) {
       conversation: result.readConversation,
     }, result.conversationsByUserId);
   }
+  emitReceiptUpdate(result.participantIds, req.params.conversationId, result.readReceipt);
 
   res.json({
     success: true,
     messages: result.messages,
     pageInfo: result.pageInfo,
+    serverTime: result.serverTime,
+    ...(result.deletedMessageIds && {
+      deletedMessageIds: result.deletedMessageIds,
+      deletedTruncated: result.deletedTruncated,
+    }),
   });
 }
 
@@ -173,13 +181,17 @@ export async function getMessagesHandler(req, res) {
 export async function sendMessageHandler(req, res) {
   const result = await sendMessage(req.user.id, req.params.conversationId, req.body);
 
-  emitChatEventWithUserConversation(result.participantIds, "chat:message_created", {
-    conversationId: result.conversation.id,
-    message: result.message,
-    conversation: result.conversation,
-  }, result.conversationsByUserId);
+  if (!result.duplicate) {
+    emitChatEventWithUserConversation(result.participantIds, "chat:message_created", {
+      conversationId: result.conversation.id,
+      message: result.message,
+      conversation: result.conversation,
+    }, result.conversationsByUserId);
+    emitReceiptUpdate(result.participantIds, result.conversation.id, result.senderReceipt);
+  }
 
-  res.status(201).json({
+  // 200 for a replayed send, 201 when this request created the message.
+  res.status(result.duplicate ? 200 : 201).json({
     success: true,
     message: result.message,
     conversation: result.conversation,
@@ -188,15 +200,21 @@ export async function sendMessageHandler(req, res) {
 
 /** POST /chat/conversations/:conversationId/images */
 export async function sendImageMessageHandler(req, res) {
-  const result = await sendChatImage(req.user.id, req.params.conversationId, req.file);
+  const result = await sendChatImage(req.user.id, req.params.conversationId, req.file, {
+    clientMessageId: req.body?.clientMessageId,
+  });
 
-  emitChatEventWithUserConversation(result.participantIds, "chat:message_created", {
-    conversationId: result.conversation.id,
-    message: result.message,
-    conversation: result.conversation,
-  }, result.conversationsByUserId);
+  if (!result.duplicate) {
+    emitChatEventWithUserConversation(result.participantIds, "chat:message_created", {
+      conversationId: result.conversation.id,
+      message: result.message,
+      conversation: result.conversation,
+    }, result.conversationsByUserId);
+    emitReceiptUpdate(result.participantIds, result.conversation.id, result.senderReceipt);
+  }
 
-  res.status(201).json({
+  // 200 for a replayed send, 201 when this request created the message.
+  res.status(result.duplicate ? 200 : 201).json({
     success: true,
     message: result.message,
     conversation: result.conversation,
@@ -205,13 +223,16 @@ export async function sendImageMessageHandler(req, res) {
 
 /** PATCH /chat/conversations/:conversationId/read */
 export async function markConversationReadHandler(req, res) {
-  const result = await markConversationRead(req.user.id, req.params.conversationId);
+  const result = await markConversationRead(req.user.id, req.params.conversationId, {
+    upToMessageId: req.body?.upToMessageId,
+  });
 
   emitChatEventWithUserConversation(result.participantIds, "chat:conversation_read", {
     conversationId: result.conversation.id,
     userId: String(req.user.id),
     conversation: result.conversation,
   }, result.conversationsByUserId);
+  emitReceiptUpdate(result.participantIds, result.conversation.id, result.receipt);
 
   res.json({
     success: true,
@@ -248,10 +269,6 @@ export async function deleteMessageHandler(req, res) {
 /** POST /chat/conversations/:conversationId/ai/summarize */
 export async function summarizeMessagesHandler(req, res) {
   const { endMessageId, startMessageId, maxMessages } = req.body;
-  if (!endMessageId) {
-    return res.status(400).json({ message: "endMessageId is required" });
-  }
-
   const result = await summarizeMessageBatch(req.user.id, req.params.conversationId, {
     endMessageId,
     startMessageId,
@@ -264,10 +281,6 @@ export async function summarizeMessagesHandler(req, res) {
 /** POST /chat/conversations/:conversationId/ai/suggest-replies */
 export async function suggestRepliesHandler(req, res) {
   const { endMessageId, startMessageId, maxMessages } = req.body;
-  if (!endMessageId) {
-    return res.status(400).json({ message: "endMessageId is required" });
-  }
-
   const result = await suggestRepliesForMessageBatch(req.user.id, req.params.conversationId, {
     endMessageId,
     startMessageId,

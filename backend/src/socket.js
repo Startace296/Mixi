@@ -4,6 +4,9 @@ import mongoose from "mongoose";
 import Conversation from "./models/Conversation.js";
 import Message from "./models/Message.js";
 import { verifyAccessToken } from "./utils/jwt.js";
+import { encodeKeysetCursor } from "./utils/pagination.utils.js";
+import { recordLatestMessage } from "./services/chat/latest-message.js";
+import { recordReceipt } from "./services/chat/receipt.service.js";
 
 let ioInstance = null;
 const userPresence = new Map();
@@ -144,6 +147,7 @@ function sanitizeSocketCallMessage(message) {
     isDeleted: Boolean(message.deletedAt),
     createdAt: message.createdAt,
     updatedAt: message.updatedAt,
+    cursor: encodeKeysetCursor(message.createdAt, message._id),
   };
 }
 
@@ -185,20 +189,12 @@ async function createAndEmitCallMessage(socket, payload = {}, status) {
       },
     });
 
-    target.conversation.lastMessageId = message._id;
-    target.conversation.lastMessageText = getCallPreviewText(status, durationSeconds);
-    target.conversation.lastMessageSenderId = socket.user.id;
-    target.conversation.lastMessageAt = message.createdAt;
-
-    for (const participantId of target.conversation.participantIds) {
-      const participantKey = String(participantId);
-      if (participantKey === String(socket.user.id)) continue;
-
-      const currentUnread = target.conversation.unreadCounts?.get(participantKey) || 0;
-      target.conversation.unreadCounts.set(participantKey, currentUnread + 1);
-    }
-
-    await target.conversation.save();
+    const senderReceipt = await recordLatestMessage(
+      target.conversation,
+      message,
+      socket.user.id,
+      getCallPreviewText(status, durationSeconds),
+    );
 
     const populatedMessage = await Message.findById(message._id).populate("senderId", USER_SELECT_FIELDS);
     const sanitizedMessage = sanitizeSocketCallMessage(populatedMessage);
@@ -212,6 +208,7 @@ async function createAndEmitCallMessage(socket, payload = {}, status) {
         changedAt: new Date().toISOString(),
       });
     }
+    if (senderReceipt) emitReceiptUpdate(participantIds, String(target.conversation._id), senderReceipt);
   } catch {
     // Call history should not block signaling cleanup.
   }
@@ -268,6 +265,25 @@ export function initSocket(server) {
 
     socket.on("presence:set", (payload = {}) => {
       setSocketPresence(socket, payload.status);
+    });
+
+    // The client got `messageId` (live event or fetched page): advance its delivery
+    // watermark. Clients coalesce bursts into one ack per conversation; out-of-order or
+    // repeated acks are absorbed by the forward-only update. `ack` is optional.
+    socket.on("chat:ack_delivered", async (payload = {}, ack) => {
+      const reply = typeof ack === "function" ? ack : () => {};
+      try {
+        const result = await recordReceipt(
+          socket.user.id,
+          String(payload.conversationId || ""),
+          String(payload.messageId || ""),
+          "delivered",
+        );
+        if (result) emitReceiptUpdate(result.participantIds, String(payload.conversationId), result.receipt);
+        reply({ ok: true, advanced: Boolean(result) });
+      } catch {
+        reply({ ok: false });
+      }
     });
 
     socket.on("chat:typing", async (payload = {}) => {
@@ -447,4 +463,16 @@ export function getUserRoom(userId) {
 export function emitToUser(userId, eventName, payload = {}) {
   if (!ioInstance || !userId) return;
   ioInstance.to(getUserRoom(userId)).emit(eventName, payload);
+}
+
+/**
+ * Tells every member (the owner too, for their other tabs) that one member's
+ * watermarks moved. Clients merge by taking the max, so arrival order does not matter.
+ */
+export function emitReceiptUpdate(participantIds, conversationId, receipt) {
+  if (!receipt) return;
+  const changedAt = new Date().toISOString();
+  for (const participantId of participantIds) {
+    emitToUser(String(participantId), "chat:receipt_updated", { conversationId, receipt, changedAt });
+  }
 }

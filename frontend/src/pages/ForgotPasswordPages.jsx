@@ -5,7 +5,7 @@ import {
   useForgotPasswordRequest,
   useForgotPasswordVerify,
   useResetPassword,
-} from '../hooks/useForgotPassword.js';
+} from '../hooks/auth';
 
 /** /forgot-password */
 export function ForgotPasswordPage() {

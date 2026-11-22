@@ -4,17 +4,16 @@ import toast from 'react-hot-toast';
 
 import HomeHeader from '../components/home-comp/HomeHeader';
 import HomeSidebarPrimary from '../components/home-comp/HomeSidebarPrimary';
-import HomeSidebarSecondaryPanel from '../components/home-comp/HomeSidebarSecondaryPanel.jsx';
-import ChatSidebarSecondaryPanel from '../components/chat-comp/ChatSidebarSecondaryPanel.jsx';
-import ChatCallOverlay from '../components/chat-comp/ChatCallOverlay.jsx';
-import FriendsSidebarSecondaryPanel from '../components/friend-comp/FriendsSidebarSecondaryPanel.jsx';
-import SettingsSidebarSecondaryPanel from '../components/setting-comp/SettingsSidebarSecondaryPanel.jsx';
-import { HOME_SECTION, HOME_SUB_SECTION } from '../lib/homeSections.js';
-import { APP_PATHS, parseMainPath } from '../lib/appPaths.js';
-import { createDirectConversation } from '../lib/api.js';
-import { emitPresenceStatus, getAuthenticatedSocket } from '../lib/socket.js';
-import { useAuthUser } from '../hooks/useAuthUser';
-import { useVoiceCall } from '../hooks/useVoiceCall.js';
+import HomeSidebarSecondaryPanel from '../components/home-comp/HomeSidebarSecondaryPanel';
+import ChatSidebarSecondaryPanel from '../components/chat-comp/ChatSidebarSecondaryPanel';
+import ChatCallOverlay from '../components/chat-comp/ChatCallOverlay';
+import FriendsSidebarSecondaryPanel from '../components/friend-comp/FriendsSidebarSecondaryPanel';
+import SettingsSidebarSecondaryPanel from '../components/setting-comp/SettingsSidebarSecondaryPanel';
+import { APP_PATHS, HOME_SECTION, HOME_SUB_SECTION, parseMainPath } from '../lib/navigation';
+import { createDirectConversation } from '../lib/api';
+import { emitPresenceStatus, getAuthenticatedSocket } from '../lib/socket';
+import { useAuthUser } from '../hooks/auth';
+import { useVoiceCall } from '../hooks/chat';
 
 const AWAY_AFTER_MS = 15 * 60 * 1000;
 const ACTIVITY_EVENTS = ["mousemove", "mousedown", "keydown", "touchstart", "scroll", "focus"];

@@ -23,6 +23,13 @@ export function errorHandler(error, _req, res, _next) {
     });
   }
 
+  // Malformed ObjectId (e.g. "/users/abc") is a client error, not a server crash.
+  if (error?.name === "CastError") {
+    return res.status(400).json({
+      message: `Invalid ${error.path || "id"}`,
+    });
+  }
+
   const statusCode = error.statusCode || 500;
 
   if (statusCode >= 500) {

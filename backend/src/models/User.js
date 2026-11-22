@@ -54,6 +54,17 @@ const userSchema = new Schema(
       select: false
     },
 
+    // One-time token issued after signup OTP verification; required by /auth/complete-registration.
+    registrationTokenHash: {
+      type: String,
+      select: false
+    },
+
+    registrationTokenExpiresAt: {
+      type: Date,
+      select: false
+    },
+
     otpAttempts: {
       type: Number,
       default: 0,

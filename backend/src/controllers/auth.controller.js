@@ -9,7 +9,7 @@ import {
   resetPasswordWithOtp,
   verifyOtp,
   verifyForgotPasswordOtp,
-} from "../services/auth.service.js";
+} from "../services/auth/index.js";
 
 /** POST /auth/request-signup-otp */
 export async function requestSignupOtpHandler(req, res) {
@@ -38,12 +38,14 @@ export async function completeRegistrationHandler(req, res) {
 
 /** POST /auth/verify-otp */
 export async function verifyOtpCode(req, res) {
-  const user = await verifyOtp(req.body);
+  const result = await verifyOtp(req.body);
 
   res.json({
     success: true,
     message: "Email verified successfully.",
-    user,
+    user: result.user,
+    registrationToken: result.registrationToken,
+    registrationTokenExpiresAt: result.registrationTokenExpiresAt,
   });
 }
 

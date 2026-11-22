@@ -1,0 +1,78 @@
+# Run the whole stack locally:  docker compose up --build
+#   Frontend: http://localhost:3000
+#   Backend:  http://localhost:5000
+#   MongoDB:  internal only (mongodb://mongo:27017/mixi), data kept in the mongo-data volume
+# Optional settings (SMTP, Cloudinary, Gemini, Google, TURN) go in a root .env — see .env.example.
+
+name: mixi
+
+services:
+  mongo:
+    image: mongo:8
+    restart: unless-stopped
+    # Not published to the host by default (avoids clashing with a local mongod).
+    # Uncomment to connect with Compass: mongodb://localhost:27018/mixi
+    # ports:
+    #   - "27018:27017"
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    depends_on:
+      mongo:
+        condition: service_healthy
+    ports:
+      - "${BACKEND_PORT:-5000}:5000"
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      MONGODB_URI: mongodb://mongo:27017/mixi
+      CLIENT_URL: http://localhost:${FRONTEND_PORT:-3000}
+      JWT_SECRET: ${JWT_SECRET:-dev-only-change-me}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+      # Optional integrations — features using them stay off when empty.
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-flash}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-no-reply@mixichat.com}
+      CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME:-}
+      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY:-}
+      CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET:-}
+      METERED_DOMAIN: ${METERED_DOMAIN:-}
+      METERED_SECRET_KEY: ${METERED_SECRET_KEY:-}
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:5000/"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        # The browser calls the backend directly, so this is the host-facing URL.
+        VITE_API_URL: http://localhost:${BACKEND_PORT:-5000}
+        VITE_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "${FRONTEND_PORT:-3000}:80"
+
+volumes:
+  mongo-data:

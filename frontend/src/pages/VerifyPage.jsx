@@ -1,10 +1,9 @@
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 
 import AuthCard from '../components/auth-comp/AuthCard';
-import { useVerifyOtp } from '../hooks/useVerifyOtp.js';
+import { useVerifyOtp } from '../hooks/auth';
 
 export default function VerifyPage() {
-  const navigate = useNavigate();
   const location = useLocation();
   const email = location.state?.email;
   const { code, setCode, timeLeft, isLoading, handleConfirm, handleResend } = useVerifyOtp(email);

@@ -33,11 +33,13 @@ export const loginSchema = z.object({
   password: loginPasswordSchema,
 });
 
+const otpCodeSchema = z
+  .string({ required_error: "OTP code is required" })
+  .regex(/^\d{6}$/, "OTP code must be a 6-digit number");
+
 export const verifyOtpSchema = z.object({
   email: emailSchema,
-  otpCode: z
-    .string()
-    .regex(/^\d{6}$/, "OTP code must be a 6-digit number"),
+  otpCode: otpCodeSchema,
 });
 
 export const sendOtpSchema = z.object({
@@ -56,6 +58,66 @@ export const changePasswordSchema = z.object({
   currentPassword: loginPasswordSchema,
   newPassword: passwordSchema,
 });
+
+export const resetPasswordSchema = z.object({
+  email: emailSchema,
+  otpCode: otpCodeSchema,
+  newPassword: passwordSchema,
+});
+
+const GENDERS = ["Male", "Female", "Other"];
+const MIN_BIRTH_YEAR = 1900;
+
+/** Coerces "05" / 5 to an integer; a missing or non-numeric value means the date is missing. */
+function datePartSchema(min, max, label) {
+  return z.coerce
+    .number({ invalid_type_error: "Date of birth is required" })
+    .int(`${label} must be a whole number`)
+    .min(min, `${label} is invalid`)
+    .max(max, `${label} is invalid`);
+}
+
+/** Signup profile step shared by local and Google registration (age >= 18 is checked in the service). */
+const signupProfileSchema = z
+  .object({
+    displayName: z
+      .string({ required_error: "Display name is required" })
+      .trim()
+      .min(1, "Display name is required")
+      .max(80, "Display name must be at most 80 characters long"),
+    gender: z.enum(GENDERS, {
+      errorMap: () => ({ message: "Please select a valid gender" }),
+    }),
+    day: datePartSchema(1, 31, "Day"),
+    month: datePartSchema(1, 12, "Month"),
+    year: datePartSchema(MIN_BIRTH_YEAR, new Date().getFullYear(), "Year"),
+  });
+
+/** Rejects dates that roll over, e.g. 31/02 -> 03/03. */
+function isRealDate({ day, month, year }) {
+  const date = new Date(year, month - 1, day);
+  return date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day;
+}
+
+const realDateRefinement = [isRealDate, { message: "Date of birth is invalid", path: ["day"] }];
+
+export const completeRegistrationSchema = signupProfileSchema
+  .extend({
+    email: emailSchema,
+    registrationToken: z
+      .string({ required_error: "Registration token is required. Please verify your email first." })
+      .min(1, "Registration token is required. Please verify your email first."),
+    password: passwordSchema,
+  })
+  .refine(...realDateRefinement);
+
+export const completeGoogleRegistrationSchema = signupProfileSchema
+  .extend({
+    googleSignupToken: z
+      .string({ required_error: "Google signup token is required" })
+      .min(1, "Google signup token is required"),
+  })
+  .refine(...realDateRefinement);
 
 export const updateProfileSchema = z.object({
   displayName: z

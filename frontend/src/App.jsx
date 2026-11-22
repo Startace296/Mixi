@@ -14,7 +14,7 @@ import RegisterPage from './pages/RegisterPage';
 import AuthCallbackPage from './pages/AuthCallbackPage';
 import { AboutUsPage, HelpPage, PoliciesPage } from './pages/InfoPages';
 import HomePage from './pages/HomePage';
-import { APP_PATHS } from './lib/appPaths';
+import { APP_PATHS } from './lib/navigation';
 import { useAuthStore } from './stores/useAuthStore';
 
 function ScrollToTop() {

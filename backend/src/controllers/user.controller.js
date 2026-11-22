@@ -4,7 +4,7 @@ import {
   searchUsers,
   updateCurrentUserAvatar,
   updateCurrentUserProfile,
-} from "../services/user.service.js";
+} from "../services/user/index.js";
 
 /** GET /users/me */
 export async function getCurrentUserHandler(req, res) {

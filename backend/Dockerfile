@@ -1,13 +1,14 @@
 FROM node:26-alpine
 
 WORKDIR /app
+ENV NODE_ENV=production
 
 COPY package*.json ./
+RUN npm ci --omit=dev && npm cache clean --force
 
-RUN npm install --production
+COPY src ./src
 
-COPY . .
-
+USER node
 EXPOSE 5000
 
 CMD ["node", "src/server.js"]

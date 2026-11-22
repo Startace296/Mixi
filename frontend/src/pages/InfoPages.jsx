@@ -20,8 +20,8 @@ export function AboutUsPage() {
           </h3>
           <p className="text-[15px] text-[#606770] leading-relaxed">
             ChatApp was built with a simple goal — to make communication feel
-            natural, fast and secure for everyone. Whether you're catching up
-            with friends or collaborating with teammates, we've got you covered.
+            natural, fast and secure for everyone. Whether you&apos;re catching up
+            with friends or collaborating with teammates, we&apos;ve got you covered.
           </p>
         </div>
         <div className="bg-white rounded-xl p-7 shadow-[0_2px_8px_rgba(0,0,0,0.08)]">

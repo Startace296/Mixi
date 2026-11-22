@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import AuthCard from '../components/auth-comp/AuthCard';
 import FloatingInput from '../components/auth-comp/FloatingInput';
 import GoogleLoginButton from '../components/auth-comp/GoogleLoginButton';
-import { useRegister } from '../hooks/useRegister.js';
+import { useRegister } from '../hooks/auth';
 
 export default function SignUpPage() {
   const { email, setEmail, isLoading, handleVerify } = useRegister();

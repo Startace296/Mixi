@@ -102,3 +102,18 @@ export function getSearchScore(value, query) {
 
   return Number.POSITIVE_INFINITY;
 }
+
+/**
+ * Keeps the items whose name matches `query` and sorts them best match first
+ * (ties broken alphabetically).
+ */
+export function rankByName(items, query, getName = (item) => item.displayName || "") {
+  return items
+    .map((item) => ({ item, score: getSearchScore(getName(item), query) }))
+    .filter(({ score }) => Number.isFinite(score))
+    .sort((left, right) => {
+      if (left.score !== right.score) return left.score - right.score;
+      return getName(left.item).localeCompare(getName(right.item));
+    })
+    .map(({ item }) => item);
+}

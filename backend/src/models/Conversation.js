@@ -1,5 +1,21 @@
 import mongoose, { Schema } from "mongoose";
 
+/**
+ * How far one member has received / read this conversation: a watermark on the
+ * timeline's (createdAt, _id) order. A message is delivered to (read by) the member
+ * iff its key is <= the watermark. Watermarks only move forward (see receipt.service.js),
+ * so one small write acknowledges any number of messages, in any order, from any tab.
+ */
+const receiptSchema = new Schema(
+  {
+    deliveredAt: { type: Date, default: null },
+    deliveredMessageId: { type: Schema.Types.ObjectId, ref: "Message", default: null },
+    readAt: { type: Date, default: null },
+    readMessageId: { type: Schema.Types.ObjectId, ref: "Message", default: null },
+  },
+  { _id: false },
+);
+
 const conversationSchema = new Schema(
   {
     type: {
@@ -64,6 +80,12 @@ const conversationSchema = new Schema(
     hiddenBy: {
       type: Map,
       of: Date,
+      default: () => ({}),
+    },
+    /** Delivery / read watermarks, keyed by member id. */
+    receipts: {
+      type: Map,
+      of: receiptSchema,
       default: () => ({}),
     },
   },

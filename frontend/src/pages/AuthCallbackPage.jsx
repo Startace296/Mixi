@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
-import { useAuthStore } from '../stores/useAuthStore.js';
+import { useAuthStore } from '../stores/useAuthStore';
 
 export default function AuthCallbackPage() {
   const navigate = useNavigate();

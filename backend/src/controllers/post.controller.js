@@ -9,7 +9,7 @@ import {
   togglePostLike,
   updateComment,
   updatePost,
-} from "../services/post.service.js";
+} from "../services/post/index.js";
 
 export async function getPostsHandler(req, res) {
   const result = await listPosts(req.user.id, req.query);

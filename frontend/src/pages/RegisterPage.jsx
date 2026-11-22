@@ -4,7 +4,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import AuthCard from '../components/auth-comp/AuthCard';
 import FloatingInput from '../components/auth-comp/FloatingInput';
 import PasswordInput from '../components/auth-comp/PasswordInput';
-import { useRegisterForm } from '../hooks/useRegisterForm.js';
+import { useRegisterForm } from '../hooks/auth';
 
 const DAYS = Array.from({ length: 31 }, (_, i) => i + 1);
 const MONTHS = Array.from({ length: 12 }, (_, i) => i + 1);
@@ -14,20 +14,29 @@ const GENDERS = ['Male', 'Female', 'Other'];
 export default function RegisterPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { email, fromGoogle, googleSignupToken, displayName: googleDisplayName } = location.state || {};
+  const {
+    email,
+    registrationToken,
+    fromGoogle,
+    googleSignupToken,
+    displayName: googleDisplayName,
+  } = location.state || {};
+  // Local signups need the one-time token from OTP verification; Google signups need their signup token.
+  const hasSignupProof = fromGoogle ? Boolean(googleSignupToken) : Boolean(registrationToken);
 
   useEffect(() => {
-    if (!email) navigate('/signup', { replace: true });
-  }, [email, navigate]);
+    if (!email || !hasSignupProof) navigate('/signup', { replace: true });
+  }, [email, hasSignupProof, navigate]);
 
   const { fields, errors, isLoading, isSubmitDisabled, handleSubmit } = useRegisterForm({
     email,
+    registrationToken,
     fromGoogle,
     googleSignupToken,
     googleDisplayName,
   });
 
-  if (!email) return null;
+  if (!email || !hasSignupProof) return null;
 
   const selectBase = 'border bg-white text-base outline-none transition-[border-color] duration-150 rounded-xl';
   const dobBorder = errors.dob

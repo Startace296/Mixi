@@ -6,7 +6,7 @@ import {
   listFriends,
   listIncomingFriendRequests,
   removeFriend,
-} from "../services/friend.service.js";
+} from "../services/friend/index.js";
 import { emitToUser } from "../socket.js";
 
 function emitFriendEvent(userId, eventName, payload) {

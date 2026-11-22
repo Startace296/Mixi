@@ -1,0 +1,8 @@
+node_modules
+dist
+coverage
+tests
+.vercel
+.env
+.env.*
+*.log

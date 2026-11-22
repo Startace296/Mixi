@@ -6,13 +6,11 @@ const messageSchema = new Schema(
       type: Schema.Types.ObjectId,
       ref: "Conversation",
       required: true,
-      index: true,
     },
     senderId: {
       type: Schema.Types.ObjectId,
       ref: "User",
       required: true,
-      index: true,
     },
     text: {
       type: String,
@@ -24,7 +22,6 @@ const messageSchema = new Schema(
       type: String,
       enum: ["text", "image", "call"],
       default: "text",
-      index: true,
     },
     call: {
       callId: {
@@ -64,7 +61,15 @@ const messageSchema = new Schema(
     deletedAt: {
       type: Date,
       default: null,
-      index: true,
+    },
+    /**
+     * Idempotency key the sender's client picks per message. Retrying a send that may
+     * already have succeeded (lost response, timeout) returns the stored message
+     * instead of creating a duplicate.
+     */
+    clientMessageId: {
+      type: String,
+      default: undefined,
     },
   },
   {
@@ -72,6 +77,41 @@ const messageSchema = new Schema(
   },
 );
 
-messageSchema.index({ conversationId: 1, createdAt: -1, deletedAt: 1 });
+// Indexes. Messages is the most write-heavy collection, so every index here must earn
+// its write cost; low-cardinality fields (type, deletedAt) are filtered after the
+// index scan instead of being indexed on their own.
+
+// Timeline: keyset pagination sorts on (createdAt, _id) inside one conversation.
+// Equality on conversationId + the full sort key means each page is a bounded index
+// range read with no in-memory SORT, whichever direction it pages in. It also serves
+// the AI batch queries, "latest message" lookups and deleteMany({ conversationId }).
+messageSchema.index(
+  { conversationId: 1, createdAt: -1, _id: -1 },
+  { name: "conversation_timeline" },
+);
+
+// AI reply style samples: one sender's recent messages in a conversation.
+messageSchema.index(
+  { conversationId: 1, senderId: 1, createdAt: -1 },
+  { name: "conversation_sender_recent" },
+);
+
+// Deletions since a point in time, for clients catching up after missing socket
+// events. Partial: only deleted messages are in it, so ordinary sends never touch it.
+messageSchema.index(
+  { conversationId: 1, deletedAt: 1 },
+  { name: "conversation_deleted", partialFilterExpression: { deletedAt: { $type: "date" } } },
+);
+
+// One message per (sender, idempotency key). Partial, so messages without a key (older
+// clients, call messages) are not in it and cost nothing.
+messageSchema.index(
+  { senderId: 1, clientMessageId: 1 },
+  {
+    name: "sender_client_message",
+    unique: true,
+    partialFilterExpression: { clientMessageId: { $type: "string" } },
+  },
+);
 
 export default mongoose.model("Message", messageSchema);

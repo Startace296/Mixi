@@ -8,7 +8,12 @@ export async function connectDatabase() {
     throw new Error("MONGODB_URI is required");
   }
 
-  const connection = await mongoose.connect(env.mongoUri);
+  // In production indexes are managed by migration scripts (src/scripts/), not by
+  // every app instance at boot: building one on a large collection is slow, and
+  // several instances starting together would all try.
+  const connection = await mongoose.connect(env.mongoUri, {
+    autoIndex: env.nodeEnv !== "production",
+  });
   await User.syncIndexes();
 
   console.log(
