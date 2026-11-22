@@ -3,7 +3,7 @@ import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import toast from 'react-hot-toast';
 
-import SignUpPage from '../../src/pages/SignUpPage.jsx';
+import SignUpPage from '../../src/pages/SignUpPage';
 import { requestSignupOtp } from '../../src/lib/api';
 import { inputByLabel, renderAtRoute } from '../helpers/render.jsx';
 

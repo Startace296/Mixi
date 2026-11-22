@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import InfoLayout from './layouts/InfoLayout';
 import MainLayout from './layouts/MainLayout';
@@ -25,7 +25,7 @@ function ScrollToTop() {
   return null;
 }
 
-function RequireAuth({ children }) {
+function RequireAuth({ children }: { children: ReactNode }) {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const location = useLocation();
 
@@ -33,7 +33,7 @@ function RequireAuth({ children }) {
     return <Navigate to={APP_PATHS.login} replace state={{ from: location }} />;
   }
 
-  return children;
+  return <>{children}</>;
 }
 
 export default function App() {

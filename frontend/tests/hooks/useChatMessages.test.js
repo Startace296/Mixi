@@ -20,7 +20,7 @@ function fakeSocket() {
       off: (event) => { delete managerHandlers[event]; },
     },
     emit: (event, payload) => act(() => handlers[event]?.(payload)),
-    reconnect: () => act(() => managerHandlers.reconnect?.()),
+    reconnect: () => act(async () => { managerHandlers.reconnect?.(); }),
   };
 }
 

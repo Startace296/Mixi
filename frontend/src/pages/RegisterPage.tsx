@@ -5,11 +5,12 @@ import AuthCard from '../components/auth-comp/AuthCard';
 import FloatingInput from '../components/auth-comp/FloatingInput';
 import PasswordInput from '../components/auth-comp/PasswordInput';
 import { useRegisterForm } from '../hooks/auth';
+import type { Gender } from '../types';
 
 const DAYS = Array.from({ length: 31 }, (_, i) => i + 1);
 const MONTHS = Array.from({ length: 12 }, (_, i) => i + 1);
 const YEARS = Array.from({ length: 76 }, (_, i) => 2025 - i);
-const GENDERS = ['Male', 'Female', 'Other'];
+const GENDERS: Gender[] = ['Male', 'Female', 'Other'];
 
 export default function RegisterPage() {
   const navigate = useNavigate();
@@ -58,7 +59,7 @@ export default function RegisterPage() {
         <div className="flex flex-col gap-1.5">
           <select
             value={fields.gender}
-            onChange={(e) => fields.setGender(e.target.value)}
+            onChange={(e) => fields.setGender(e.target.value as Gender | '')}
             required
             className={`w-full px-4 py-3.5 ${selectBase} ${fields.gender ? 'text-[#1c1e21]' : 'text-[#90949c]'} ${
               errors.gender ? 'border-red-500 focus:border-red-500' : 'border-[#dddfe2] focus:border-indigo-600'

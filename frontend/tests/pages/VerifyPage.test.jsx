@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, fireEvent, screen } from '@testing-library/react';
 import toast from 'react-hot-toast';
 
-import VerifyPage from '../../src/pages/VerifyPage.jsx';
+import VerifyPage from '../../src/pages/VerifyPage';
 import { requestSignupOtp, verifyOtp } from '../../src/lib/api';
 import { renderAtRoute } from '../helpers/render.jsx';
 

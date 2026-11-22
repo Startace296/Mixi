@@ -9,11 +9,47 @@ import ChatSidebarSecondaryPanel from '../components/chat-comp/ChatSidebarSecond
 import ChatCallOverlay from '../components/chat-comp/ChatCallOverlay';
 import FriendsSidebarSecondaryPanel from '../components/friend-comp/FriendsSidebarSecondaryPanel';
 import SettingsSidebarSecondaryPanel from '../components/setting-comp/SettingsSidebarSecondaryPanel';
-import { APP_PATHS, HOME_SECTION, HOME_SUB_SECTION, parseMainPath } from '../lib/navigation';
+import {
+  APP_PATHS,
+  HOME_SECTION,
+  HOME_SUB_SECTION,
+  parseMainPath,
+  type HomeSection,
+  type HomeSubSection,
+} from '../lib/navigation';
 import { createDirectConversation } from '../lib/api';
 import { emitPresenceStatus, getAuthenticatedSocket } from '../lib/socket';
 import { useAuthUser } from '../hooks/auth';
 import { useVoiceCall } from '../hooks/chat';
+import { getErrorMessage } from '../lib/errors';
+import type {
+  AuthUser,
+  CallableChat,
+  ChatTarget,
+  ChatThread,
+  Conversation,
+  PresenceStatus,
+  ProfileTarget,
+  User,
+} from '../types';
+
+/** What MainLayout hands to its child routes through <Outlet context>. */
+export interface MainOutletContext {
+  activeSection: HomeSection;
+  activeSubSection: HomeSubSection | null;
+  selectedChatThread: ChatThread | null;
+  user: AuthUser | null;
+  setUser: (user: User | null) => void;
+  viewedProfile: ProfileTarget | null;
+  onOpenProfile: (profile?: Partial<ProfileTarget> | null) => void;
+  onSelectSection: (section: HomeSection) => void;
+  onOpenChatWithFriend: (friend: ChatTarget | null | undefined) => Promise<void>;
+  onStartVoiceCall: (chat: CallableChat | null | undefined) => Promise<void> | void;
+}
+
+interface LocationState {
+  profilePreview?: Partial<ProfileTarget>;
+}
 
 const AWAY_AFTER_MS = 15 * 60 * 1000;
 const ACTIVITY_EVENTS = ["mousemove", "mousedown", "keydown", "touchstart", "scroll", "focus"];
@@ -22,7 +58,7 @@ export default function MainLayout() {
   const { authUser: user, setAuthUser: setUser } = useAuthUser();
   const navigate = useNavigate();
   const { pathname, state: locationState } = useLocation();
-  const [selectedChatThread, setSelectedChatThread] = useState(null);
+  const [selectedChatThread, setSelectedChatThread] = useState<ChatThread | null>(null);
   const {
     callState,
     remoteStream,
@@ -36,7 +72,7 @@ export default function MainLayout() {
 
   const parsed = useMemo(() => parseMainPath(pathname), [pathname]);
 
-  const lastChatIdRef = useRef(null);
+  const lastChatIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (parsed.section === HOME_SECTION.messages && parsed.threadId) {
@@ -55,10 +91,10 @@ export default function MainLayout() {
     const socket = getAuthenticatedSocket();
     if (!socket) return undefined;
 
-    let idleTimerId = null;
+    let idleTimerId: number | undefined;
     let currentStatus = "";
 
-    const reportPresence = (status) => {
+    const reportPresence = (status: PresenceStatus) => {
       if (currentStatus === status) return;
       currentStatus = status;
       emitPresenceStatus(status);
@@ -115,24 +151,26 @@ export default function MainLayout() {
   const activeSection = parsed.section;
   const activeSubSection = parsed.subSection;
 
-  const viewedProfile = useMemo(() => {
+  const profilePreview = (locationState as LocationState | null)?.profilePreview;
+
+  const viewedProfile = useMemo((): ProfileTarget | null => {
     if (parsed.section !== HOME_SECTION.profile || !parsed.profileUserId) {
       return null;
     }
-    const preview = locationState?.profilePreview;
+    const preview = profilePreview;
     return {
       id: parsed.profileUserId,
       ...(preview && typeof preview === 'object' ? preview : {}),
     };
-  }, [parsed.section, parsed.profileUserId, locationState?.profilePreview]);
+  }, [parsed.section, parsed.profileUserId, profilePreview]);
 
-  const handleOpenProfile = useCallback((profile) => {
+  const handleOpenProfile = useCallback((profile?: Partial<ProfileTarget> | null) => {
     if (!profile?.id) {
       navigate(APP_PATHS.profile, { state: {} });
       return;
     }
     const id = String(profile.id);
-    const preview = {};
+    const preview: Partial<ProfileTarget> = {};
     if (profile.displayName) preview.displayName = profile.displayName;
     if (profile.avatarUrl) preview.avatarUrl = profile.avatarUrl;
     navigate(`/profile/${encodeURIComponent(id)}`, {
@@ -140,7 +178,7 @@ export default function MainLayout() {
     });
   }, [navigate]);
 
-  const handleSelectSection = useCallback((section) => {
+  const handleSelectSection = useCallback((section: HomeSection) => {
     switch (section) {
       case HOME_SECTION.home:
         navigate(APP_PATHS.home);
@@ -164,7 +202,7 @@ export default function MainLayout() {
     }
   }, [navigate]);
 
-  const handleSelectChat = useCallback((chat, shouldNavigate = true) => {
+  const handleSelectChat = useCallback((chat: Conversation | null, shouldNavigate = true) => {
     if (!chat?.id) {
       setSelectedChatThread(null);
       if (shouldNavigate) {
@@ -180,7 +218,7 @@ export default function MainLayout() {
     }
   }, [navigate]);
 
-  const handleOpenChatWithFriend = useCallback(async (friend) => {
+  const handleOpenChatWithFriend = useCallback(async (friend: ChatTarget | null | undefined) => {
     const friendId = friend?.id ?? friend?.friendId ?? friend?.userId;
     if (!friendId) {
       toast.error('Cannot open chat for this user.');
@@ -198,13 +236,13 @@ export default function MainLayout() {
       setSelectedChatThread(conversation);
       navigate(`/messages/${conversation.id}`);
     } catch (err) {
-      toast.error(err.message || 'Failed to open conversation');
+      toast.error(getErrorMessage(err, 'Failed to open conversation'));
     }
   }, [navigate]);
 
   const handleCreateGroup = useCallback(() => {}, []);
 
-  const handleSubSectionChange = useCallback((subKey) => {
+  const handleSubSectionChange = useCallback((subKey: HomeSubSection) => {
     if (activeSection === HOME_SECTION.home) {
       navigate(APP_PATHS.home);
       return;
@@ -293,7 +331,7 @@ export default function MainLayout() {
               onSelectSection: handleSelectSection,
               onOpenChatWithFriend: handleOpenChatWithFriend,
               onStartVoiceCall: startVoiceCall,
-            }}
+            } satisfies MainOutletContext}
           />
         </main>
       </div>

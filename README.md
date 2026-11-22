@@ -55,6 +55,12 @@ Only Docker is required. To enable optional features (email OTP, image upload, A
 
 Stop with `docker compose down` (add `-v` to also wipe the database).
 
+If a port is already taken (for example a backend started with `npm run dev` holds 5000), pick other ones and rebuild, since the frontend bakes the backend URL in at build time:
+
+```bash
+BACKEND_PORT=8055 FRONTEND_PORT=3033 docker compose up --build
+```
+
 ### Without Docker
 
 ```bash
@@ -62,20 +68,11 @@ cd backend && npm install && npm run dev    # needs backend/.env with MONGODB_UR
 cd frontend && npm install && npm run dev
 ```
 
-## Frontend TypeScript migration
+## Frontend TypeScript
 
-The frontend is being moved to TypeScript one file at a time. `frontend/tsconfig.json` uses `allowJs`, so `.js/.jsx` and `.ts/.tsx` files work side by side; `checkJs` is off, so untouched JS is not type-checked. Converted files are checked with `strict` mode.
+All of `frontend/src` is TypeScript (strict mode). Tests under `frontend/tests` are still JavaScript; `tsconfig.json` keeps `allowJs` on (with `checkJs` off) so they keep running unchanged. Before pushing, run `npm run typecheck`, `npm run lint`, `npm test` and `npm run build`.
 
-To convert a file:
-
-1. `git mv foo.js foo.ts` (or `.jsx` → `.tsx`).
-2. Drop the `.js` extension from imports of that file (`'../lib/foo'`), since `foo.js` no longer exists.
-3. Add types until `npm run typecheck` passes. Shared domain types go in `frontend/src/types/`.
-4. Run `npm run lint`, `npm test` and `npm run build`.
-
-Next: pages, layouts, `App.jsx` and `main.jsx` (`.jsx` → `.tsx`), then tests. API and socket payload types live in `frontend/src/types/` (`User`, `Message`, `Conversation`, `Post`, `Friend`, and one response type per endpoint in `types/api.ts`); import them with `import type { ... } from '../types'`.
-
-Already converted: all of `lib/` (each function in `lib/api` returns a typed response), `stores/useAuthStore`, all of `hooks/` and all of `components/`. In `catch` blocks use `getErrorMessage(error, fallback)` from `lib/errors.ts`, since `error` is `unknown` in strict mode.
+API and socket payload types live in `frontend/src/types/` (`User`, `Message`, `Conversation`, `Post`, `Friend`, and one response type per endpoint in `types/api.ts`); import them with `import type { ... } from '../types'`. In `catch` blocks use `getErrorMessage(error, fallback)` from `lib/errors.ts`, since `error` is `unknown` in strict mode. What `MainLayout` passes to its child routes is typed as `MainOutletContext` (read it with `useOutletContext<MainOutletContext>()`).
 
 Where things go in `frontend/src`:
 

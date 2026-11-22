@@ -1,9 +1,9 @@
 import { useOutletContext } from 'react-router-dom';
 
 import HomeFeedPlaceholder from '../components/home-comp/HomeFeedPlaceholder';
+import type { MainOutletContext } from '../layouts/MainLayout';
 
 export default function HomePage() {
-  const outlet = useOutletContext() ?? {};
   const {
     activeSection,
     activeSubSection,
@@ -15,10 +15,9 @@ export default function HomePage() {
     onSelectSection,
     onOpenChatWithFriend,
     onStartVoiceCall,
-  } = outlet;
+  } = useOutletContext<MainOutletContext>();
   const displayName =
     user?.displayName ||
-    user?.username ||
     (user?.email ? user.email.split('@')[0] : null) ||
     'you';
 

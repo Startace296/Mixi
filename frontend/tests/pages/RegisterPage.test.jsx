@@ -3,7 +3,7 @@ import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import toast from 'react-hot-toast';
 
-import RegisterPage from '../../src/pages/RegisterPage.jsx';
+import RegisterPage from '../../src/pages/RegisterPage';
 import { completeGoogleRegistration, completeRegistration } from '../../src/lib/api';
 import { useAuthStore } from '../../src/stores/useAuthStore';
 import { inputByLabel, renderAtRoute } from '../helpers/render.jsx';
