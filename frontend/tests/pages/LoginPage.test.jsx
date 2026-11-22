@@ -28,6 +28,12 @@ function renderLogin() {
 }
 
 describe('LoginPage', () => {
+  it('labels its inputs so they are reachable by name (screen readers, clicking the label)', () => {
+    const { emailInput, passwordInput } = renderLogin();
+    expect(screen.getByLabelText('Email address')).toBe(emailInput);
+    expect(screen.getByLabelText('Password')).toBe(passwordInput);
+  });
+
   it('logs in, stores the session and goes to /home', async () => {
     login.mockResolvedValue({ token: 'jwt-123', user: { id: 'u1', displayName: 'Alice' }, message: 'Welcome back' });
     const { user, emailInput, passwordInput, submitButton } = renderLogin();

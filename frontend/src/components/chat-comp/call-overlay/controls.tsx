@@ -84,9 +84,19 @@ interface CtrlBtnProps {
   danger?: boolean;
   active?: boolean;
   large?: boolean;
+  /** Accessible name when the visible label is too short ("End" -> "End call"). */
+  'aria-label'?: string;
 }
 
-export function CtrlBtn({ onClick, children, label, danger = false, active = true, large = false }: CtrlBtnProps) {
+export function CtrlBtn({
+  onClick,
+  children,
+  label,
+  danger = false,
+  active = true,
+  large = false,
+  'aria-label': ariaLabel,
+}: CtrlBtnProps) {
   const bg = danger
     ? "linear-gradient(135deg,#ef4444,#dc2626)"
     : active
@@ -105,7 +115,7 @@ export function CtrlBtn({ onClick, children, label, danger = false, active = tru
     <button
       type="button"
       onClick={onClick}
-      aria-label={label}
+      aria-label={ariaLabel ?? label}
       style={{ background: bg, backdropFilter: "blur(8px)", border, transition: "transform 0.12s ease, background 0.2s ease" }}
       className={`flex flex-col items-center justify-center gap-1.5 rounded-2xl text-white ${large ? "h-16 w-16" : "h-14 w-14"
         } hover:scale-105 active:scale-95`}

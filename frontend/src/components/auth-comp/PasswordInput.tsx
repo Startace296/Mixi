@@ -1,4 +1,4 @@
-import { useState, useCallback, type ChangeEvent } from 'react';
+import { useCallback, useId, useState, type ChangeEvent } from 'react';
 
 const inputBase =
   'peer w-full pt-6 px-4 pb-4 pr-12 rounded-xl border bg-white text-[#1c1e21] text-base outline-none transition-[border-color] duration-150 placeholder:text-transparent';
@@ -59,6 +59,7 @@ export default function PasswordInput({
   minLength,
   error: errorProp,
 }: PasswordInputProps) {
+  const inputId = useId();
   const [showPassword, setShowPassword] = useState(false);
   const [touched, setTouched] = useState(false);
   const [focused, setFocused] = useState(false);
@@ -83,6 +84,7 @@ export default function PasswordInput({
     <div className="flex flex-col gap-1.5 w-full">
       <div className="relative w-full">
         <input
+          id={inputId}
           type={showPassword ? 'text' : 'password'}
           value={value}
           onChange={handleChange}
@@ -93,7 +95,7 @@ export default function PasswordInput({
           autoComplete={autoComplete}
           className={`${inputBase} ${hasError ? inputError : inputNormal} ${className}`.trim()}
         />
-        <label className={`${labelBase} ${hasError ? labelError : labelNormal}`}>
+        <label htmlFor={inputId} className={`${labelBase} ${hasError ? labelError : labelNormal}`}>
           {label}
         </label>
         {hasValue && (

@@ -1,4 +1,4 @@
-import type { InputHTMLAttributes } from 'react';
+import { useId, type InputHTMLAttributes } from 'react';
 
 type FloatingInputProps = Omit<InputHTMLAttributes<HTMLInputElement>, 'onChange' | 'value'> & {
   value?: string;
@@ -15,12 +15,16 @@ export default function FloatingInput({
     label,
     readOnly,
     error,
+    id,
     ...props
   }: FloatingInputProps) {
+    const generatedId = useId();
+    const inputId = id ?? generatedId;
     const hasError = Boolean(error);
     return (
       <div className="flex flex-col gap-1.5 relative">
         <input
+          id={inputId}
           type={type}
           value={value}
           onChange={onChange ? (e) => onChange(e.target.value) : undefined}
@@ -31,7 +35,7 @@ export default function FloatingInput({
           } ${hasError ? 'border-red-500 focus:border-red-500' : 'border-[#dddfe2] focus:border-indigo-600'}`}
           {...props}
         />
-        <label className={`absolute left-4 top-1/2 -translate-y-1/2 text-base pointer-events-none transition-all duration-200 ease-out peer-focus:top-1.5 peer-focus:translate-y-0 peer-focus:text-xs peer-[:not(:placeholder-shown)]:top-1.5 peer-[:not(:placeholder-shown)]:translate-y-0 peer-[:not(:placeholder-shown)]:text-xs ${
+        <label htmlFor={inputId} className={`absolute left-4 top-1/2 -translate-y-1/2 text-base pointer-events-none transition-all duration-200 ease-out peer-focus:top-1.5 peer-focus:translate-y-0 peer-focus:text-xs peer-[:not(:placeholder-shown)]:top-1.5 peer-[:not(:placeholder-shown)]:translate-y-0 peer-[:not(:placeholder-shown)]:text-xs ${
           hasError ? 'text-red-500 peer-focus:text-red-500' : 'text-[#90949c] peer-focus:text-indigo-600 peer-[:not(:placeholder-shown)]:text-indigo-600'
         }`}>
           {label}
