@@ -1,44 +1,114 @@
+<div align="center">
+
+<img src="frontend/public/MixiChatLogo.png" alt="Mixi logo" width="96" />
+
 # Mixi
 
-Mixi is a social networking platform that allows users to connect, chat in real time, and interact with each other. The project was developed as a practice project to explore modern web development technologies and real-time communication.
+**A full-stack social network with real-time chat, voice calls and AI chat assistance.**
 
-User demo: solilyoung5@gmail.com
-password: LOL292002
+![React](https://img.shields.io/badge/React_18-20232A?logo=react&logoColor=61DAFB)
+![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white)
+![Node.js](https://img.shields.io/badge/Node.js-339933?logo=nodedotjs&logoColor=white)
+![Express](https://img.shields.io/badge/Express-000000?logo=express&logoColor=white)
+![Socket.IO](https://img.shields.io/badge/Socket.IO-010101?logo=socketdotio&logoColor=white)
+![MongoDB](https://img.shields.io/badge/MongoDB-47A248?logo=mongodb&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white)
+![AWS EC2](https://img.shields.io/badge/AWS_EC2-FF9900?logo=amazonec2&logoColor=white)
+
+<!-- TODO: add links once available
+[Live demo](https://your-domain) · [Video demo](https://youtu.be/...)
+-->
+
+</div>
+
+## Overview
+
+Mixi lets people find friends, post to a shared feed, chat one-to-one or in groups, and call each other by voice, all in real time. Gemini-powered tools can summarize a long conversation or suggest replies.
+
+Practice project covering the full product cycle: REST API and WebSocket backend, a strict-TypeScript React frontend, automated tests, Docker, and a CI/CD pipeline that deploys to AWS EC2.
+
+**Demo account** (on the deployed server): `solilyoung5@gmail.com` / `LOL292002`
+
+<!-- TODO: add screenshots, e.g.
+| Feed | Chat | Voice call |
+| :---: | :---: | :---: |
+| ![Feed](docs/screenshots/feed.png) | ![Chat](docs/screenshots/chat.png) | ![Call](docs/screenshots/call.png) |
+-->
 
 ## Features
 
-- User Authentication (JWT, Google OAuth)
-- Email OTP Verification
-- User Profile Management
-- Friend Request System
-- Real-time Chat with Socket.IO
-- Group Chat
-- Voice & Video Calling
-- Social Posts
-- AI-powered Chat Support
+### Authentication & account
+- Sign up with email OTP verification; sign in with email/password or **Google OAuth**
+- JWT sessions, forgot / reset / change password
+- Rate limiting on login and OTP endpoints
 
-## Tech Stack
+### Social
+- Profiles with avatar upload (Cloudinary, resized with `sharp`) and user search
+- Friend requests: send, accept, decline, cancel, unfriend
+- News feed: create, edit and delete posts; likes; nested comments with replies and comment likes
 
-### Frontend
-- ReactJS
-- TypeScript (incremental migration from JS)
-- Vite
-- Tailwind CSS
+### Real-time chat (Socket.IO)
+- One-to-one and **group chats** (rename, add or remove members, leave)
+- Text and image messages, delete message, hide or delete conversations
+- Typing indicators, **delivered / read receipts**, online / away / offline presence
 
-### Backend
-- Node.js
-- Express.js
-- Socket.IO
+### Voice calls (WebRTC)
+- One-to-one voice calls with ringing, accept, decline, cancel and end
+- Signaling over Socket.IO, TURN relay (Metered) for users behind strict NATs
+- Call history saved in the chat (missed, declined, ended, with duration)
 
-### Database
-- MongoDB
+### AI assistance (Google Gemini)
+- Summarize a conversation
+- Suggest replies based on recent messages
 
-### Others
-- Docker
-- GitHub Actions
-- Google Gemini API
+## Tech stack
 
-## Installation
+| Layer | Technologies |
+| --- | --- |
+| Frontend | React 18, TypeScript (strict), Vite, Tailwind CSS 4, React Router, Zustand, Axios, Socket.IO client |
+| Backend | Node.js, Express, Socket.IO, Mongoose, Zod validation, JWT, bcrypt, Helmet, express-rate-limit |
+| Database | MongoDB |
+| Integrations | Google OAuth, Gemini API, Cloudinary, Nodemailer (SMTP), Metered TURN |
+| Testing | Vitest, Supertest, mongodb-memory-server, React Testing Library |
+| DevOps | Docker, Docker Compose, Nginx, GitHub Actions, Docker Hub, AWS EC2 |
+
+## Architecture
+
+```mermaid
+flowchart LR
+    N[Nginx<br/>frontend container] -- serves SPA --> B[Browser<br/>React app]
+    B -- REST + WebSocket --> API[Express + Socket.IO<br/>backend container]
+    API --> DB[(MongoDB)]
+    API --> EXT[Gemini · Cloudinary<br/>SMTP · Google OAuth]
+    B <-. WebRTC audio .-> B2[Other browser]
+    B -. TURN relay .- T[Metered TURN]
+```
+
+The backend is layered as **routes → controllers → services → models**. Business logic is in `services/`, grouped by domain (`auth`, `user`, `friend`, `chat`, `post`). Request bodies are validated with Zod in `validation/`.
+
+```
+backend/src
+├── routes/        # /auth /users /friends /chat /posts /calls
+├── controllers/
+├── services/      # domain logic (chat/ai holds the Gemini features)
+├── models/        # User, FriendRequest, Conversation, Message, Post
+├── middlewares/   # auth, rate limits, errors
+├── validation/    # Zod schemas
+└── socket.js      # presence, typing, receipts, call signaling
+
+frontend/src
+├── pages/  layouts/  components/
+├── hooks/         # auth, chat (incl. useVoiceCall), profile, post
+├── stores/        # Zustand
+├── lib/           # API client, socket, helpers
+└── types/         # shared API and socket types
+```
+
+## Getting started
+
+### With Docker (recommended)
+
+Only Docker is required.
 
 ```bash
 git clone https://github.com/Startace296/Mixi.git
@@ -46,19 +116,17 @@ cd Mixi
 docker compose up --build
 ```
 
-Then open:
-
-| Service  | URL                                   |
-| -------- | ------------------------------------- |
-| Frontend | http://localhost:3000                 |
-| Backend  | http://localhost:5000                 |
+| Service  | URL |
+| -------- | --- |
+| Frontend | http://localhost:3000 |
+| Backend  | http://localhost:5000 |
 | MongoDB  | internal to Docker (`mongo-data` volume) |
 
-Only Docker is required. To enable optional features (email OTP, image upload, AI chat, Google login, TURN for calls) or change ports, copy `.env.example` to `.env` in the repo root and fill in the values, then rerun `docker compose up --build`.
+The local database starts empty, so register a new account. Stop with `docker compose down`; add `-v` to also wipe the database.
 
-Stop with `docker compose down` (add `-v` to also wipe the database).
+Optional features (email OTP, image upload, AI, Google login, TURN for calls) need keys. Copy `.env.example` to `.env` in the repo root, fill in what you need, then run `docker compose up --build` again. A feature whose keys are empty stays off; everything else still works.
 
-If a port is already taken (for example a backend started with `npm run dev` holds 5000), pick other ones and rebuild, since the frontend bakes the backend URL in at build time:
+If a port is already taken, choose other ones and rebuild (the frontend bakes the backend URL in at build time):
 
 ```bash
 BACKEND_PORT=8055 FRONTEND_PORT=3033 docker compose up --build
@@ -66,12 +134,31 @@ BACKEND_PORT=8055 FRONTEND_PORT=3033 docker compose up --build
 
 ### Without Docker
 
+Requires Node.js and a MongoDB instance.
+
 ```bash
 cd backend && npm install && npm run dev    # needs backend/.env with MONGODB_URI and JWT_SECRET
 cd frontend && npm install && npm run dev
 ```
 
+## Testing
+
+```bash
+# backend: integration tests against an in-memory MongoDB, incl. Socket.IO
+cd backend && npm run lint && npm test
+
+# frontend
+cd frontend && npm run typecheck && npm run lint && npm test && npm run build
+```
+
 ## CI/CD and deployment
+
+```mermaid
+flowchart LR
+    PR[Pull request] --> C1[pr-checks.yml<br/>lint · typecheck · test · build]
+    M[Push to main] --> C2[ci.yml<br/>test → build images → push to Docker Hub]
+    C2 -- on success --> C3[cd.yml<br/>SSH to EC2 → docker compose pull && up -d]
+```
 
 - `.github/workflows/pr-checks.yml` runs on every pull request into `main`: backend lint and tests, frontend lint, type check, tests and build. It never deploys.
 - `.github/workflows/ci.yml` runs on every push to `main`: backend tests and frontend lint, then builds both images and pushes them to Docker Hub. The frontend image gets `VITE_API_URL=http://<EC2_HOST>:5000` at build time.
@@ -81,7 +168,7 @@ cd frontend && npm install && npm run dev
 
 Voice calls need the page to be served over HTTPS (or from `localhost`): browsers only allow microphone access in a secure context. On a plain `http://<EC2_HOST>` deployment calls cannot start.
 
-## Frontend TypeScript
+## Contributing: frontend conventions
 
 All of `frontend/src` is TypeScript (strict mode). Tests under `frontend/tests` are still JavaScript; `tsconfig.json` keeps `allowJs` on (with `checkJs` off) so they keep running unchanged. Before pushing, run `npm run typecheck`, `npm run lint`, `npm test` and `npm run build`.
 
