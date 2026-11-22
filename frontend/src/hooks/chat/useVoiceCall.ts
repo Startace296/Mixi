@@ -11,13 +11,6 @@ import type {
   CallState,
 } from "../../types";
 
-declare global {
-  interface Window {
-    /** Last RTCPeerConnection, exposed for manual debugging in the browser console. */
-    __debugPC?: RTCPeerConnection;
-  }
-}
-
 const FALLBACK_ICE_SERVERS: RTCIceServer[] = [
   { urls: "stun:stun.l.google.com:19302" },
   { urls: "stun:stun1.l.google.com:19302" },
@@ -51,7 +44,6 @@ const INITIAL_CALL_STATE: CallState = {
   isMicOn: true,
   isCamOn: false,
   error: "",
-  iceState: "",
 };
 
 type CallEventName =
@@ -156,22 +148,6 @@ export function useVoiceCall({ currentUser }: { currentUser?: CallCurrentUser | 
     const peerConnection = new RTCPeerConnection({ iceServers });
     peerConnectionRef.current = peerConnection;
 
-    // ── Debug: track ICE & connection state (shown in call UI) ──────
-    peerConnection.oniceconnectionstatechange = () => {
-      const s = peerConnection.iceConnectionState;
-      console.log("[WebRTC] ICE connection state:", s);
-      setCallState((prev) => ({ ...prev, iceState: s }));
-    };
-    peerConnection.onicegatheringstatechange = () => {
-      console.log("[WebRTC] ICE gathering state:", peerConnection.iceGatheringState);
-    };
-    peerConnection.onconnectionstatechange = () => {
-      console.log("[WebRTC] Connection state:", peerConnection.connectionState);
-    };
-    // Expose for manual console debugging: window.__debugPC?.iceConnectionState
-    window.__debugPC = peerConnection;
-    // ─────────────────────────────────────────────────────────────────
-
     peerConnection.onicecandidate = (event) => {
       if (!event.candidate) return;
       const currentCall = callStateRef.current;
@@ -187,14 +163,12 @@ export function useVoiceCall({ currentUser }: { currentUser?: CallCurrentUser | 
     };
 
     peerConnection.ontrack = (event) => {
-      console.log("[WebRTC] ontrack fired — kind:", event.track.kind, "streams:", event.streams.length);
       const [stream] = event.streams;
       if (stream) setRemoteStream(stream);
     };
 
     const localStream = await ensureLocalAudioStream();
     localStream.getTracks().forEach((track) => {
-      console.log("[WebRTC] Adding local track:", track.kind);
       peerConnection.addTrack(track, localStream);
     });
 

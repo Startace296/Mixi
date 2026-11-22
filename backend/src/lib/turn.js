@@ -11,6 +11,17 @@ const CACHE_TTL_MS = 6 * 60 * 60 * 1000;
 
 let cache = null; // { promise, expiresAt }
 
+// Public relay used when Metered is not configured or cannot be reached, so calls
+// still have a chance to connect. It is shared and rate limited: configure Metered
+// (METERED_DOMAIN / METERED_SECRET_KEY) for anything real.
+export const FREE_TURN_SERVERS = [
+  { urls: "stun:stun.l.google.com:19302" },
+  { urls: "stun:stun1.l.google.com:19302" },
+  { urls: "turn:openrelay.metered.ca:80", username: "openrelayproject", credential: "openrelayproject" },
+  { urls: "turn:openrelay.metered.ca:443", username: "openrelayproject", credential: "openrelayproject" },
+  { urls: "turn:openrelay.metered.ca:443?transport=tcp", username: "openrelayproject", credential: "openrelayproject" },
+];
+
 async function meteredRequest(url, init, failureMessage) {
   let response;
   try {
@@ -66,14 +77,17 @@ export function getTurnCredentials() {
   const secretKey = process.env.METERED_SECRET_KEY;
 
   if (!domain || !secretKey) {
-    throw new AppError("TURN server is not configured on the server", 500);
+    console.warn("[TURN] METERED_DOMAIN or METERED_SECRET_KEY not set, using free TURN servers");
+    return Promise.resolve(FREE_TURN_SERVERS);
   }
 
   const entry = {
     expiresAt: Date.now() + CACHE_TTL_MS,
+    // A failure is not cached: the next call tries Metered again.
     promise: loadIceServers(domain, secretKey).catch((error) => {
       if (cache === entry) cache = null;
-      throw error;
+      console.warn("[TURN] Metered failed, falling back to free TURN servers:", error.message);
+      return FREE_TURN_SERVERS;
     }),
   };
   cache = entry;

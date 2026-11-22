@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { CallAvatar, CallTimer, CtrlBtn } from "./controls";
 import { BACKDROP_STYLE } from "./styles";
 import { IconMic, IconMicOff, IconVideo, WithSlash } from "./icons";
-import type { CallMode, CallState } from "../../../types";
+import type { CallMode } from "../../../types";
 
 /* ─── In-call phase ──────────────────────────────────────────────── */
 
@@ -14,14 +14,13 @@ interface InCallViewProps {
   isMicOn: boolean;
   isCamOn: boolean;
   error: string;
-  iceState: CallState["iceState"];
   remoteStream: MediaStream | null;
   onToggleMic?: () => void;
   onToggleCam?: () => void;
   onEnd?: () => void;
 }
 
-export default function InCallView({ mode, peerName, peerAvatarUrl, isMicOn, isCamOn, error, iceState, remoteStream, onToggleMic, onToggleCam, onEnd }: InCallViewProps) {
+export default function InCallView({ mode, peerName, peerAvatarUrl, isMicOn, isCamOn, error, remoteStream, onToggleMic, onToggleCam, onEnd }: InCallViewProps) {
   const [peerCamOn, setPeerCamOn] = useState(false);
   const remoteAudioRef = useRef<HTMLAudioElement>(null);
   const showVideoLayout = mode === "video" || isCamOn || peerCamOn;
@@ -30,9 +29,8 @@ export default function InCallView({ mode, peerName, peerAvatarUrl, isMicOn, isC
     if (!remoteAudioRef.current) return;
     remoteAudioRef.current.srcObject = remoteStream || null;
     if (remoteStream) {
-      console.log("[WebRTC] Setting remoteStream on audio element, playing...");
-      remoteAudioRef.current.play().catch((err: unknown) => {
-        console.warn("[WebRTC] Audio autoplay blocked:", err);
+      remoteAudioRef.current.play().catch(() => {
+        // Autoplay can be blocked until the user interacts with the page; the call UI stays usable.
       });
     }
   }, [remoteStream]);
@@ -138,16 +136,6 @@ export default function InCallView({ mode, peerName, peerAvatarUrl, isMicOn, isC
               {error && (
                 <p className="mt-3 max-w-xs rounded-xl px-3 py-2 text-center text-xs font-semibold text-red-100" style={{ background: "rgba(239,68,68,0.18)" }}>
                   {error}
-                </p>
-              )}
-              {/* ICE state debug badge */}
-              {iceState && (
-                <p className="mt-2 text-[10px] font-mono" style={{
-                  color: iceState === "connected" || iceState === "completed" ? "#34d399"
-                    : iceState === "failed" || iceState === "disconnected" ? "#f87171"
-                    : "rgba(255,255,255,0.4)"
-                }}>
-                  ICE: {iceState}
                 </p>
               )}
             </div>

@@ -17,8 +17,6 @@ export interface CallState {
   isMicOn: boolean;
   isCamOn: boolean;
   error: string;
-  /** Debug: ICE connection state. */
-  iceState: RTCIceConnectionState | '';
 }
 
 /** The chat a call is started from; `otherUserId` is accepted for older thread shapes. */

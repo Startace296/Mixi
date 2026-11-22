@@ -3,6 +3,10 @@ dist
 coverage
 tests
 .vercel
+*.log
+.git
+.gitignore
+Dockerfile
+README.md
 .env
 .env.*
-*.log

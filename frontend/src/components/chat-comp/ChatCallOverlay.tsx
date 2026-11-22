@@ -8,7 +8,7 @@ import type { CallPhase, CallState } from "../../types";
 
 type ChatCallOverlayProps = Pick<
   CallState,
-  "isOpen" | "phase" | "mode" | "peerName" | "peerAvatarUrl" | "isMicOn" | "isCamOn" | "error" | "iceState"
+  "isOpen" | "phase" | "mode" | "peerName" | "peerAvatarUrl" | "isMicOn" | "isCamOn" | "error"
 > & {
   remoteStream: MediaStream | null;
   onAccept?: () => void;
@@ -28,7 +28,6 @@ export default function ChatCallOverlay({
   isMicOn,
   isCamOn,
   error,
-  iceState,
   remoteStream,
   onAccept,
   onDecline,
@@ -69,7 +68,6 @@ export default function ChatCallOverlay({
         isMicOn={isMicOn}
         isCamOn={isCamOn}
         error={error}
-        iceState={iceState}
         remoteStream={remoteStream}
         onToggleMic={onToggleMic}
         onToggleCam={onToggleCam}

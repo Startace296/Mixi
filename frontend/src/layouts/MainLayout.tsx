@@ -276,7 +276,6 @@ export default function MainLayout() {
         isMicOn={callState.isMicOn}
         isCamOn={callState.isCamOn}
         error={callState.error}
-        iceState={callState.iceState}
         remoteStream={remoteStream}
         onAccept={acceptCall}
         onDecline={declineCall}

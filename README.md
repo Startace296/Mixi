@@ -2,6 +2,9 @@
 
 Mixi is a social networking platform that allows users to connect, chat in real time, and interact with each other. The project was developed as a practice project to explore modern web development technologies and real-time communication.
 
+User demo: solilyoung5@gmail.com
+password: LOL292002
+
 ## Features
 
 - User Authentication (JWT, Google OAuth)
@@ -67,6 +70,16 @@ BACKEND_PORT=8055 FRONTEND_PORT=3033 docker compose up --build
 cd backend && npm install && npm run dev    # needs backend/.env with MONGODB_URI and JWT_SECRET
 cd frontend && npm install && npm run dev
 ```
+
+## CI/CD and deployment
+
+- `.github/workflows/pr-checks.yml` runs on every pull request into `main`: backend lint and tests, frontend lint, type check, tests and build. It never deploys.
+- `.github/workflows/ci.yml` runs on every push to `main`: backend tests and frontend lint, then builds both images and pushes them to Docker Hub. The frontend image gets `VITE_API_URL=http://<EC2_HOST>:5000` at build time.
+- `.github/workflows/cd.yml` runs after a successful CI run: it SSHes into the EC2 host and runs `docker compose pull && docker compose up -d` in `~/app`.
+
+`docker-compose.prod.yml` is the production stack (prebuilt images, no MongoDB container, settings from `backend/.env`). On the server it is used as `~/app/docker-compose.yml`. `docker-compose.yml` is the local stack described above.
+
+Voice calls need the page to be served over HTTPS (or from `localhost`): browsers only allow microphone access in a secure context. On a plain `http://<EC2_HOST>` deployment calls cannot start.
 
 ## Frontend TypeScript
 

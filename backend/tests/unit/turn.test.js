@@ -1,6 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { CREDENTIAL_LABEL, getTurnCredentials, resetTurnCredentialsCache } from "../../src/lib/turn.js";
+import {
+  CREDENTIAL_LABEL,
+  FREE_TURN_SERVERS,
+  getTurnCredentials,
+  resetTurnCredentialsCache,
+} from "../../src/lib/turn.js";
 
 const ICE_SERVERS = [{ urls: "turn:global.relay.metered.ca:80", username: "u", credential: "p" }];
 
@@ -33,6 +38,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.restoreAllMocks();
   vi.unstubAllGlobals();
   vi.useRealTimers();
 });
@@ -80,16 +86,21 @@ describe("getTurnCredentials", () => {
     expect(fetchMock).toHaveBeenCalledTimes(4);
   });
 
-  it("does not cache a failure", async () => {
+  it("falls back to the free servers when Metered fails, without caching the failure", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    vi.spyOn(console, "error").mockImplementation(() => {});
     mockMetered({ existing: [], createStatus: 403 });
-    await expect(getTurnCredentials()).rejects.toMatchObject({ statusCode: 502 });
+    await expect(getTurnCredentials()).resolves.toEqual(FREE_TURN_SERVERS);
 
     mockMetered({ existing: [{ label: CREDENTIAL_LABEL, apiKey: "existing-key" }] });
     await expect(getTurnCredentials()).resolves.toEqual(ICE_SERVERS);
   });
 
-  it("fails clearly when TURN is not configured", () => {
+  it("uses the free servers when Metered is not configured", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const fetchMock = mockMetered();
     delete process.env.METERED_SECRET_KEY;
-    expect(() => getTurnCredentials()).toThrow("TURN server is not configured");
+    await expect(getTurnCredentials()).resolves.toEqual(FREE_TURN_SERVERS);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });
